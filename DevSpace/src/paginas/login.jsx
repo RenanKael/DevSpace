@@ -1,5 +1,5 @@
 import "../style/login.css";
-import logo from "../assets/Black-DevSpace-removebg-preview.png";
+import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 
 export default function Login() {
   return (
