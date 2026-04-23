@@ -1,11 +1,12 @@
 import "../style/login.css";
+import logo from "../assets/Black-DevSpace-removebg-preview.png";
 
 export default function Login() {
   return (
     <div className="container">
       <div className="left">
-        <div><img src="" alt="" /></div>
-        <h2>Faça login e entre para o nosso time!</h2>
+        <img src={logo} width="300" />
+        <h2>Faça login e entre para o nosso time</h2>
       </div>
 
       <div className="right">
