@@ -6,7 +6,7 @@ export default function Login() {
     <div className="container">
       <div className="left">
         <img src={logo} width="300" />
-        <h2>Faça login e entre para o nosso time</h2>
+        <h2>Faça login e entre para o nosso time!</h2>
       </div>
 
       <div className="right">
