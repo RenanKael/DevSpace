@@ -77,7 +77,7 @@ body {
   bottom: -6px;
   left: -6px;              /* ← começa antes da borda esquerda */
   width: calc(100% + 6px);/* ← cresce pra cobrir a junção */
-  height: 6px;
+  height: 4px;
   background: #d9d9d9;
   border-radius: 0 0 30px 30px;
 }
