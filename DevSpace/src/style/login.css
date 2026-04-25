@@ -5,8 +5,14 @@
   font-family: "Segoe UI", Arial, sans-serif;
 }
 
-body {
+html, body {
   background: #000;
+  height: 100%;
+}
+
+#root {
+  background: #000;
+  min-height: 100vh;
 }
 
 /* CONTAINER GERAL */
