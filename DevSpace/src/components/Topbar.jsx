@@ -6,8 +6,16 @@ export default function Topbar({ visible, usuario }) {
       <input type="text" placeholder="Buscar" />
 
       <div className="profile">
-        {/* 👇 mostra nome real */}
-        <span>{usuario ? usuario.username : "..."}</span>
+        <div className="user-info">
+          <span className="nome">
+            {usuario ? usuario.username : "..."}
+          </span>
+
+          <span className="arroba">
+            @{usuario ? usuario.username : "..."}
+          </span>
+        </div>
+
         <div className="avatar"></div>
       </div>
     </div>
