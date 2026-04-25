@@ -1,7 +1,10 @@
 import "../style/login.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
+import { useState } from "react";
 
 export default function Login({ onLogin }) {
+  const [modoCadastro, setModoCadastro] = useState(false);
+
   return (
     <div className="container">
       
@@ -12,11 +15,21 @@ export default function Login({ onLogin }) {
 
       <div className="right">
         <div className="card">
-          <h3>Entrar no DevSpace</h3>
+
+          <h3>
+            {modoCadastro ? "Criar conta" : "Entrar no DevSpace"}
+          </h3>
+
+          {modoCadastro && (
+            <input
+              type="text"
+              placeholder="Nome de usuário"
+            />
+          )}
 
           <input
             type="text"
-            placeholder="Nome de usuário ou email"
+            placeholder="Email"
           />
 
           <input
@@ -24,9 +37,29 @@ export default function Login({ onLogin }) {
             placeholder="Senha"
           />
 
-          <button onClick={onLogin}>Entrar</button>
+          {/* BOTÕES */}
+          {!modoCadastro ? (
+            <>
+              <button onClick={onLogin}>Entrar</button>
+              <button 
+                className="btn-secundario"
+                onClick={() => setModoCadastro(true)}
+              >
+                Cadastrar
+              </button>
+            </>
+          ) : (
+            <>
+              <button>Criar conta</button>
+              <button 
+                className="btn-secundario"
+                onClick={() => setModoCadastro(false)}
+              >
+                Voltar ao login
+              </button>
+            </>
+          )}
 
-          {/* elemento invisível que cria a curvinha da moldura */}
           <span></span>
 
         </div>
