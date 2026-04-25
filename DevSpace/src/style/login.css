@@ -134,7 +134,7 @@ html, body {
 
 /* BOTÃO */
 .card button {
-  width: 60%;
+  width: 100%;
   padding: 14px;
   border-radius: 12px;
   border: none;
@@ -151,7 +151,7 @@ html, body {
 }
 
 .btn-secundario {
-  width: 60%;
+  width: 100%;
   padding: 14px;
   border-radius: 12px;
   border: 2px solid #d9d9d9;
@@ -167,4 +167,8 @@ html, body {
 .btn-secundario:hover {
   background: #d9d9d9;
   color: black;
+}
+
+.card button + button {
+  margin-top: 12px;
 }
