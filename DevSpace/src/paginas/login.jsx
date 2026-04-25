@@ -1,8 +1,7 @@
 import "../style/login.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
-props.onLogin();
 
-export default function Login() {
+export default function Login({ onLogin }) {
   return (
     <div className="container">
       <div className="left">
@@ -24,7 +23,7 @@ export default function Login() {
             placeholder="Senha"
           />
 
-          <button>Entrar</button>
+          <button onClick={onLogin}>Entrar</button>
         </div>
       </div>
     </div>
