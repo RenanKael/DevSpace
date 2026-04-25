@@ -40,31 +40,40 @@ body {
   align-items: center;
   justify-content: center;
 }
+
 .logo img {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* 👈 faz encaixar certinho */
-  border-radius: 50%; /* 👈 mantém o formato redondo */
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 /* MENU */
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 20px 0;
+  gap: 12px;
+  margin: 10px 0;
   cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 10px;
 }
 
+/* 👇 CORRIGIDO AQUI */
 .nav-item img {
   width: 24px;
   height: 24px;
-  background: gray;
+  object-fit: contain; /* sem fundo cinza */
+}
+
+/* 👇 HOVER (opcional mas fica top) */
+.nav-item:hover {
+  background: #111;
 }
 
 /* BOTÃO LÁ EMBAIXO */
 .post-btn {
-  margin-top: auto; /* 👈 joga pra baixo */
+  margin-top: auto;
   margin-bottom: 10px;
 
   width: 100%;
