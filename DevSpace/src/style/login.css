@@ -19,7 +19,7 @@ html, body {
 .container {
   display: flex;
   height: 100vh;
-  gap: 120px;          /* espaço entre as colunas */
+  gap: 100px;          /* espaço entre as colunas */
   padding: 0 120px;    /* empurra tudo pro centro */
 }
 
