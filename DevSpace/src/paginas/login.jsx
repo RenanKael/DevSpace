@@ -79,10 +79,10 @@ export default function Login({ onLogin }) {
           )}
 
           <input
-            type="text"
-            placeholder="Email ou usuário"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+           type="text"
+           placeholder={modoCadastro ? "Email" : "Email ou usuário"}
+           value={email}
+           onChange={(e) => setEmail(e.target.value)}
           />
 
           <input
