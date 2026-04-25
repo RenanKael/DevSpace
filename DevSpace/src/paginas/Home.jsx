@@ -5,6 +5,13 @@ import "../style/home.css";
 
 export default function Home() {
   const [showTopbar, setShowTopbar] = useState(true);
+  const [usuario, setUsuario] = useState(null);
+
+  // 🔹 pegar usuário logado ao abrir a página
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("usuarioLogado"));
+    setUsuario(user);
+  }, []);
 
   // POSTS
   const [posts, setPosts] = useState([
@@ -14,7 +21,6 @@ export default function Home() {
     "Post 4",
   ]);
 
-  // 👇 NOVO: controle de loading
   const [loading, setLoading] = useState(false);
 
   let lastScroll = 0;
@@ -22,13 +28,7 @@ export default function Home() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScroll = window.scrollY;
-
-      if (currentScroll > lastScroll) {
-        setShowTopbar(false);
-      } else {
-        setShowTopbar(true);
-      }
-
+      setShowTopbar(currentScroll < lastScroll);
       lastScroll = currentScroll;
     };
 
@@ -36,14 +36,11 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 👇 FUNÇÃO DE RELOAD MELHORADA
   const reloadFeed = () => {
-    if (loading) return; // bloqueia spam de clique
+    if (loading) return;
 
     setLoading(true);
-    console.log("Recarregando feed...");
 
-    // simulação de carregamento
     setTimeout(() => {
       setPosts([
         "Novo post A",
@@ -51,7 +48,6 @@ export default function Home() {
         "Novo post C",
         "Novo post D",
       ]);
-
       setLoading(false);
     }, 1000);
   };
@@ -61,10 +57,10 @@ export default function Home() {
       <Sidebar onReload={reloadFeed} />
 
       <div className="main">
-        <Topbar visible={showTopbar} />
+        {/* 👇 agora enviamos o usuário */}
+        <Topbar visible={showTopbar} usuario={usuario} />
 
         <div className="feed">
-          {/* 👇 MOSTRA QUANDO ESTÁ CARREGANDO */}
           {loading && <p>Carregando...</p>}
 
           {posts.map((post, index) => (

@@ -172,3 +172,9 @@ html, body {
 .card button + button {
   margin-top: 12px;
 }
+
+.erro{
+  color: #ff4d4d;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
