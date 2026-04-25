@@ -4,8 +4,9 @@ import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 export default function Login({ onLogin }) {
   return (
     <div className="container">
+      
       <div className="left">
-        <img src={logo} width="300" />
+        <img src={logo} />
         <h2>Faça login e entre para o nosso time!</h2>
       </div>
 
@@ -24,8 +25,13 @@ export default function Login({ onLogin }) {
           />
 
           <button onClick={onLogin}>Entrar</button>
+
+          {/* elemento invisível que cria a curvinha da moldura */}
+          <span></span>
+
         </div>
       </div>
+
     </div>
   );
 }

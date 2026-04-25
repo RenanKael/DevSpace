@@ -23,22 +23,22 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
-  gap: 30px;
-  text-align: left;
-  padding: 80px;
+  align-items: flex-start;   /* <- alinhamento à esquerda */
+  padding-left: 120px;       /* <- empurra da borda */
+  gap: 40px;
 }
 
 .left img {
-  width: 180px;
+  width: 230px;
   opacity: 0.9;
 }
 
 .left h2 {
-  font-size: 42px;
+  font-size: 48px;
   font-weight: 800;
-  max-width: 380px;
-  line-height: 1.2;
+  max-width: 420px;
+  line-height: 1.15;
+  text-align: left;   /* garante alinhamento */
 }
 
 /* LADO DIREITO */
@@ -55,21 +55,40 @@ body {
   width: 420px;
   padding: 60px 50px;
   border-radius: 30px;
-  border: 6px solid #d9d9d9;
   background: transparent;
   position: relative;
 }
 
-/* detalhe da curva inferior direita */
+.card::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  background: #d9d9d9;
+  border-radius: 30px 0 0 30px;
+}
+
 .card::after {
   content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: #d9d9d9;
+  border-radius: 0 0 30px 30px;
+}
+
+.card span {
   position: absolute;
   bottom: -6px;
   right: -6px;
   width: 120px;
   height: 120px;
-  border-bottom: 6px solid #d9d9d9;
   border-right: 6px solid #d9d9d9;
+  border-bottom: 6px solid #d9d9d9;
   border-radius: 0 0 30px 0;
 }
 
