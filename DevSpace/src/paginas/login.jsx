@@ -41,6 +41,7 @@ export default function Login({ onLogin }) {
           {!modoCadastro ? (
             <>
               <button onClick={onLogin}>Entrar</button>
+
               <button 
                 className="btn-secundario"
                 onClick={() => setModoCadastro(true)}
@@ -50,7 +51,11 @@ export default function Login({ onLogin }) {
             </>
           ) : (
             <>
-              <button>Criar conta</button>
+              {/* AGORA VOLTA PARA LOGIN AO CRIAR CONTA */}
+              <button onClick={() => setModoCadastro(false)}>
+                Criar conta
+              </button>
+
               <button 
                 className="btn-secundario"
                 onClick={() => setModoCadastro(false)}
