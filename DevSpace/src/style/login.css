@@ -61,10 +61,15 @@ html, body {
 /* CARD COM BORDA ESTILO MOLDURA */
 .card {
   width: 420px;
+  height: 520px;          /* altura fixa */
   padding: 60px 50px;
   border-radius: 30px;
   background: transparent;
   position: relative;
+
+  display: flex;          /* 👇 novo */
+  flex-direction: column;
+  justify-content: center;
 }
 
 .card::before {
@@ -177,4 +182,14 @@ html, body {
   color: #ff4d4d;
   margin-bottom: 15px;
   font-size: 14px;
+}
+
+.sucesso{
+  color: #4dff88;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.container{
+  overflow: hidden;
 }

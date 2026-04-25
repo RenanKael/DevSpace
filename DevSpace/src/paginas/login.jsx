@@ -3,17 +3,18 @@ import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import { useState } from "react";
 
 export default function Login({ onLogin }) {
-
   const [modoCadastro, setModoCadastro] = useState(false);
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState("");
 
-  // 🔹 SALVAR USUÁRIO
+  // =========================
+  // CRIAR CONTA
+  // =========================
   function criarConta() {
-
     if (!username || !email || !senha) {
       setErro("Preencha todos os campos!");
       return;
@@ -21,17 +22,36 @@ export default function Login({ onLogin }) {
 
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
+    // impedir email repetido
+    const jaExiste = usuarios.find((u) => u.email === email);
+    if (jaExiste) {
+      setErro("Este email já está cadastrado.");
+      return;
+    }
+
     usuarios.push({ username, email, senha });
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
 
-    alert("Conta criada com sucesso!");
-    setModoCadastro(false);
+    // notificação no site
+    setSucesso("Conta criada com sucesso! Faça login 😊");
     setErro("");
+
+    // limpar campos
+    setUsername("");
+    setEmail("");
+    setSenha("");
+
+    // voltar pro login após 1.5s
+    setTimeout(() => {
+      setModoCadastro(false);
+      setSucesso("");
+    }, 1500);
   }
 
-  // 🔹 LOGIN
+  // =========================
+  // LOGIN
+  // =========================
   function entrar() {
-
     if (!email || !senha) {
       setErro("Digite email ou nome de usuário e senha.");
       return;
@@ -50,15 +70,15 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    // salva usuário logado
     localStorage.setItem("usuarioLogado", JSON.stringify(usuarioEncontrado));
-
-    onLogin(); // vai para Home
+    onLogin(); // ir para Home
   }
 
+  // =========================
+  // JSX
+  // =========================
   return (
     <div className="container">
-      
       <div className="left">
         <img src={logo} />
         <h2>Faça login e entre para o nosso time!</h2>
@@ -66,7 +86,6 @@ export default function Login({ onLogin }) {
 
       <div className="right">
         <div className="card">
-
           <h3>{modoCadastro ? "Criar conta" : "Entrar no DevSpace"}</h3>
 
           {modoCadastro && (
@@ -79,10 +98,10 @@ export default function Login({ onLogin }) {
           )}
 
           <input
-           type="text"
-           placeholder={modoCadastro ? "Email" : "Email ou usuário"}
-           value={email}
-           onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            placeholder={modoCadastro ? "Email" : "Email ou usuário"}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
 
           <input
@@ -93,6 +112,7 @@ export default function Login({ onLogin }) {
           />
 
           {erro && <p className="erro">{erro}</p>}
+          {sucesso && <p className="sucesso">{sucesso}</p>}
 
           {!modoCadastro ? (
             <>
@@ -102,6 +122,7 @@ export default function Login({ onLogin }) {
                 className="btn-secundario"
                 onClick={() => {
                   setErro("");
+                  setSucesso("");
                   setModoCadastro(true);
                 }}
               >
@@ -116,6 +137,7 @@ export default function Login({ onLogin }) {
                 className="btn-secundario"
                 onClick={() => {
                   setErro("");
+                  setSucesso("");
                   setModoCadastro(false);
                 }}
               >
@@ -123,8 +145,6 @@ export default function Login({ onLogin }) {
               </button>
             </>
           )}
-
-          <span></span>
         </div>
       </div>
     </div>
