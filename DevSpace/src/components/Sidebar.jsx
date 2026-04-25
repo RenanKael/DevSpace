@@ -12,7 +12,8 @@ export default function Sidebar({ onReload }) {
       </div>
 
       <nav>
-        <div className="nav-item">
+        {/* 👇 ADICIONADO AQUI */}
+        <div className="nav-item" onClick={onReload}>
           <img src={paginaInicial} alt="Página Inicial" />
           <span>Página Inicial</span>
         </div>
