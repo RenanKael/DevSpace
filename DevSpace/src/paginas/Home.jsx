@@ -6,13 +6,16 @@ import "../style/home.css";
 export default function Home() {
   const [showTopbar, setShowTopbar] = useState(true);
 
-  // 👇 NOVO: posts
+  // POSTS
   const [posts, setPosts] = useState([
     "Post 1",
     "Post 2",
     "Post 3",
     "Post 4",
   ]);
+
+  // 👇 NOVO: controle de loading
+  const [loading, setLoading] = useState(false);
 
   let lastScroll = 0;
 
@@ -33,27 +36,37 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // FUNÇÃO DE RELOAD
+  // 👇 FUNÇÃO DE RELOAD MELHORADA
   const reloadFeed = () => {
+    if (loading) return; // bloqueia spam de clique
+
+    setLoading(true);
     console.log("Recarregando feed...");
 
-    setPosts([
-      "Novo post A",
-      "Novo post B",
-      "Novo post C",
-      "Novo post D",
-    ]);
+    // simulação de carregamento
+    setTimeout(() => {
+      setPosts([
+        "Novo post A",
+        "Novo post B",
+        "Novo post C",
+        "Novo post D",
+      ]);
+
+      setLoading(false);
+    }, 1000);
   };
 
   return (
     <div className="home">
-      {/* 👇 AQUI É ONDE PASSA */}
       <Sidebar onReload={reloadFeed} />
 
       <div className="main">
         <Topbar visible={showTopbar} />
 
         <div className="feed">
+          {/* 👇 MOSTRA QUANDO ESTÁ CARREGANDO */}
+          {loading && <p>Carregando...</p>}
+
           {posts.map((post, index) => (
             <div key={index} className="post-placeholder">
               {post}
