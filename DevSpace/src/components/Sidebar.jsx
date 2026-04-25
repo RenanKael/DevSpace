@@ -4,10 +4,10 @@ import paginaInicial from "../assets/IMGS/Home.png";
 import explorar from "../assets/IMGS/Explorar.png";
 import perfil from "../assets/IMGS/NoPerfil.png";
 
-export default function Sidebar() {
+export default function Sidebar({ onReload }) {
   return (
     <div className="sidebar">
-      <div className="logo">
+      <div className="logo" onClick={onReload}>
         <img src={logo} alt="DevSpace Logo" />
       </div>
 
