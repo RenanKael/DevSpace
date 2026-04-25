@@ -1,4 +1,4 @@
-import "../styles/home.css";
+import "../style/home.css";
 
 export default function Topbar({ visible }) {
   return (
