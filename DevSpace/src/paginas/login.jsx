@@ -1,5 +1,6 @@
 import "../style/login.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
+props.onLogin();
 
 export default function Login() {
   return (

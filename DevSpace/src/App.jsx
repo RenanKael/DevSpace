@@ -1,7 +1,15 @@
-import Login from "./paginas/login";
+import { useState } from "react";
+import Login from "./paginas/Login";
+import Home from "./pages/Home";
 
 function App() {
-  return <Login />;
+  const [logado, setLogado] = useState(false);
+
+  return logado ? (
+    <Home />
+  ) : (
+    <Login onLogin={() => setLogado(true)} />
+  );
 }
 
 export default App;
