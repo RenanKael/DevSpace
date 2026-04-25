@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Login from "./paginas/Login";
-import Home from "./pages/Home";
+import Home from "./paginas/Home";
 
 function App() {
   const [logado, setLogado] = useState(false);

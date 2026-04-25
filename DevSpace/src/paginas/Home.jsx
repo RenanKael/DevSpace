@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
-import "../styles/home.css";
+import "../style/home.css";
 
 export default function Home() {
   const [showTopbar, setShowTopbar] = useState(true);
