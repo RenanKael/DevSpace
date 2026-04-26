@@ -9,19 +9,12 @@ export default function Perfil({ onLogout, irHome }) {
   const [form, setForm] = useState({});
   const [senhaAtual, setSenhaAtual] = useState("");
 
-  // 🔥 ajuste imagem
-  const [ajustandoImagem, setAjustandoImagem] = useState(null);
+  const [ajuste, setAjuste] = useState(null);
   const [pos, setPos] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
-    let user = JSON.parse(localStorage.getItem("usuarioLogado"));
-
+    const user = JSON.parse(localStorage.getItem("usuarioLogado"));
     if (user) {
-      if (!user.criadoEm) {
-        user.criadoEm = new Date().toISOString();
-        localStorage.setItem("usuarioLogado", JSON.stringify(user));
-      }
-
       setUsuario(user);
       setForm(user);
     }
@@ -33,24 +26,19 @@ export default function Perfil({ onLogout, irHome }) {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setAjustandoImagem({
-        tipo,
-        src: reader.result,
-      });
+      setAjuste({ tipo, src: reader.result });
       setPos({ x: 50, y: 50 });
     };
-
     reader.readAsDataURL(file);
   }
 
-  function salvarImagemAjustada() {
+  function aplicarImagem() {
     setForm((prev) => ({
       ...prev,
-      [ajustandoImagem.tipo]: ajustandoImagem.src,
-      [`${ajustandoImagem.tipo}Pos`]: pos,
+      [ajuste.tipo]: ajuste.src,
+      [`${ajuste.tipo}Pos`]: pos
     }));
-
-    setAjustandoImagem(null);
+    setAjuste(null);
   }
 
   function salvar() {
@@ -73,7 +61,6 @@ export default function Perfil({ onLogout, irHome }) {
 
     setUsuario(form);
     setEditando(false);
-    setSenhaAtual("");
   }
 
   function logout() {
@@ -85,7 +72,7 @@ export default function Perfil({ onLogout, irHome }) {
 
   return (
     <div className="home">
-      <Sidebar onReload={irHome} irPerfil={() => {}} />
+      <Sidebar onReload={irHome} />
 
       <div className="profile-page">
 
@@ -98,11 +85,25 @@ export default function Perfil({ onLogout, irHome }) {
               : "none",
             backgroundPosition: usuario.fotoCapaPos
               ? `${usuario.fotoCapaPos.x}% ${usuario.fotoCapaPos.y}%`
-              : "center",
+              : "center"
           }}
-        ></div>
+        >
+          <button
+            className="btn-img"
+            onClick={() => document.getElementById("capaInput").click()}
+          >
+            Alterar capa
+          </button>
 
-        {/* HEADER */}
+          <input
+            id="capaInput"
+            type="file"
+            hidden
+            onChange={(e) => handleImagem(e, "fotoCapa")}
+          />
+        </div>
+
+        {/* PERFIL */}
         <div className="perfil-header">
           <div
             className="foto"
@@ -112,28 +113,39 @@ export default function Perfil({ onLogout, irHome }) {
                 : "none",
               backgroundPosition: usuario.fotoPerfilPos
                 ? `${usuario.fotoPerfilPos.x}% ${usuario.fotoPerfilPos.y}%`
-                : "center",
+                : "center"
             }}
-          ></div>
-
-          <button
-            className="btn-editar"
-            onClick={() => setEditando(true)}
           >
+            <button
+              className="btn-img pequeno"
+              onClick={() => document.getElementById("perfilInput").click()}
+            >
+              Alterar
+            </button>
+          </div>
+
+          <input
+            id="perfilInput"
+            type="file"
+            hidden
+            onChange={(e) => handleImagem(e, "fotoPerfil")}
+          />
+
+          <button className="btn-editar" onClick={() => setEditando(true)}>
             Editar Perfil
           </button>
         </div>
 
+        {/* INFO */}
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
 
           <p className="data">
-            Entrou em{" "}
-            {new Date(usuario.criadoEm).toLocaleDateString("pt-BR")}
+            Entrou em {new Date(usuario.criadoEm).toLocaleDateString("pt-BR")}
           </p>
 
-          <p className="bio">{usuario.bio || "Sem bio..."}</p>
+          <p>{usuario.bio || "Sem bio..."}</p>
         </div>
 
         <button className="logout" onClick={logout}>
@@ -144,7 +156,7 @@ export default function Perfil({ onLogout, irHome }) {
       {/* POPUP EDITAR */}
       {editando && (
         <div className="overlay">
-          <div className="popup">
+          <div className="popup largo">
 
             <h2>Editar Perfil</h2>
 
@@ -164,38 +176,8 @@ export default function Perfil({ onLogout, irHome }) {
               }
             />
 
-            {/* FOTO PERFIL */}
-            <label>Foto de Perfil</label>
             <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleImagem(e, "fotoPerfil")}
-            />
-
-            <div className="preview-perfil">
-              <div
-                style={{
-                  backgroundImage: form.fotoPerfil
-                    ? `url(${form.fotoPerfil})`
-                    : "none",
-                }}
-              ></div>
-            </div>
-
-            {/* FOTO CAPA */}
-            <label>Foto de Capa</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleImagem(e, "fotoCapa")}
-            />
-
-            <div className="preview-capa">
-              {form.fotoCapa && <img src={form.fotoCapa} />}
-            </div>
-
-            <input
-              placeholder="Novo email"
+              placeholder="Email"
               value={form.email || ""}
               onChange={(e) =>
                 setForm({ ...form, email: e.target.value })
@@ -219,52 +201,53 @@ export default function Perfil({ onLogout, irHome }) {
 
             <div className="popup-btns">
               <button onClick={salvar}>Salvar</button>
-              <button onClick={() => setEditando(false)}>
-                Cancelar
-              </button>
+              <button onClick={() => setEditando(false)}>Cancelar</button>
             </div>
+
           </div>
         </div>
       )}
 
-      {/* 🔥 POPUP AJUSTE IMAGEM */}
-      {ajustandoImagem && (
+      {/* POPUP AJUSTE */}
+      {ajuste && (
         <div className="overlay">
-          <div className="popup ajuste">
+          <div className="popup largo">
 
             <h2>Ajustar Imagem</h2>
 
             <div
-              className="ajuste-box"
+              className="ajuste-preview"
               style={{
-                backgroundImage: `url(${ajustandoImagem.src})`,
-                backgroundPosition: `${pos.x}% ${pos.y}%`,
+                backgroundImage: `url(${ajuste.src})`,
+                backgroundPosition: `${pos.x}% ${pos.y}%`
               }}
             ></div>
 
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={pos.x}
-              onChange={(e) => setPos({ ...pos, x: e.target.value })}
-            />
-
+            <label>⬆️⬇️ Vertical</label>
             <input
               type="range"
               min="0"
               max="100"
               value={pos.y}
-              onChange={(e) => setPos({ ...pos, y: e.target.value })}
+              onChange={(e) =>
+                setPos({ ...pos, y: Number(e.target.value) })
+              }
+            />
+
+            <label>⬅️➡️ Horizontal</label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={pos.x}
+              onChange={(e) =>
+                setPos({ ...pos, x: Number(e.target.value) })
+              }
             />
 
             <div className="popup-btns">
-              <button onClick={salvarImagemAjustada}>
-                Aplicar
-              </button>
-              <button onClick={() => setAjustandoImagem(null)}>
-                Cancelar
-              </button>
+              <button onClick={aplicarImagem}>Aplicar</button>
+              <button onClick={() => setAjuste(null)}>Cancelar</button>
             </div>
 
           </div>
