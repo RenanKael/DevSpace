@@ -4,19 +4,46 @@ import "../style/perfil.css";
 
 export default function Perfil({ onLogout, irHome }) {
   const [usuario, setUsuario] = useState(null);
+  const [editando, setEditando] = useState(false);
 
-  // 🔥 pega usuário do localStorage
+  const [form, setForm] = useState({});
+  const [senhaAtual, setSenhaAtual] = useState("");
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("usuarioLogado"));
     setUsuario(user);
+    setForm(user);
   }, []);
+
+  function salvar() {
+    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+    // 🔐 validação se mudar email ou senha
+    if (
+      (form.email !== usuario.email || form.senha !== usuario.senha) &&
+      senhaAtual !== usuario.senha
+    ) {
+      alert("Senha atual incorreta!");
+      return;
+    }
+
+    usuarios = usuarios.map((u) =>
+      u.email === usuario.email ? { ...u, ...form } : u
+    );
+
+    localStorage.setItem("usuarios", JSON.stringify(usuarios));
+    localStorage.setItem("usuarioLogado", JSON.stringify(form));
+
+    setUsuario(form);
+    setEditando(false);
+    setSenhaAtual("");
+  }
 
   function logout() {
     localStorage.removeItem("usuarioLogado");
     onLogout();
   }
 
-  // evita quebrar antes de carregar
   if (!usuario) return null;
 
   return (
@@ -46,7 +73,10 @@ export default function Perfil({ onLogout, irHome }) {
             }}
           ></div>
 
-          <button className="btn-editar">
+          <button
+            className="btn-editar"
+            onClick={() => setEditando(true)}
+          >
             Editar Perfil
           </button>
         </div>
@@ -66,27 +96,83 @@ export default function Perfil({ onLogout, irHome }) {
           <p className="bio">
             {usuario.bio || "Sem bio..."}
           </p>
-
-          <div className="stats">
-            <span>Seguindo 0</span>
-            <span>Seguidores 0</span>
-            <span>Projetos {usuario.projetos?.length || 0}</span>
-          </div>
         </div>
 
-        {/* CARD */}
-        <div className="bio-card">
-          <p>Dev Back End.</p>
-          <p>WhatsApp: ...</p>
-          <p>Instagram: ...</p>
-        </div>
-
-        {/* LOGOUT */}
         <button className="logout" onClick={logout}>
           Sair da conta
         </button>
-
       </div>
+
+      {/* 🔥 POPUP */}
+      {editando && (
+        <div className="overlay">
+          <div className="popup">
+
+            <h2>Editar Perfil</h2>
+
+            <input
+              placeholder="Nome"
+              value={form.username || ""}
+              onChange={(e) =>
+                setForm({ ...form, username: e.target.value })
+              }
+            />
+
+            <input
+              placeholder="Bio"
+              value={form.bio || ""}
+              onChange={(e) =>
+                setForm({ ...form, bio: e.target.value })
+              }
+            />
+
+            <input
+              placeholder="Foto de perfil (URL)"
+              onChange={(e) =>
+                setForm({ ...form, fotoPerfil: e.target.value })
+              }
+            />
+
+            <input
+              placeholder="Foto de capa (URL)"
+              onChange={(e) =>
+                setForm({ ...form, fotoCapa: e.target.value })
+              }
+            />
+
+            <input
+              placeholder="Novo email"
+              value={form.email || ""}
+              onChange={(e) =>
+                setForm({ ...form, email: e.target.value })
+              }
+            />
+
+            <input
+              type="password"
+              placeholder="Nova senha"
+              onChange={(e) =>
+                setForm({ ...form, senha: e.target.value })
+              }
+            />
+
+            <input
+              type="password"
+              placeholder="Senha atual (obrigatório)"
+              value={senhaAtual}
+              onChange={(e) => setSenhaAtual(e.target.value)}
+            />
+
+            <div className="popup-btns">
+              <button onClick={salvar}>Salvar</button>
+              <button onClick={() => setEditando(false)}>
+                Cancelar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
