@@ -182,3 +182,17 @@
     border-right-color: var(--border);
   }
 }
+
+.preview-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.preview-capa {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}

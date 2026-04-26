@@ -13,14 +13,12 @@ export default function Perfil({ onLogout, irHome }) {
     let user = JSON.parse(localStorage.getItem("usuarioLogado"));
 
     if (user) {
-      // 🔥 CORREÇÃO AUTOMÁTICA DA DATA
+      // 🔥 garante data de criação
       if (!user.criadoEm) {
         user.criadoEm = new Date().toISOString();
 
-        // atualiza usuário logado
         localStorage.setItem("usuarioLogado", JSON.stringify(user));
 
-        // atualiza lista de usuários
         let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
         usuarios = usuarios.map((u) =>
@@ -37,10 +35,31 @@ export default function Perfil({ onLogout, irHome }) {
     }
   }, []);
 
+  // 🔥 função upload imagem
+  function handleImagem(e, tipo) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2000000) {
+      alert("Imagem muito grande! Máx: 2MB");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      setForm((prev) => ({
+        ...prev,
+        [tipo]: reader.result,
+      }));
+    };
+
+    reader.readAsDataURL(file);
+  }
+
   function salvar() {
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
-    // 🔐 validação se mudar email ou senha
     if (
       (form.email !== usuario.email || form.senha !== usuario.senha) &&
       senhaAtual !== usuario.senha
@@ -146,19 +165,29 @@ export default function Perfil({ onLogout, irHome }) {
               }
             />
 
+            {/* FOTO PERFIL */}
+            <label>Foto de Perfil</label>
             <input
-              placeholder="Foto de perfil (URL)"
-              onChange={(e) =>
-                setForm({ ...form, fotoPerfil: e.target.value })
-              }
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleImagem(e, "fotoPerfil")}
             />
 
+            {form.fotoPerfil && (
+              <img src={form.fotoPerfil} className="preview-img" />
+            )}
+
+            {/* FOTO CAPA */}
+            <label>Foto de Capa</label>
             <input
-              placeholder="Foto de capa (URL)"
-              onChange={(e) =>
-                setForm({ ...form, fotoCapa: e.target.value })
-              }
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleImagem(e, "fotoCapa")}
             />
+
+            {form.fotoCapa && (
+              <img src={form.fotoCapa} className="preview-capa" />
+            )}
 
             <input
               placeholder="Novo email"
