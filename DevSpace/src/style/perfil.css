@@ -1,0 +1,86 @@
+.profile-page {
+  margin-left: 250px;
+  color: white;
+}
+
+/* CAPA */
+.capa {
+  height: 200px;
+  background: #ccc; /* padrão cinza */
+  background-size: cover;
+  background-position: center;
+}
+
+/* FOTO */
+.perfil-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  margin-top: -50px;
+}
+
+.foto {
+  width: 100px;
+  height: 100px;
+  background: gray;
+  border-radius: 50%;
+  border: 4px solid black;
+}
+
+/* INFO */
+.info {
+  padding: 20px;
+}
+
+.estrelas {
+  margin-top: 10px;
+  font-size: 20px;
+}
+
+/* PROJETOS */
+.projetos {
+  padding: 20px;
+}
+
+.criar-projeto {
+  padding: 30px;
+  background: #111;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.criar-projeto:hover {
+  background: #222;
+}
+
+/* LOGOUT */
+.logout {
+  margin: 20px;
+  padding: 10px;
+  width: 200px;
+}
+
+/* POPUP */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.popup-content {
+  background: #111;
+  padding: 20px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

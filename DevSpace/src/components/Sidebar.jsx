@@ -4,7 +4,7 @@ import paginaInicial from "../assets/IMGS/Home.png";
 import explorar from "../assets/IMGS/Explorar.png";
 import perfil from "../assets/IMGS/NoPerfil.png";
 
-export default function Sidebar({ onReload }) {
+export default function Sidebar({ onReload, irPerfil }) {
   return (
     <div className="sidebar">
       <div className="logo" onClick={onReload}>
@@ -12,7 +12,6 @@ export default function Sidebar({ onReload }) {
       </div>
 
       <nav>
-        {/* 👇 ADICIONADO AQUI */}
         <div className="nav-item" onClick={onReload}>
           <img src={paginaInicial} alt="Página Inicial" />
           <span>Página Inicial</span>
@@ -23,7 +22,8 @@ export default function Sidebar({ onReload }) {
           <span>Explorar</span>
         </div>
 
-        <div className="nav-item">
+        {/* 🔥 AQUI QUE FALTAVA */}
+        <div className="nav-item" onClick={irPerfil}>
           <img src={perfil} alt="Perfil" />
           <span>Perfil</span>
         </div>
