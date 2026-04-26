@@ -177,3 +177,17 @@ body {
   color: #888;
   font-size: 12px;
 }
+
+.sidebar {
+  width: 250px;
+  position: fixed;
+  height: 100vh;
+}
+
+.profile-page {
+  margin-left: 250px;
+  width: calc(100% - 250px);
+  background: black;
+  min-height: 100vh;
+  color: white;
+}
