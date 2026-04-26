@@ -26,20 +26,38 @@ export default function Perfil({ onLogout, irHome }) {
 
       <div className="profile-page">
 
-        <div className="capa"></div>
+        {/* 🔥 CAPA DINÂMICA */}
+        <div
+          className="capa"
+          style={{
+            backgroundImage: usuario.fotoCapa
+              ? `url(${usuario.fotoCapa})`
+              : "none",
+          }}
+        ></div>
 
+        {/* 🔥 FOTO DE PERFIL DINÂMICA */}
         <div className="perfil-header">
-          <div className="foto"></div>
+          <div
+            className="foto"
+            style={{
+              backgroundImage: usuario.fotoPerfil
+                ? `url(${usuario.fotoPerfil})`
+                : "none",
+            }}
+          ></div>
         </div>
 
+        {/* INFO */}
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
         </div>
 
-        <button onClick={logout}>
+        <button className="logout" onClick={logout}>
           Sair da conta
         </button>
+
       </div>
     </div>
   );

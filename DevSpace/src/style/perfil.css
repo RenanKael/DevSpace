@@ -5,32 +5,54 @@
 
 /* CAPA */
 .capa {
-  height: 200px;
-  background: #ccc; /* padrão cinza */
+  width: 100%;
+  height: 220px;
+  background: #aaa; /* cinza padrão */
   background-size: cover;
   background-position: center;
 }
 
-/* FOTO */
+/* HEADER (foto + botão) */
 .perfil-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-  margin-top: -50px;
+
+  padding: 0 30px;
+  margin-top: -60px;
 }
 
+/* FOTO DE PERFIL */
 .foto {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   background: gray;
   border-radius: 50%;
   border: 4px solid black;
+  background-size: cover;
+  background-position: center;
+}
+
+/* BOTÃO */
+.perfil-header button {
+  background: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 20px;
+  cursor: pointer;
 }
 
 /* INFO */
 .info {
-  padding: 20px;
+  padding: 20px 30px;
+}
+
+.info h2 {
+  font-size: 24px;
+}
+
+.info span {
+  color: #888;
 }
 
 .estrelas {
@@ -40,10 +62,11 @@
 
 /* PROJETOS */
 .projetos {
-  padding: 20px;
+  padding: 20px 30px;
 }
 
 .criar-projeto {
+  margin-top: 10px;
   padding: 30px;
   background: #111;
   border-radius: 10px;
@@ -57,30 +80,9 @@
 
 /* LOGOUT */
 .logout {
-  margin: 20px;
+  margin: 20px 30px;
   padding: 10px;
-  width: 200px;
-}
-
-/* POPUP */
-.popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.7);
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.popup-content {
-  background: #111;
-  padding: 20px;
+  border: none;
   border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  cursor: pointer;
 }
