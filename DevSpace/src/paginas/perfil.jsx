@@ -1,64 +1,60 @@
-import { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import "../style/perfil.css";
+<div className="profile-page">
 
-export default function Perfil({ onLogout, irHome }) {
-  const [usuario, setUsuario] = useState(null);
+  {/* CAPA */}
+  <div
+    className="capa"
+    style={{
+      backgroundImage: usuario.fotoCapa
+        ? `url(${usuario.fotoCapa})`
+        : "none",
+    }}
+  ></div>
 
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("usuarioLogado"));
-    setUsuario(user);
-  }, []);
+  {/* HEADER (foto + botão) */}
+  <div className="perfil-header">
+    <div
+      className="foto"
+      style={{
+        backgroundImage: usuario.fotoPerfil
+          ? `url(${usuario.fotoPerfil})`
+          : "none",
+      }}
+    ></div>
 
-  function logout() {
-    localStorage.removeItem("usuarioLogado");
-    onLogout();
-  }
+    <button className="btn-editar">
+      Editar Perfil
+    </button>
+  </div>
 
-  if (!usuario) return null;
+  {/* INFO PRINCIPAL */}
+  <div className="info">
+    <h2>{usuario.username}</h2>
+    <span>@{usuario.username}</span>
 
-  return (
-    <div className="home">
-      <Sidebar
-        onReload={irHome}
-        irPerfil={() => {}}
-      />
+    <p className="data">
+      Entrou em{" "}
+      {usuario.criadoEm
+        ? new Date(usuario.criadoEm).toLocaleDateString()
+        : "..."}
+    </p>
 
-      <div className="profile-page">
+    <p className="bio">
+      {usuario.bio || "Sem bio..."}
+    </p>
 
-        {/* 🔥 CAPA DINÂMICA */}
-        <div
-          className="capa"
-          style={{
-            backgroundImage: usuario.fotoCapa
-              ? `url(${usuario.fotoCapa})`
-              : "none",
-          }}
-        ></div>
-
-        {/* 🔥 FOTO DE PERFIL DINÂMICA */}
-        <div className="perfil-header">
-          <div
-            className="foto"
-            style={{
-              backgroundImage: usuario.fotoPerfil
-                ? `url(${usuario.fotoPerfil})`
-                : "none",
-            }}
-          ></div>
-        </div>
-
-        {/* INFO */}
-        <div className="info">
-          <h2>{usuario.username}</h2>
-          <span>@{usuario.username}</span>
-        </div>
-
-        <button className="logout" onClick={logout}>
-          Sair da conta
-        </button>
-
-      </div>
+    {/* STATS */}
+    <div className="stats">
+      <span>Seguindo 0</span>
+      <span>Seguidores 0</span>
+      <span>Projetos 0</span>
     </div>
-  );
-}
+  </div>
+
+  {/* CARD BIO */}
+  <div className="bio-card">
+    <p>Dev Back End.</p>
+    <p>WhatsApp: ...</p>
+    <p>Instagram: ...</p>
+  </div>
+
+</div>
