@@ -41,16 +41,12 @@ export default function Login({ onLogin }) {
     setEmail("");
     setSenha("");
 
-    // voltar pro login após 1.5s
     setTimeout(() => {
       setModoCadastro(false);
       setSucesso("");
-    }, 1500);
+    }, 2500);
   }
 
-  // =========================
-  // LOGIN
-  // =========================
   function entrar() {
     if (!email || !senha) {
       setErro("Digite email ou nome de usuário e senha.");
@@ -74,9 +70,6 @@ export default function Login({ onLogin }) {
     onLogin(); // ir para Home
   }
 
-  // =========================
-  // JSX
-  // =========================
   return (
     <div className="container">
       <div className="left">
