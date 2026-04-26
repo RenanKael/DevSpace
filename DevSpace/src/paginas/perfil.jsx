@@ -9,14 +9,23 @@ export default function Perfil({ onLogout, irHome }) {
   const [form, setForm] = useState({});
   const [senhaAtual, setSenhaAtual] = useState("");
 
-  const [ajuste, setAjuste] = useState(null);
-  const [pos, setPos] = useState({ x: 50, y: 50 });
+  // posição das imagens
+  const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
+  const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("usuarioLogado"));
+
     if (user) {
+      if (!user.criadoEm) {
+        user.criadoEm = new Date().toISOString();
+      }
+
       setUsuario(user);
       setForm(user);
+
+      setPosPerfil(user.posPerfil || { x: 50, y: 50 });
+      setPosCapa(user.posCapa || { x: 50, y: 50 });
     }
   }, []);
 
@@ -25,20 +34,15 @@ export default function Perfil({ onLogout, irHome }) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setAjuste({ tipo, src: reader.result });
-      setPos({ x: 50, y: 50 });
-    };
-    reader.readAsDataURL(file);
-  }
 
-  function aplicarImagem() {
-    setForm((prev) => ({
-      ...prev,
-      [ajuste.tipo]: ajuste.src,
-      [`${ajuste.tipo}Pos`]: pos
-    }));
-    setAjuste(null);
+    reader.onloadend = () => {
+      setForm((prev) => ({
+        ...prev,
+        [tipo]: reader.result,
+      }));
+    };
+
+    reader.readAsDataURL(file);
   }
 
   function salvar() {
@@ -52,14 +56,20 @@ export default function Perfil({ onLogout, irHome }) {
       return;
     }
 
+    const atualizado = {
+      ...form,
+      posPerfil,
+      posCapa,
+    };
+
     usuarios = usuarios.map((u) =>
-      u.email === usuario.email ? { ...u, ...form } : u
+      u.email === usuario.email ? atualizado : u
     );
 
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
-    localStorage.setItem("usuarioLogado", JSON.stringify(form));
+    localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
-    setUsuario(form);
+    setUsuario(atualizado);
     setEditando(false);
   }
 
@@ -72,7 +82,7 @@ export default function Perfil({ onLogout, irHome }) {
 
   return (
     <div className="home">
-      <Sidebar onReload={irHome} />
+      <Sidebar onReload={irHome} irPerfil={() => {}} />
 
       <div className="profile-page">
 
@@ -80,56 +90,20 @@ export default function Perfil({ onLogout, irHome }) {
         <div
           className="capa"
           style={{
-            backgroundImage: usuario.fotoCapa
-              ? `url(${usuario.fotoCapa})`
-              : "none",
-            backgroundPosition: usuario.fotoCapaPos
-              ? `${usuario.fotoCapaPos.x}% ${usuario.fotoCapaPos.y}%`
-              : "center"
+            backgroundImage: `url(${usuario.fotoCapa || ""})`,
+            backgroundPosition: `${posCapa.x}% ${posCapa.y}%`,
           }}
-        >
-          <button
-            className="btn-img"
-            onClick={() => document.getElementById("capaInput").click()}
-          >
-            Alterar capa
-          </button>
+        ></div>
 
-          <input
-            id="capaInput"
-            type="file"
-            hidden
-            onChange={(e) => handleImagem(e, "fotoCapa")}
-          />
-        </div>
-
-        {/* PERFIL */}
+        {/* HEADER */}
         <div className="perfil-header">
           <div
             className="foto"
             style={{
-              backgroundImage: usuario.fotoPerfil
-                ? `url(${usuario.fotoPerfil})`
-                : "none",
-              backgroundPosition: usuario.fotoPerfilPos
-                ? `${usuario.fotoPerfilPos.x}% ${usuario.fotoPerfilPos.y}%`
-                : "center"
+              backgroundImage: `url(${usuario.fotoPerfil || ""})`,
+              backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`,
             }}
-          >
-            <button
-              className="btn-img pequeno"
-              onClick={() => document.getElementById("perfilInput").click()}
-            >
-              Alterar
-            </button>
-          </div>
-
-          <input
-            id="perfilInput"
-            type="file"
-            hidden
-            onChange={(e) => handleImagem(e, "fotoPerfil")}
-          />
+          ></div>
 
           <button className="btn-editar" onClick={() => setEditando(true)}>
             Editar Perfil
@@ -145,7 +119,7 @@ export default function Perfil({ onLogout, irHome }) {
             Entrou em {new Date(usuario.criadoEm).toLocaleDateString("pt-BR")}
           </p>
 
-          <p>{usuario.bio || "Sem bio..."}</p>
+          <p className="bio">{usuario.bio || "Sem bio..."}</p>
         </div>
 
         <button className="logout" onClick={logout}>
@@ -153,10 +127,10 @@ export default function Perfil({ onLogout, irHome }) {
         </button>
       </div>
 
-      {/* POPUP EDITAR */}
+      {/* POPUP */}
       {editando && (
         <div className="overlay">
-          <div className="popup largo">
+          <div className="popup">
 
             <h2>Editar Perfil</h2>
 
@@ -176,8 +150,110 @@ export default function Perfil({ onLogout, irHome }) {
               }
             />
 
+            {/* FOTO PERFIL */}
+            <label>Foto de Perfil</label>
+
+            <div className="preview-perfil-box">
+              {form.fotoPerfil && (
+                <div
+                  className="preview-perfil"
+                  style={{
+                    backgroundImage: `url(${form.fotoPerfil})`,
+                    backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`,
+                  }}
+                ></div>
+              )}
+            </div>
+
+            <button onClick={() => document.getElementById("perfilInput").click()}>
+              Alterar Foto
+            </button>
+
             <input
-              placeholder="Email"
+              id="perfilInput"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => handleImagem(e, "fotoPerfil")}
+            />
+
+            {/* CONTROLES PERFIL */}
+            <div className="controle">
+              <span>Vertical</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={posPerfil.y}
+                onChange={(e) =>
+                  setPosPerfil({ ...posPerfil, y: e.target.value })
+                }
+              />
+              <span>Horizontal</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={posPerfil.x}
+                onChange={(e) =>
+                  setPosPerfil({ ...posPerfil, x: e.target.value })
+                }
+              />
+            </div>
+
+            {/* CAPA */}
+            <label>Foto de Capa</label>
+
+            <div className="preview-capa-box">
+              {form.fotoCapa && (
+                <div
+                  className="preview-capa"
+                  style={{
+                    backgroundImage: `url(${form.fotoCapa})`,
+                    backgroundPosition: `${posCapa.x}% ${posCapa.y}%`,
+                  }}
+                ></div>
+              )}
+            </div>
+
+            <button onClick={() => document.getElementById("capaInput").click()}>
+              Alterar Capa
+            </button>
+
+            <input
+              id="capaInput"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => handleImagem(e, "fotoCapa")}
+            />
+
+            {/* CONTROLES CAPA */}
+            <div className="controle">
+              <span>Vertical</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={posCapa.y}
+                onChange={(e) =>
+                  setPosCapa({ ...posCapa, y: e.target.value })
+                }
+              />
+              <span>Horizontal</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={posCapa.x}
+                onChange={(e) =>
+                  setPosCapa({ ...posCapa, x: e.target.value })
+                }
+              />
+            </div>
+
+            <input
+              placeholder="Novo email"
               value={form.email || ""}
               onChange={(e) =>
                 setForm({ ...form, email: e.target.value })
@@ -201,53 +277,9 @@ export default function Perfil({ onLogout, irHome }) {
 
             <div className="popup-btns">
               <button onClick={salvar}>Salvar</button>
-              <button onClick={() => setEditando(false)}>Cancelar</button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* POPUP AJUSTE */}
-      {ajuste && (
-        <div className="overlay">
-          <div className="popup largo">
-
-            <h2>Ajustar Imagem</h2>
-
-            <div
-              className="ajuste-preview"
-              style={{
-                backgroundImage: `url(${ajuste.src})`,
-                backgroundPosition: `${pos.x}% ${pos.y}%`
-              }}
-            ></div>
-
-            <label>⬆️⬇️ Vertical</label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={pos.y}
-              onChange={(e) =>
-                setPos({ ...pos, y: Number(e.target.value) })
-              }
-            />
-
-            <label>⬅️➡️ Horizontal</label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={pos.x}
-              onChange={(e) =>
-                setPos({ ...pos, x: Number(e.target.value) })
-              }
-            />
-
-            <div className="popup-btns">
-              <button onClick={aplicarImagem}>Aplicar</button>
-              <button onClick={() => setAjuste(null)}>Cancelar</button>
+              <button onClick={() => setEditando(false)}>
+                Cancelar
+              </button>
             </div>
 
           </div>
