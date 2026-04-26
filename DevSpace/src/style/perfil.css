@@ -88,3 +88,16 @@
 .bio-card:hover {
   background: #1a1a1a;
 }
+
+.profile-page {
+  margin-left: 250px;
+  width: calc(100% - 250px); /* 🔥 ISSO AQUI resolve */
+}
+
+.home {
+  display: flex;
+}
+
+.profile-page {
+  flex: 1;
+}
