@@ -10,9 +10,31 @@ export default function Perfil({ onLogout, irHome }) {
   const [senhaAtual, setSenhaAtual] = useState("");
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("usuarioLogado"));
-    setUsuario(user);
-    setForm(user);
+    let user = JSON.parse(localStorage.getItem("usuarioLogado"));
+
+    if (user) {
+      // 🔥 CORREÇÃO AUTOMÁTICA DA DATA
+      if (!user.criadoEm) {
+        user.criadoEm = new Date().toISOString();
+
+        // atualiza usuário logado
+        localStorage.setItem("usuarioLogado", JSON.stringify(user));
+
+        // atualiza lista de usuários
+        let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+        usuarios = usuarios.map((u) =>
+          u.email === user.email
+            ? { ...u, criadoEm: user.criadoEm }
+            : u
+        );
+
+        localStorage.setItem("usuarios", JSON.stringify(usuarios));
+      }
+
+      setUsuario(user);
+      setForm(user);
+    }
   }, []);
 
   function salvar() {
@@ -88,9 +110,7 @@ export default function Perfil({ onLogout, irHome }) {
 
           <p className="data">
             Entrou em{" "}
-            {usuario.criadoEm
-              ? new Date(usuario.criadoEm).toLocaleDateString()
-              : "..."}
+            {new Date(usuario.criadoEm).toLocaleDateString("pt-BR")}
           </p>
 
           <p className="bio">
@@ -103,7 +123,7 @@ export default function Perfil({ onLogout, irHome }) {
         </button>
       </div>
 
-      {/* 🔥 POPUP */}
+      {/* POPUP */}
       {editando && (
         <div className="overlay">
           <div className="popup">
