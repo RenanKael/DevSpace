@@ -3,17 +3,15 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import "../style/home.css";
 
-export default function Home() {
+export default function Home({ irPerfil }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
 
-  // 🔹 pegar usuário logado ao abrir a página
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("usuarioLogado"));
     setUsuario(user);
   }, []);
 
-  // POSTS
   const [posts, setPosts] = useState([
     "Post 1",
     "Post 2",
@@ -54,10 +52,12 @@ export default function Home() {
 
   return (
     <div className="home">
-      <Sidebar onReload={reloadFeed} />
+      <Sidebar
+        onReload={reloadFeed}
+        irPerfil={irPerfil}
+      />
 
       <div className="main">
-        {/* 👇 agora enviamos o usuário */}
         <Topbar visible={showTopbar} usuario={usuario} />
 
         <div className="feed">

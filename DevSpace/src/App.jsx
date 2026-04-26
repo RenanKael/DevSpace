@@ -21,7 +21,9 @@ function App() {
   }
 
   return (
-    <Home irPerfil={() => setPagina("perfil")} />
+    <Home
+      irPerfil={() => setPagina("perfil")}
+    />
   );
 }
 

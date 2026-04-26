@@ -13,18 +13,17 @@ export default function Sidebar({ onReload, irPerfil }) {
 
       <nav>
         <div className="nav-item" onClick={onReload}>
-          <img src={paginaInicial} alt="Página Inicial" />
+          <img src={paginaInicial} />
           <span>Página Inicial</span>
         </div>
 
         <div className="nav-item">
-          <img src={explorar} alt="Explorar" />
+          <img src={explorar} />
           <span>Explorar</span>
         </div>
 
-        {/* 🔥 AQUI QUE FALTAVA */}
         <div className="nav-item" onClick={irPerfil}>
-          <img src={perfil} alt="Perfil" />
+          <img src={perfil} />
           <span>Perfil</span>
         </div>
       </nav>
