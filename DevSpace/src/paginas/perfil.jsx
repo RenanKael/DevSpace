@@ -35,7 +35,7 @@ export default function Perfil({ onLogout, irHome }) {
     }
   }, []);
 
-  // 🔥 função upload imagem
+  // 🔥 upload imagem
   function handleImagem(e, tipo) {
     const file = e.target.files[0];
     if (!file) return;
@@ -173,9 +173,13 @@ export default function Perfil({ onLogout, irHome }) {
               onChange={(e) => handleImagem(e, "fotoPerfil")}
             />
 
-            {form.fotoPerfil && (
-              <img src={form.fotoPerfil} className="preview-img" />
-            )}
+            <div className="preview-perfil-box">
+              {form.fotoPerfil ? (
+                <img src={form.fotoPerfil} />
+              ) : (
+                <span>Preview</span>
+              )}
+            </div>
 
             {/* FOTO CAPA */}
             <label>Foto de Capa</label>
@@ -185,9 +189,13 @@ export default function Perfil({ onLogout, irHome }) {
               onChange={(e) => handleImagem(e, "fotoCapa")}
             />
 
-            {form.fotoCapa && (
-              <img src={form.fotoCapa} className="preview-capa" />
-            )}
+            <div className="preview-capa-box">
+              {form.fotoCapa ? (
+                <img src={form.fotoCapa} />
+              ) : (
+                <span>Preview</span>
+              )}
+            </div>
 
             <input
               placeholder="Novo email"
