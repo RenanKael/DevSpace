@@ -1,154 +1,156 @@
-/* OVERLAY ESCURO */
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.7);
-
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-/* POPUP */
-.popup {
-  margin-top: 50px;
-  background: #111;
-  padding: 20px;
-  border-radius: 10px;
-  width: 350px;
-
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  animation: slideDown 0.3s ease;
-}
-
-/* ANIMAÇÃO */
-@keyframes slideDown {
-  from {
-    transform: translateY(-50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* INPUTS */
-.popup input {
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-}
-
-/* BOTÕES */
-.popup-btns {
-  display: flex;
-  gap: 10px;
-}
-
-.popup-btns button {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}/* OVERLAY ESCURO */
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.7);
-
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-/* POPUP */
-.popup {
-  margin-top: 50px;
-  background: #111;
-  padding: 20px;
-  border-radius: 10px;
-  width: 350px;
-
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  animation: slideDown 0.3s ease;
-}
-
-/* ANIMAÇÃO */
-@keyframes slideDown {
-  from {
-    transform: translateY(-50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* INPUTS */
-.popup input {
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-}
-
-/* BOTÕES */
-.popup-btns {
-  display: flex;
-  gap: 10px;
-}
-
-.popup-btns button {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.capa {
-  width: 100%;
-  height: 250px; /* 🔥 garante altura fixa */
-  background: #999;
-  background-size: cover;
-  background-position: center;
-}
-
-.overlay {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.7);
-}
+/* ========================= */
+/* PROFILE PAGE */
+/* ========================= */
 
 .profile-page {
   margin-left: 250px;
   width: calc(100% - 250px);
-  background: black; /* 🔥 importante */
+  background: black;
   min-height: 100vh;
 }
 
+/* CAPA */
 .capa {
+  width: 100%;
+  height: 250px;
+  background: #999;
+  background-size: cover;
+  background-position: center;
+
   position: relative;
   z-index: 1;
 }
 
-.perfil-header,
-.info {
+/* HEADER */
+.perfil-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 30px;
+  margin-top: -60px;
+
   position: relative;
   z-index: 2;
+}
+
+/* FOTO */
+.foto {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: gray;
+  border: 4px solid black;
+
+  background-size: cover;
+  background-position: center;
+}
+
+/* BOTÃO */
+.btn-editar {
+  background: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+/* INFO */
+.info {
+  padding: 20px 30px;
+  position: relative;
+  z-index: 2;
+}
+
+.info span {
+  color: #888;
+}
+
+.data {
+  color: #aaa;
+  margin-top: 5px;
+}
+
+.bio {
+  margin-top: 10px;
+}
+
+/* LOGOUT */
+.logout {
+  margin: 20px 30px;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* ========================= */
+/* POPUP */
+/* ========================= */
+
+/* OVERLAY (ARRUMADO) */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  background: rgba(0, 0, 0, 0.7);
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  z-index: 9999; /* 🔥 CORREÇÃO PRINCIPAL */
+}
+
+/* POPUP */
+.popup {
+  margin-top: 50px;
+  background: #111;
+  padding: 20px;
+  border-radius: 10px;
+  width: 350px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  animation: slideDown 0.3s ease;
+
+  z-index: 10000;
+}
+
+/* ANIMAÇÃO */
+@keyframes slideDown {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* INPUTS */
+.popup input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+/* BOTÕES */
+.popup-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.popup-btns button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
 }
