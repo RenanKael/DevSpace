@@ -84,7 +84,17 @@ export default function Login({ onLogin }) {
       </div>
 
       <div className="right">
-        <div className="card">
+        <form
+          className="card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (modoCadastro) {
+              criarConta();
+            } else {
+              entrar();
+            }
+          }}
+        >
           <h3>{modoCadastro ? "Criar conta" : "Entrar no DevSpace"}</h3>
 
           {modoCadastro && (
@@ -115,9 +125,10 @@ export default function Login({ onLogin }) {
 
           {!modoCadastro ? (
             <>
-              <button onClick={entrar}>Entrar</button>
+              <button type="submit">Entrar</button>
 
               <button
+                type="button"
                 className="btn-secundario"
                 onClick={() => {
                   setErro("");
@@ -130,9 +141,10 @@ export default function Login({ onLogin }) {
             </>
           ) : (
             <>
-              <button onClick={criarConta}>Criar conta</button>
+              <button type="submit">Criar conta</button>
 
               <button
+                type="button"
                 className="btn-secundario"
                 onClick={() => {
                   setErro("");
@@ -144,7 +156,7 @@ export default function Login({ onLogin }) {
               </button>
             </>
           )}
-        </div>
+        </form>
       </div>
     </div>
   );
