@@ -79,10 +79,9 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
     setUsuario(atualizado);
-    setEditando(false);
 
     setErro("");
-    setSucesso("Perfil atualizado com sucesso!");
+    setSucesso("Salvo com sucesso!");
 
     setTimeout(() => setSucesso(""), 2500);
   }
@@ -141,6 +140,11 @@ export default function Perfil({ onLogout, irHome }) {
         <div className="overlay">
           <div className="popup">
 
+            {/* ❌ BOTÃO X */}
+            <button className="close-btn" onClick={() => setEditando(false)}>
+              ✕
+            </button>
+
             <h2>Editar Perfil</h2>
 
             <input
@@ -157,32 +161,6 @@ export default function Perfil({ onLogout, irHome }) {
               onChange={(e) =>
                 setForm({ ...form, bio: e.target.value })
               }
-            />
-
-            <label>Foto de Perfil</label>
-            <button onClick={() => document.getElementById("perfilInput").click()}>
-              Alterar Foto
-            </button>
-
-            <input
-              id="perfilInput"
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={(e) => handleImagem(e, "fotoPerfil")}
-            />
-
-            <label>Foto de Capa</label>
-            <button onClick={() => document.getElementById("capaInput").click()}>
-              Alterar Capa
-            </button>
-
-            <input
-              id="capaInput"
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={(e) => handleImagem(e, "fotoCapa")}
             />
 
             <input
@@ -208,22 +186,16 @@ export default function Perfil({ onLogout, irHome }) {
               onChange={(e) => setSenhaAtual(e.target.value)}
             />
 
-            {/* 🔥 NOTIFICAÇÕES AQUI */}
             {erro && <p className="erro">{erro}</p>}
             {sucesso && <p className="sucesso">{sucesso}</p>}
 
             <div className="popup-btns">
               <button onClick={salvar}>Salvar</button>
-              <button onClick={() => setEditando(false)}>
-                Cancelar
-              </button>
             </div>
 
           </div>
         </div>
       )}
-
-      {/* resto do código continua igual (popups de imagem) */}
     </div>
   );
 }
