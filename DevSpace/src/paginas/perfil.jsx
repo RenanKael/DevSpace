@@ -82,7 +82,6 @@ export default function Perfil({ onLogout, irHome }) {
 
     setErro("");
     setSucesso("Salvo com sucesso!");
-
     setTimeout(() => setSucesso(""), 2500);
   }
 
@@ -98,6 +97,7 @@ export default function Perfil({ onLogout, irHome }) {
       <Sidebar onReload={irHome} irPerfil={() => {}} />
 
       <div className="profile-page">
+
         <div
           className="capa"
           style={{
@@ -136,11 +136,11 @@ export default function Perfil({ onLogout, irHome }) {
         </button>
       </div>
 
+      {/* POPUP PRINCIPAL */}
       {editando && (
         <div className="overlay">
           <div className="popup">
 
-            {/* ❌ BOTÃO X */}
             <button className="close-btn" onClick={() => setEditando(false)}>
               ✕
             </button>
@@ -161,6 +161,32 @@ export default function Perfil({ onLogout, irHome }) {
               onChange={(e) =>
                 setForm({ ...form, bio: e.target.value })
               }
+            />
+
+            <label>Foto de Perfil</label>
+            <button onClick={() => document.getElementById("perfilInput").click()}>
+              Alterar Foto
+            </button>
+
+            <input
+              id="perfilInput"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => handleImagem(e, "fotoPerfil")}
+            />
+
+            <label>Foto de Capa</label>
+            <button onClick={() => document.getElementById("capaInput").click()}>
+              Alterar Capa
+            </button>
+
+            <input
+              id="capaInput"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => handleImagem(e, "fotoCapa")}
             />
 
             <input
@@ -192,6 +218,88 @@ export default function Perfil({ onLogout, irHome }) {
             <div className="popup-btns">
               <button onClick={salvar}>Salvar</button>
             </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* AJUSTE FOTO PERFIL */}
+      {editandoPerfilImg && (
+        <div className="overlay">
+          <div className="popup small">
+
+            <h2>Ajustar Foto</h2>
+
+            <div className="preview-perfil-box">
+              <div
+                className="preview-perfil"
+                style={{
+                  backgroundImage: `url(${form.fotoPerfil})`,
+                  backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`,
+                }}
+              ></div>
+            </div>
+
+            <label>Vertical</label>
+            <input type="range" min="0" max="100"
+              value={posPerfil.y}
+              onChange={(e) =>
+                setPosPerfil({ ...posPerfil, y: e.target.value })
+              }
+            />
+
+            <label>Horizontal</label>
+            <input type="range" min="0" max="100"
+              value={posPerfil.x}
+              onChange={(e) =>
+                setPosPerfil({ ...posPerfil, x: e.target.value })
+              }
+            />
+
+            <button onClick={() => setEditandoPerfilImg(false)}>
+              Confirmar
+            </button>
+
+          </div>
+        </div>
+      )}
+
+      {/* AJUSTE CAPA */}
+      {editandoCapaImg && (
+        <div className="overlay">
+          <div className="popup small">
+
+            <h2>Ajustar Capa</h2>
+
+            <div className="preview-capa-box">
+              <div
+                className="preview-capa"
+                style={{
+                  backgroundImage: `url(${form.fotoCapa})`,
+                  backgroundPosition: `${posCapa.x}% ${posCapa.y}%`,
+                }}
+              ></div>
+            </div>
+
+            <label>Vertical</label>
+            <input type="range" min="0" max="100"
+              value={posCapa.y}
+              onChange={(e) =>
+                setPosCapa({ ...posCapa, y: e.target.value })
+              }
+            />
+
+            <label>Horizontal</label>
+            <input type="range" min="0" max="100"
+              value={posCapa.x}
+              onChange={(e) =>
+                setPosCapa({ ...posCapa, x: e.target.value })
+              }
+            />
+
+            <button onClick={() => setEditandoCapaImg(false)}>
+              Confirmar
+            </button>
 
           </div>
         </div>
