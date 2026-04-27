@@ -85,6 +85,20 @@ export default function Perfil({ onLogout, irHome }) {
     setTimeout(() => setSucesso(""), 2500);
   }
 
+  function cancelarImagem(tipo) {
+    if (tipo === "perfil") {
+      setForm((prev) => ({ ...prev, fotoPerfil: usuario.fotoPerfil }));
+      setPosPerfil(usuario.posPerfil || { x: 50, y: 50 });
+      setEditandoPerfilImg(false);
+    }
+
+    if (tipo === "capa") {
+      setForm((prev) => ({ ...prev, fotoCapa: usuario.fotoCapa }));
+      setPosCapa(usuario.posCapa || { x: 50, y: 50 });
+      setEditandoCapaImg(false);
+    }
+  }
+
   function logout() {
     localStorage.removeItem("usuarioLogado");
     onLogout();
@@ -123,11 +137,9 @@ export default function Perfil({ onLogout, irHome }) {
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
-
           <p className="data">
             Entrou em {new Date(usuario.criadoEm).toLocaleDateString("pt-BR")}
           </p>
-
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
         </div>
 
@@ -140,7 +152,6 @@ export default function Perfil({ onLogout, irHome }) {
       {editando && (
         <div className="overlay">
           <div className="popup">
-
             <button className="close-btn" onClick={() => setEditando(false)}>
               ✕
             </button>
@@ -218,16 +229,14 @@ export default function Perfil({ onLogout, irHome }) {
             <div className="popup-btns">
               <button onClick={salvar}>Salvar</button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* AJUSTE FOTO PERFIL */}
+      {/* PERFIL */}
       {editandoPerfilImg && (
         <div className="overlay">
           <div className="popup small">
-
             <h2>Ajustar Foto</h2>
 
             <div className="preview-perfil-box">
@@ -256,19 +265,18 @@ export default function Perfil({ onLogout, irHome }) {
               }
             />
 
-            <button onClick={() => setEditandoPerfilImg(false)}>
-              Confirmar
-            </button>
-
+            <div className="popup-btns">
+              <button onClick={() => setEditandoPerfilImg(false)}>Confirmar</button>
+              <button onClick={() => cancelarImagem("perfil")}>Cancelar</button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* AJUSTE CAPA */}
+      {/* CAPA */}
       {editandoCapaImg && (
         <div className="overlay">
           <div className="popup small">
-
             <h2>Ajustar Capa</h2>
 
             <div className="preview-capa-box">
@@ -297,10 +305,10 @@ export default function Perfil({ onLogout, irHome }) {
               }
             />
 
-            <button onClick={() => setEditandoCapaImg(false)}>
-              Confirmar
-            </button>
-
+            <div className="popup-btns">
+              <button onClick={() => setEditandoCapaImg(false)}>Confirmar</button>
+              <button onClick={() => cancelarImagem("capa")}>Cancelar</button>
+            </div>
           </div>
         </div>
       )}
