@@ -18,7 +18,7 @@ export default function Perfil({ onLogout, irHome }) {
   const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
   const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
 
-  // 🔥 NOVO: estados de edição (CORREÇÃO PRINCIPAL)
+  // ✔️ ESTADOS DE EDIÇÃO (ISOLADOS)
   const [editPosPerfil, setEditPosPerfil] = useState({ x: 50, y: 50 });
   const [editPosCapa, setEditPosCapa] = useState({ x: 50, y: 50 });
 
@@ -28,9 +28,7 @@ export default function Perfil({ onLogout, irHome }) {
     const user = JSON.parse(localStorage.getItem("usuarioLogado"));
 
     if (user) {
-      if (!user.criadoEm) {
-        user.criadoEm = new Date().toISOString();
-      }
+      if (!user.criadoEm) user.criadoEm = new Date().toISOString();
 
       setUsuario(user);
       setForm(user);
@@ -68,7 +66,6 @@ export default function Perfil({ onLogout, irHome }) {
     }
 
     if (form.novaSenha || form.confirmarSenha) {
-
       if (!senhaAtual) {
         setErro("Digite a senha atual!");
         return;
@@ -92,8 +89,8 @@ export default function Perfil({ onLogout, irHome }) {
     const atualizado = {
       ...form,
       senha: form.novaSenha ? form.novaSenha : usuario.senha,
-      posPerfil: editPosPerfil,
-      posCapa: editPosCapa,
+      posPerfil,
+      posCapa,
       avaliacao,
     };
 
@@ -108,8 +105,6 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
     setUsuario(atualizado);
-    setPosPerfil(editPosPerfil);
-    setPosCapa(editPosCapa);
 
     setSucesso("Salvo com sucesso!");
     setErro("");
@@ -127,14 +122,11 @@ export default function Perfil({ onLogout, irHome }) {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setForm((prev) => ({
-        ...prev,
-        [tipo]: reader.result,
-      }));
+      setForm((prev) => ({ ...prev, [tipo]: reader.result }));
 
       if (tipo === "fotoPerfil") {
         setEditandoPerfilImg(true);
-        setEditPosPerfil(posPerfil); // 🔥 copia estado atual
+        setEditPosPerfil(posPerfil); // copia estado atual
       }
 
       if (tipo === "fotoCapa") {
@@ -149,13 +141,13 @@ export default function Perfil({ onLogout, irHome }) {
   function cancelarImagem(tipo) {
     if (tipo === "perfil") {
       setForm((prev) => ({ ...prev, fotoPerfil: usuario.fotoPerfil }));
-      setEditPosPerfil(usuario.posPerfil || { x: 50, y: 50 });
+      setEditPosPerfil(posPerfil);
       setEditandoPerfilImg(false);
     }
 
     if (tipo === "capa") {
       setForm((prev) => ({ ...prev, fotoCapa: usuario.fotoCapa }));
-      setEditPosCapa(usuario.posCapa || { x: 50, y: 50 });
+      setEditPosCapa(posCapa);
       setEditandoCapaImg(false);
     }
   }
@@ -175,6 +167,7 @@ export default function Perfil({ onLogout, irHome }) {
 
       <div className="profile-page">
 
+        {/* TOPO */}
         <div className="topo-perfil">
           <span className="voltar" onClick={irHome}>←</span>
           <h3>{usuario.username}</h3>
@@ -186,36 +179,38 @@ export default function Perfil({ onLogout, irHome }) {
           </div>
         </div>
 
-        {/* CAPA */}
+        {/* CAPA REAL (NÃO ALTERA MAIS) */}
         <div
           className="capa"
           style={{
             backgroundImage: `url(${usuario.fotoCapa || ""})`,
             backgroundPosition: `${posCapa.x}% ${posCapa.y}%`,
           }}
-        ></div>
+        />
 
+        {/* PERFIL REAL (NÃO ALTERA MAIS) */}
         <div className="perfil-header">
-
           <div
             className="foto"
             style={{
               backgroundImage: `url(${usuario.fotoPerfil || ""})`,
               backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`,
             }}
-          ></div>
+          />
 
           <button className="btn-editar" onClick={() => setEditando(true)}>
             Editar Perfil
           </button>
         </div>
 
+        {/* BIO E INFO (MANTIDO INTACTO) */}
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
         </div>
 
+        {/* POPUP */}
         {editando && (
           <div className="overlay">
             <div className="popup">
@@ -229,7 +224,8 @@ export default function Perfil({ onLogout, irHome }) {
               {/* PERFIL EDIT */}
               {editandoPerfilImg && (
                 <>
-                  <div className="preview-perfil"
+                  <div
+                    className="preview-perfil"
                     style={{
                       backgroundImage: `url(${form.fotoPerfil})`,
                       backgroundPosition: `${editPosPerfil.x}% ${editPosPerfil.y}%`
@@ -258,7 +254,8 @@ export default function Perfil({ onLogout, irHome }) {
               {/* CAPA EDIT */}
               {editandoCapaImg && (
                 <>
-                  <div className="preview-capa"
+                  <div
+                    className="preview-capa"
                     style={{
                       backgroundImage: `url(${form.fotoCapa})`,
                       backgroundPosition: `${editPosCapa.x}% ${editPosCapa.y}%`
