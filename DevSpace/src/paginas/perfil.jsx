@@ -18,6 +18,10 @@ export default function Perfil({ onLogout, irHome }) {
   const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
   const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
 
+  // 🔥 NOVO: estados de edição (CORREÇÃO PRINCIPAL)
+  const [editPosPerfil, setEditPosPerfil] = useState({ x: 50, y: 50 });
+  const [editPosCapa, setEditPosCapa] = useState({ x: 50, y: 50 });
+
   const [avaliacao, setAvaliacao] = useState(0);
 
   useEffect(() => {
@@ -37,7 +41,7 @@ export default function Perfil({ onLogout, irHome }) {
     }
   }, []);
 
-  // 🔥 ESC fecha popup
+  // ESC fecha popup
   useEffect(() => {
     function handleEsc(e) {
       if (e.key === "Escape") {
@@ -88,8 +92,8 @@ export default function Perfil({ onLogout, irHome }) {
     const atualizado = {
       ...form,
       senha: form.novaSenha ? form.novaSenha : usuario.senha,
-      posPerfil,
-      posCapa,
+      posPerfil: editPosPerfil,
+      posCapa: editPosCapa,
       avaliacao,
     };
 
@@ -104,6 +108,9 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
     setUsuario(atualizado);
+    setPosPerfil(editPosPerfil);
+    setPosCapa(editPosCapa);
+
     setSucesso("Salvo com sucesso!");
     setErro("");
     setSenhaAtual("");
@@ -125,8 +132,15 @@ export default function Perfil({ onLogout, irHome }) {
         [tipo]: reader.result,
       }));
 
-      if (tipo === "fotoPerfil") setEditandoPerfilImg(true);
-      if (tipo === "fotoCapa") setEditandoCapaImg(true);
+      if (tipo === "fotoPerfil") {
+        setEditandoPerfilImg(true);
+        setEditPosPerfil(posPerfil); // 🔥 copia estado atual
+      }
+
+      if (tipo === "fotoCapa") {
+        setEditandoCapaImg(true);
+        setEditPosCapa(posCapa);
+      }
     };
 
     reader.readAsDataURL(file);
@@ -135,13 +149,13 @@ export default function Perfil({ onLogout, irHome }) {
   function cancelarImagem(tipo) {
     if (tipo === "perfil") {
       setForm((prev) => ({ ...prev, fotoPerfil: usuario.fotoPerfil }));
-      setPosPerfil(usuario.posPerfil || { x: 50, y: 50 });
+      setEditPosPerfil(usuario.posPerfil || { x: 50, y: 50 });
       setEditandoPerfilImg(false);
     }
 
     if (tipo === "capa") {
       setForm((prev) => ({ ...prev, fotoCapa: usuario.fotoCapa }));
-      setPosCapa(usuario.posCapa || { x: 50, y: 50 });
+      setEditPosCapa(usuario.posCapa || { x: 50, y: 50 });
       setEditandoCapaImg(false);
     }
   }
@@ -172,6 +186,7 @@ export default function Perfil({ onLogout, irHome }) {
           </div>
         </div>
 
+        {/* CAPA */}
         <div
           className="capa"
           style={{
@@ -190,12 +205,6 @@ export default function Perfil({ onLogout, irHome }) {
             }}
           ></div>
 
-          <div className="stats">
-            <span><b>0</b> Seguindo</span>
-            <span><b>0</b> Seguidores</span>
-            <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
-          </div>
-
           <button className="btn-editar" onClick={() => setEditando(true)}>
             Editar Perfil
           </button>
@@ -204,15 +213,8 @@ export default function Perfil({ onLogout, irHome }) {
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
-          <p className="data">
-            Entrou em {new Date(usuario.criadoEm).toLocaleDateString("pt-BR")}
-          </p>
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
         </div>
-
-        <button className="logout" onClick={logout}>
-          Sair da conta
-        </button>
 
         {editando && (
           <div className="overlay">
@@ -223,46 +225,25 @@ export default function Perfil({ onLogout, irHome }) {
 
               <input value={form.username || ""} onChange={(e)=>setForm({...form, username:e.target.value})}/>
               <input value={form.bio || ""} onChange={(e)=>setForm({...form, bio:e.target.value})}/>
-              <input value={form.email || ""} onChange={(e)=>setForm({...form, email:e.target.value})}/>
 
-              <input type="password" placeholder="Senha atual"
-                value={senhaAtual}
-                onChange={(e)=>setSenhaAtual(e.target.value)}
-              />
-
-              <input type="password" placeholder="Nova senha"
-                value={form.novaSenha || ""}
-                onChange={(e)=>setForm({...form, novaSenha:e.target.value})}
-              />
-
-              <input type="password" placeholder="Confirmar nova senha"
-                value={form.confirmarSenha || ""}
-                onChange={(e)=>setForm({...form, confirmarSenha:e.target.value})}
-              />
-
-              {erro && <p className="erro">{erro}</p>}
-              {sucesso && <p className="sucesso">{sucesso}</p>}
-
-              {/* PREVIEW PERFIL */}
+              {/* PERFIL EDIT */}
               {editandoPerfilImg && (
                 <>
-                  <div className="preview-perfil-box">
-                    <div className="preview-perfil"
-                      style={{
-                        backgroundImage: `url(${form.fotoPerfil})`,
-                        backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`
-                      }}
-                    />
-                  </div>
-
-                  <input type="range" min="0" max="100"
-                    value={posPerfil.x}
-                    onChange={(e)=>setPosPerfil({...posPerfil, x:e.target.value})}
+                  <div className="preview-perfil"
+                    style={{
+                      backgroundImage: `url(${form.fotoPerfil})`,
+                      backgroundPosition: `${editPosPerfil.x}% ${editPosPerfil.y}%`
+                    }}
                   />
 
                   <input type="range" min="0" max="100"
-                    value={posPerfil.y}
-                    onChange={(e)=>setPosPerfil({...posPerfil, y:e.target.value})}
+                    value={editPosPerfil.x}
+                    onChange={(e)=>setEditPosPerfil({...editPosPerfil, x:e.target.value})}
+                  />
+
+                  <input type="range" min="0" max="100"
+                    value={editPosPerfil.y}
+                    onChange={(e)=>setEditPosPerfil({...editPosPerfil, y:e.target.value})}
                   />
 
                   <button onClick={()=>cancelarImagem("perfil")}>Cancelar</button>
@@ -274,24 +255,24 @@ export default function Perfil({ onLogout, irHome }) {
               </button>
               <input id="perfilInput" type="file" hidden onChange={(e)=>handleImagem(e,"fotoPerfil")}/>
 
-              {/* PREVIEW CAPA */}
+              {/* CAPA EDIT */}
               {editandoCapaImg && (
                 <>
                   <div className="preview-capa"
                     style={{
                       backgroundImage: `url(${form.fotoCapa})`,
-                      backgroundPosition: `${posCapa.x}% ${posCapa.y}%`
+                      backgroundPosition: `${editPosCapa.x}% ${editPosCapa.y}%`
                     }}
                   />
 
                   <input type="range" min="0" max="100"
-                    value={posCapa.x}
-                    onChange={(e)=>setPosCapa({...posCapa, x:e.target.value})}
+                    value={editPosCapa.x}
+                    onChange={(e)=>setEditPosCapa({...editPosCapa, x:e.target.value})}
                   />
 
                   <input type="range" min="0" max="100"
-                    value={posCapa.y}
-                    onChange={(e)=>setPosCapa({...posCapa, y:e.target.value})}
+                    value={editPosCapa.y}
+                    onChange={(e)=>setEditPosCapa({...editPosCapa, y:e.target.value})}
                   />
 
                   <button onClick={()=>cancelarImagem("capa")}>Cancelar</button>
@@ -306,6 +287,7 @@ export default function Perfil({ onLogout, irHome }) {
               <div className="popup-btns">
                 <button onClick={salvar}>Salvar</button>
               </div>
+
             </div>
           </div>
         )}
