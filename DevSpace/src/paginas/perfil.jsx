@@ -18,6 +18,8 @@ export default function Perfil({ onLogout, irHome }) {
   const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
   const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
 
+  const [avaliacao, setAvaliacao] = useState(0);
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("usuarioLogado"));
 
@@ -28,13 +30,13 @@ export default function Perfil({ onLogout, irHome }) {
 
       setUsuario(user);
       setForm(user);
+      setAvaliacao(user.avaliacao || 0);
 
       setPosPerfil(user.posPerfil || { x: 50, y: 50 });
       setPosCapa(user.posCapa || { x: 50, y: 50 });
     }
   }, []);
 
-  // ESC fecha popups
   useEffect(() => {
     function handleEsc(e) {
       if (e.key === "Escape") {
@@ -87,6 +89,7 @@ export default function Perfil({ onLogout, irHome }) {
       ...form,
       posPerfil,
       posCapa,
+      avaliacao,
     };
 
     usuarios = usuarios.map((u) =>
@@ -129,6 +132,30 @@ export default function Perfil({ onLogout, irHome }) {
       <Sidebar onReload={irHome} irPerfil={() => {}} />
 
       <div className="profile-page">
+
+        {/* TOPO */}
+        <div className="topo-perfil">
+          <span className="voltar" onClick={irHome}>←</span>
+          <h3>{usuario.username}</h3>
+
+          <div className="avaliacao">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span
+                key={n}
+                className={n <= avaliacao ? "star ativa" : "star"}
+                onClick={() => {
+                  if (usuario.email === "renan.kael@gmail.com") {
+                    setAvaliacao(n);
+                  }
+                }}
+              >
+                ★
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* CAPA */}
         <div
           className="capa"
           style={{
@@ -137,6 +164,7 @@ export default function Perfil({ onLogout, irHome }) {
           }}
         ></div>
 
+        {/* PERFIL */}
         <div className="perfil-header">
           <div
             className="foto"
@@ -151,6 +179,7 @@ export default function Perfil({ onLogout, irHome }) {
           </button>
         </div>
 
+        {/* INFO */}
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
@@ -158,6 +187,12 @@ export default function Perfil({ onLogout, irHome }) {
           <p className="data">
             Entrou em {new Date(usuario.criadoEm).toLocaleDateString("pt-BR")}
           </p>
+
+          <div className="stats">
+            <span><b>0</b> Seguindo</span>
+            <span><b>0</b> Seguidores</span>
+            <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
+          </div>
 
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
         </div>
@@ -331,6 +366,7 @@ export default function Perfil({ onLogout, irHome }) {
           </div>
         </div>
       )}
+
     </div>
   );
 }
