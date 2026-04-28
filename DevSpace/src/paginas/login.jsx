@@ -61,36 +61,36 @@ export default function Login({ onLogin }) {
 
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
-    const loginsAdmin = [
-      { login: "renan.kael@gmail.com", senha: "rklv2007" },
-      { login: "AllzynADM", senha: "rklv2007" }
-    ];
-
-    const isAdminLogin = loginsAdmin.find(
-      (l) => l.login === email && l.senha === senha
+    // 🔥 BUSCA ADMIN NO STORAGE
+    let admin = usuarios.find(
+      (u) => u.email === "renan.kael@gmail.com"
     );
 
-    if (isAdminLogin) {
-      let admin = usuarios.find(
-        (u) => u.email === "renan.kael@gmail.com"
-      );
+    // cria admin se não existir
+    if (!admin) {
+      admin = {
+        username: "RenanADM",
+        email: "renan.kael@gmail.com",
+        senha: "rklv2007",
+        criadoEm: new Date().toISOString(),
+        bio: "Conta administrativa",
+        fotoPerfil: "",
+        fotoCapa: "",
+        estrelas: 5,
+        projetos: [],
+        avaliacao: 5
+      };
 
-      if (!admin) {
-        admin = {
-          username: "RenanADM",
-          email: "renan.kael@gmail.com",
-          senha: "rklv2007",
-          criadoEm: new Date().toISOString(),
-          bio: "Conta administrativa",
-          fotoPerfil: "",
-          fotoCapa: "",
-          estrelas: 5,
-          projetos: [],
-          avaliacao: 5
-        };
+      usuarios.push(admin);
+      localStorage.setItem("usuarios", JSON.stringify(usuarios));
+    }
 
-        usuarios.push(admin);
-        localStorage.setItem("usuarios", JSON.stringify(usuarios));
+    // 🔒 LOGIN ADMIN (AGORA COM SENHA REAL)
+    if (email === "renan.kael@gmail.com" || email === "AllzynADM") {
+
+      if (admin.senha !== senha) {
+        setErro("Senha incorreta!");
+        return;
       }
 
       localStorage.setItem("usuarioLogado", JSON.stringify(admin));
@@ -98,6 +98,7 @@ export default function Login({ onLogin }) {
       return;
     }
 
+    // 🔥 LOGIN NORMAL
     const usuarioEncontrado = usuarios.find(
       (u) =>
         (u.email === email || u.username === email)
