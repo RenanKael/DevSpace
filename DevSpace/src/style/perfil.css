@@ -34,10 +34,7 @@
   left: 50px;
 }
 
-/* ========================= */
 /* ESTRELAS */
-/* ========================= */
-
 .avaliacao {
   display: flex;
   gap: 5px;
@@ -64,6 +61,7 @@
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
+  z-index: 1;
 }
 
 .capa::after {
@@ -74,7 +72,7 @@
 }
 
 /* ========================= */
-/* PERFIL HEADER */
+/* HEADER PERFIL */
 /* ========================= */
 
 .perfil-header {
@@ -97,6 +95,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  position: relative;
 }
 
 /* STATS */
@@ -189,7 +188,8 @@
   background: rgba(0,0,0,0.7);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding-top: 40px;
   z-index: 9999;
 }
 
@@ -260,33 +260,39 @@
 }
 
 /* ========================= */
-/* 🔥 PREVIEW (CORRIGIDO DEFINITIVO) */
+/* 🔥 PREVIEW CORRIGIDO (ÚNICO SISTEMA) */
 /* ========================= */
 
-.preview-box {
+.preview-wrapper-perfil,
+.preview-wrapper-capa {
   width: 100%;
   display: flex;
   justify-content: center;
+  overflow: hidden;
   margin: 10px 0;
 }
 
-.preview-img {
-  object-fit: cover;
-  display: block;
-}
-
-/* PERFIL PREVIEW */
-.preview-img.perfil {
+/* PERFIL */
+.preview-wrapper-perfil {
   width: 140px;
   height: 140px;
   border-radius: 50%;
+  border: 3px solid white;
 }
 
-/* CAPA PREVIEW */
-.preview-img.capa {
+/* CAPA */
+.preview-wrapper-capa {
   width: 100%;
   height: 140px;
   border-radius: 10px;
+}
+
+/* IMAGEM REAL */
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* ========================= */
