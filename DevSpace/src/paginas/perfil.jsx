@@ -39,7 +39,6 @@ export default function Perfil({ onLogout, irHome }) {
     }
   }, []);
 
-  // ESC fecha tudo
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape") {
@@ -120,8 +119,28 @@ export default function Perfil({ onLogout, irHome }) {
       }
     }
 
+    // 🔥 SALVA IMAGEM AUTOMATICAMENTE SE EXISTIR
+    let atualizadoUsuario = { ...usuario };
+
+    if (previewImg && editandoImagem) {
+      if (editandoImagem === "perfil") {
+        atualizadoUsuario.fotoPerfil = previewImg;
+        atualizadoUsuario.posPerfil = editPosPerfil;
+        setPosPerfil(editPosPerfil);
+      }
+
+      if (editandoImagem === "capa") {
+        atualizadoUsuario.fotoCapa = previewImg;
+        atualizadoUsuario.posCapa = editPosCapa;
+        setPosCapa(editPosCapa);
+      }
+
+      setPreviewImg(null);
+      setEditandoImagem(null);
+    }
+
     const atualizado = {
-      ...usuario,
+      ...atualizadoUsuario,
       ...form,
       senha: form.novaSenha ? form.novaSenha : usuario.senha,
       avaliacao,
@@ -159,7 +178,6 @@ export default function Perfil({ onLogout, irHome }) {
 
       <div className="profile-page">
 
-        {/* TOPO */}
         <div className="topo-perfil">
           <span onClick={irHome}>←</span>
           <h3>{usuario.username}</h3>
@@ -171,7 +189,6 @@ export default function Perfil({ onLogout, irHome }) {
           </div>
         </div>
 
-        {/* CAPA */}
         <div
           className="capa"
           style={{
@@ -180,9 +197,7 @@ export default function Perfil({ onLogout, irHome }) {
           }}
         />
 
-        {/* PERFIL */}
         <div className="perfil-header">
-
           <div
             className="foto"
             style={{
@@ -202,7 +217,6 @@ export default function Perfil({ onLogout, irHome }) {
           </button>
         </div>
 
-        {/* INFO */}
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
@@ -218,7 +232,6 @@ export default function Perfil({ onLogout, irHome }) {
           Sair da conta
         </button>
 
-        {/* MODAL PERFIL */}
         {editando && (
           <div className="overlay">
             <div className="popup">
@@ -288,7 +301,6 @@ export default function Perfil({ onLogout, irHome }) {
           </div>
         )}
 
-        {/* MODAL IMAGEM */}
         {editandoImagem && (
           <div className="overlay">
             <div className="popup">
