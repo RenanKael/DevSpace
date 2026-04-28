@@ -27,25 +27,8 @@ export default function Perfil({ onLogout, irHome }) {
 
   useEffect(() => {
     let user = JSON.parse(localStorage.getItem("usuarioLogado"));
-    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
     if (user) {
-      // 🔥 LIMPA IMAGENS ANTIGAS SALVAS
-      delete user.fotoPerfil;
-      delete user.fotoCapa;
-
-      usuarios = usuarios.map(u => {
-        if (u.email === user.email) {
-          delete u.fotoPerfil;
-          delete u.fotoCapa;
-        }
-        return u;
-      });
-
-      localStorage.setItem("usuarioLogado", JSON.stringify(user));
-      localStorage.setItem("usuarios", JSON.stringify(usuarios));
-
-      // resto do fluxo normal
       if (!user.criadoEm) user.criadoEm = new Date().toISOString();
 
       setUsuario(user);
