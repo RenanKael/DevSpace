@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
+import { createPortal } from "react-dom";
 
 export default function Perfil({ onLogout, irHome }) {
   const [usuario, setUsuario] = useState(null);
@@ -120,7 +121,6 @@ export default function Perfil({ onLogout, irHome }) {
       }
     }
 
-    // salvar imagem pendente
     if (previewImg && editandoImagem) {
       if (editandoImagem === "perfil") {
         atualizadoUsuario.fotoPerfil = previewImg;
@@ -233,7 +233,93 @@ export default function Perfil({ onLogout, irHome }) {
           Sair da conta
         </button>
 
-        {/* teus modais continuam aqui (sem alteração) */}
+        {editando && createPortal(
+          <div className="overlay">
+            <div className="popup">
+
+              <button className="close-btn" onClick={() => setEditando(false)}>✕</button>
+
+              <h2>Editar Perfil</h2>
+
+              <input value={form.username || ""} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="Nome" />
+              <input value={form.bio || ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio" />
+              <input value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" />
+
+              <input type="password" placeholder="Senha atual" value={senhaAtual} onChange={(e) => setSenhaAtual(e.target.value)} />
+              <input type="password" placeholder="Nova senha" onChange={(e) => setForm({ ...form, novaSenha: e.target.value })} />
+              <input type="password" placeholder="Confirmar senha" onChange={(e) => setForm({ ...form, confirmarSenha: e.target.value })} />
+
+              <button onClick={() => document.getElementById("perfil").click()}>Alterar Foto Perfil</button>
+              <input id="perfil" type="file" hidden onChange={(e) => handleImagem(e, "perfil")} />
+
+              <button onClick={() => document.getElementById("capa").click()}>Alterar Capa</button>
+              <input id="capa" type="file" hidden onChange={(e) => handleImagem(e, "capa")} />
+
+              {erro && <p>{erro}</p>}
+              {sucesso && <p>{sucesso}</p>}
+
+              <div className="popup-btns">
+                <button onClick={salvarPerfil}>Salvar</button>
+                <button onClick={() => setEditando(false)}>Cancelar</button>
+              </div>
+
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {editandoImagem && createPortal(
+          <div className="overlay">
+            <div className="popup">
+
+              <h2>Editar Imagem</h2>
+
+              <div className="preview-box">
+                <img
+                  src={previewImg}
+                  className={editandoImagem === "perfil" ? "preview-img perfil" : "preview-img capa"}
+                  style={{
+                    objectPosition:
+                      editandoImagem === "perfil"
+                        ? `${editPosPerfil.x}% ${editPosPerfil.y}%`
+                        : `${editPosCapa.x}% ${editPosCapa.y}%`
+                  }}
+                />
+              </div>
+
+              <input type="range" min="0" max="100"
+                value={editandoImagem === "perfil" ? editPosPerfil.x : editPosCapa.x}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (editandoImagem === "perfil") {
+                    setEditPosPerfil({ ...editPosPerfil, x: v });
+                  } else {
+                    setEditPosCapa({ ...editPosCapa, x: v });
+                  }
+                }}
+              />
+
+              <input type="range" min="0" max="100"
+                value={editandoImagem === "perfil" ? editPosPerfil.y : editPosCapa.y}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (editandoImagem === "perfil") {
+                    setEditPosPerfil({ ...editPosPerfil, y: v });
+                  } else {
+                    setEditPosCapa({ ...editPosCapa, y: v });
+                  }
+                }}
+              />
+
+              <div className="popup-btns">
+                <button onClick={salvarImagem}>Salvar Imagem</button>
+                <button onClick={() => setEditandoImagem(null)}>Cancelar</button>
+              </div>
+
+            </div>
+          </div>,
+          document.body
+        )}
 
       </div>
     </div>
