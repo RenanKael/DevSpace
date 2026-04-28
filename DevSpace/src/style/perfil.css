@@ -329,3 +329,17 @@ input[type="range"] {
   filter: brightness(0.85);
   cursor: pointer;
 }
+.preview-img {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin: 10px auto;
+  border: 3px solid white;
+}
+.preview-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
