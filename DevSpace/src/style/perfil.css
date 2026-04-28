@@ -455,3 +455,13 @@ input[type="range"]::-webkit-slider-thumb {
 .popup-btns button:first-child:hover {
   background: #005edb;
 }
+.popup input[type="password"] {
+  border: 1px solid #333;
+}
+
+.popup input[type="password"]:focus {
+  border-color: #0072ff;
+}
+.popup input.erro-input {
+  border: 1px solid #ff4d4d;
+}

@@ -61,7 +61,6 @@ export default function Login({ onLogin }) {
 
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
-    // 🔥 ADMIN (continua funcionando)
     const loginsAdmin = [
       { login: "renan.kael@gmail.com", senha: "rklv2007" },
       { login: "AllzynADM", senha: "rklv2007" }
@@ -99,7 +98,6 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    // 🔥 LOGIN NORMAL CORRIGIDO
     const usuarioEncontrado = usuarios.find(
       (u) =>
         (u.email === email || u.username === email)
@@ -110,13 +108,11 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    // 🔥 COMPARAÇÃO REAL DA SENHA ATUAL
     if (usuarioEncontrado.senha !== senha) {
       setErro("Senha incorreta!");
       return;
     }
 
-    // 🔥 SEMPRE USA DADO ATUAL DO LOCALSTORAGE
     localStorage.setItem("usuarioLogado", JSON.stringify(usuarioEncontrado));
     onLogin();
   }
