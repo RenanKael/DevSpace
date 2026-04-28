@@ -44,7 +44,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 30px;
-  margin-top: -80px;
+
+  /* 🔥 AJUSTE AQUI (ANTES ERA -80) */
+  margin-top: -40px;
+
   position: relative;
   z-index: 3;
 }
@@ -69,6 +72,9 @@
   border-radius: 20px;
   cursor: pointer;
   font-weight: bold;
+
+  /* 🔥 GARANTE QUE ELE FIQUE MAIS PRA BAIXO */
+  margin-top: 60px;
 }
 
 .btn-editar:hover {
@@ -113,10 +119,17 @@
 
 .stats {
   display: flex;
-  gap: 20px;
+  flex-direction: row; /* 🔥 força linha */
+  gap: 25px;
   margin-top: 10px;
   font-size: 14px;
   color: #aaa;
+  align-items: center;
+}
+
+.stats span {
+  display: flex;
+  gap: 5px;
 }
 
 .stats strong {
