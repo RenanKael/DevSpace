@@ -95,7 +95,7 @@ export default function Perfil({ onLogout, irHome }) {
           <span className="voltar" onClick={irHome}>←</span>
           <h3>{usuario.username}</h3>
 
-          <div className="avaliacao-topo">
+          <div className="avaliacao">
             {[1,2,3,4,5].map(n => (
               <span key={n} className={n <= avaliacao ? "star ativa" : "star"}>★</span>
             ))}
@@ -121,7 +121,8 @@ export default function Perfil({ onLogout, irHome }) {
             }}
           ></div>
 
-          <div className="stats-linha">
+          {/* 🔥 AGORA FUNCIONA */}
+          <div className="stats">
             <span><b>0</b> Seguindo</span>
             <span><b>0</b> Seguidores</span>
             <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
@@ -146,7 +147,7 @@ export default function Perfil({ onLogout, irHome }) {
           Sair da conta
         </button>
 
-        {/* 🔥 POPUP COMPLETO RESTAURADO */}
+        {/* POPUP */}
         {editando && (
           <div className="overlay">
             <div className="popup">
