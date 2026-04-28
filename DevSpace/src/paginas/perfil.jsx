@@ -136,7 +136,6 @@ export default function Perfil({ onLogout, irHome }) {
       }
     }
 
-    // 🔥 GARANTE QUE NÃO SOBRESCREVE IMAGEM COM VERSÃO ANTIGA
     atualizado.fotoPerfil = usuario.fotoPerfil;
     atualizado.fotoCapa = usuario.fotoCapa;
 
