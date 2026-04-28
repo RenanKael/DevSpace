@@ -119,9 +119,9 @@ export default function Perfil({ onLogout, irHome }) {
       }
     }
 
-    // 🔥 SALVA IMAGEM AUTOMATICAMENTE SE EXISTIR
     let atualizadoUsuario = { ...usuario };
 
+    // 🔥 salva imagem automaticamente
     if (previewImg && editandoImagem) {
       if (editandoImagem === "perfil") {
         atualizadoUsuario.fotoPerfil = previewImg;
@@ -142,7 +142,7 @@ export default function Perfil({ onLogout, irHome }) {
     const atualizado = {
       ...atualizadoUsuario,
       ...form,
-      senha: form.novaSenha ? form.novaSenha : usuario.senha,
+      senha: form.novaSenha ? form.novaSenha : atualizadoUsuario.senha,
       avaliacao,
       posPerfil,
       posCapa
@@ -190,6 +190,7 @@ export default function Perfil({ onLogout, irHome }) {
         </div>
 
         <div
+          key={usuario.fotoCapa}
           className="capa"
           style={{
             backgroundImage: `url(${usuario.fotoCapa || ""})`,
@@ -199,6 +200,7 @@ export default function Perfil({ onLogout, irHome }) {
 
         <div className="perfil-header">
           <div
+            key={usuario.fotoPerfil}
             className="foto"
             style={{
               backgroundImage: `url(${usuario.fotoPerfil || ""})`,
