@@ -61,6 +61,7 @@
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
+  z-index: 1;
 }
 
 .capa::after {
@@ -158,6 +159,25 @@
 }
 
 /* ========================= */
+/* LOGOUT */
+/* ========================= */
+
+.logout {
+  margin: 20px 30px;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: red;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.logout:hover {
+  background: darkred;
+}
+
+/* ========================= */
 /* POPUP */
 /* ========================= */
 
@@ -239,7 +259,7 @@
 }
 
 /* ========================= */
-/* PREVIEW FUNCIONANDO (VERSÃO ANTIGA ESTÁVEL) */
+/* PREVIEW (CORREÇÃO REAL DO SEU PROBLEMA) */
 /* ========================= */
 
 .preview-wrapper-perfil {
