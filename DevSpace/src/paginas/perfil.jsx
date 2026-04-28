@@ -55,7 +55,6 @@ export default function Perfil({ onLogout, irHome }) {
           <span className="voltar" onClick={irHome}>←</span>
           <h3>{usuario.username}</h3>
 
-          {/* ⭐ ESTRELAS NO TOPO */}
           <div className="avaliacao-topo">
             {[1, 2, 3, 4, 5].map((n) => (
               <span
@@ -87,7 +86,6 @@ export default function Perfil({ onLogout, irHome }) {
             }}
           ></div>
 
-          {/* 🔥 STATS NA LINHA DA FOTO */}
           <div className="stats-linha">
             <span><b>0</b> Seguindo</span>
             <span><b>0</b> Seguidores</span>
@@ -114,6 +112,37 @@ export default function Perfil({ onLogout, irHome }) {
         <button className="logout" onClick={logout}>
           Sair da conta
         </button>
+
+        {/* 🔥 EDITAR PERFIL (RESTAURADO) */}
+        {editando && (
+          <div className="overlay">
+            <div className="popup">
+              <button className="close-btn" onClick={() => setEditando(false)}>✕</button>
+              <h2>Editar Perfil</h2>
+
+              <input
+                placeholder="Nome"
+                value={form.username || ""}
+                onChange={(e) =>
+                  setForm({ ...form, username: e.target.value })
+                }
+              />
+
+              <input
+                placeholder="Bio"
+                value={form.bio || ""}
+                onChange={(e) =>
+                  setForm({ ...form, bio: e.target.value })
+                }
+              />
+
+              <div className="popup-btns">
+                <button onClick={() => setEditando(false)}>Salvar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

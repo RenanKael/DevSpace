@@ -19,7 +19,7 @@
   font-size: 20px;
 }
 
-/* ⭐ ESTRELAS TOPO */
+/* ESTRELAS */
 .avaliacao-topo {
   margin-left: auto;
   display: flex;
@@ -28,7 +28,6 @@
 
 .star {
   color: #555;
-  font-size: 18px;
 }
 
 .star.ativa {
@@ -39,10 +38,10 @@
 .capa {
   width: 100%;
   height: 260px;
-  background: #777;
   background-size: cover;
   background-position: center;
   position: relative;
+  z-index: 1; /* 🔥 FICA ATRÁS */
 }
 
 /* HEADER */
@@ -52,7 +51,9 @@
   gap: 30px;
   padding: 0 30px;
 
-  margin-top: -50px;
+  margin-top: -60px;
+  position: relative;
+  z-index: 2; /* 🔥 FICA NA FRENTE */
 }
 
 /* FOTO */
@@ -62,9 +63,12 @@
   border-radius: 50%;
   border: 5px solid black;
   background-size: cover;
+  background-position: center;
+
+  z-index: 3; /* 🔥 GARANTE NA FRENTE DE TUDO */
 }
 
-/* 🔥 LINHA DOS STATS */
+/* STATS */
 .stats-linha {
   display: flex;
   gap: 30px;
@@ -72,15 +76,10 @@
   color: #aaa;
 }
 
-.stats-linha span {
-  display: flex;
-  gap: 5px;
-}
-
 /* BOTÃO */
 .btn-editar {
   margin-left: auto;
-  margin-top: 10px; /* 🔥 desce ele */
+  margin-top: 10px;
 
   background: white;
   color: black;
