@@ -18,9 +18,11 @@ export default function Perfil({ onLogout, irHome }) {
   const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
   const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
 
-  // ✔️ ESTADOS DE EDIÇÃO (ISOLADOS)
   const [editPosPerfil, setEditPosPerfil] = useState({ x: 50, y: 50 });
   const [editPosCapa, setEditPosCapa] = useState({ x: 50, y: 50 });
+
+  const [previewPerfil, setPreviewPerfil] = useState(null);
+  const [previewCapa, setPreviewCapa] = useState(null);
 
   const [avaliacao, setAvaliacao] = useState(0);
 
@@ -88,9 +90,11 @@ export default function Perfil({ onLogout, irHome }) {
 
     const atualizado = {
       ...form,
+      fotoPerfil: previewPerfil || usuario.fotoPerfil,
+      fotoCapa: previewCapa || usuario.fotoCapa,
       senha: form.novaSenha ? form.novaSenha : usuario.senha,
-      posPerfil,
-      posCapa,
+      posPerfil: editPosPerfil,
+      posCapa: editPosCapa,
       avaliacao,
     };
 
@@ -105,15 +109,17 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
     setUsuario(atualizado);
+    setPosPerfil(editPosPerfil);
+    setPosCapa(editPosCapa);
 
-    setSucesso("Salvo com sucesso!");
-    setErro("");
-    setSenhaAtual("");
-
+    setEditando(false);
     setEditandoPerfilImg(false);
     setEditandoCapaImg(false);
 
-    setTimeout(() => setSucesso(""), 2000);
+    setErro("");
+    setSenhaAtual("");
+
+    setTimeout(() => setSucesso("Salvo com sucesso!"), 2000);
   }
 
   function handleImagem(e, tipo) {
@@ -122,14 +128,14 @@ export default function Perfil({ onLogout, irHome }) {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setForm((prev) => ({ ...prev, [tipo]: reader.result }));
-
       if (tipo === "fotoPerfil") {
+        setPreviewPerfil(reader.result);
         setEditandoPerfilImg(true);
-        setEditPosPerfil(posPerfil); // copia estado atual
+        setEditPosPerfil(posPerfil);
       }
 
       if (tipo === "fotoCapa") {
+        setPreviewCapa(reader.result);
         setEditandoCapaImg(true);
         setEditPosCapa(posCapa);
       }
@@ -140,13 +146,13 @@ export default function Perfil({ onLogout, irHome }) {
 
   function cancelarImagem(tipo) {
     if (tipo === "perfil") {
-      setForm((prev) => ({ ...prev, fotoPerfil: usuario.fotoPerfil }));
+      setPreviewPerfil(null);
       setEditPosPerfil(posPerfil);
       setEditandoPerfilImg(false);
     }
 
     if (tipo === "capa") {
-      setForm((prev) => ({ ...prev, fotoCapa: usuario.fotoCapa }));
+      setPreviewCapa(null);
       setEditPosCapa(posCapa);
       setEditandoCapaImg(false);
     }
@@ -179,7 +185,7 @@ export default function Perfil({ onLogout, irHome }) {
           </div>
         </div>
 
-        {/* CAPA REAL (NÃO ALTERA MAIS) */}
+        {/* CAPA REAL */}
         <div
           className="capa"
           style={{
@@ -188,7 +194,7 @@ export default function Perfil({ onLogout, irHome }) {
           }}
         />
 
-        {/* PERFIL REAL (NÃO ALTERA MAIS) */}
+        {/* PERFIL REAL */}
         <div className="perfil-header">
           <div
             className="foto"
@@ -198,17 +204,27 @@ export default function Perfil({ onLogout, irHome }) {
             }}
           />
 
+          <div className="stats">
+            <span><b>0</b> Seguindo</span>
+            <span><b>0</b> Seguidores</span>
+            <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
+          </div>
+
           <button className="btn-editar" onClick={() => setEditando(true)}>
             Editar Perfil
           </button>
         </div>
 
-        {/* BIO E INFO (MANTIDO INTACTO) */}
+        {/* INFO */}
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
         </div>
+
+        <button className="logout" onClick={logout}>
+          Sair da conta
+        </button>
 
         {/* POPUP */}
         {editando && (
@@ -220,6 +236,25 @@ export default function Perfil({ onLogout, irHome }) {
 
               <input value={form.username || ""} onChange={(e)=>setForm({...form, username:e.target.value})}/>
               <input value={form.bio || ""} onChange={(e)=>setForm({...form, bio:e.target.value})}/>
+              <input value={form.email || ""} onChange={(e)=>setForm({...form, email:e.target.value})}/>
+
+              <input type="password" placeholder="Senha atual"
+                value={senhaAtual}
+                onChange={(e)=>setSenhaAtual(e.target.value)}
+              />
+
+              <input type="password" placeholder="Nova senha"
+                value={form.novaSenha || ""}
+                onChange={(e)=>setForm({...form, novaSenha:e.target.value})}
+              />
+
+              <input type="password" placeholder="Confirmar nova senha"
+                value={form.confirmarSenha || ""}
+                onChange={(e)=>setForm({...form, confirmarSenha:e.target.value})}
+              />
+
+              {erro && <p className="erro">{erro}</p>}
+              {sucesso && <p className="sucesso">{sucesso}</p>}
 
               {/* PERFIL EDIT */}
               {editandoPerfilImg && (
@@ -227,7 +262,7 @@ export default function Perfil({ onLogout, irHome }) {
                   <div
                     className="preview-perfil"
                     style={{
-                      backgroundImage: `url(${form.fotoPerfil})`,
+                      backgroundImage: `url(${previewPerfil})`,
                       backgroundPosition: `${editPosPerfil.x}% ${editPosPerfil.y}%`
                     }}
                   />
@@ -257,7 +292,7 @@ export default function Perfil({ onLogout, irHome }) {
                   <div
                     className="preview-capa"
                     style={{
-                      backgroundImage: `url(${form.fotoCapa})`,
+                      backgroundImage: `url(${previewCapa})`,
                       backgroundPosition: `${editPosCapa.x}% ${editPosCapa.y}%`
                     }}
                   />
