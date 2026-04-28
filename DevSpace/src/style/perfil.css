@@ -40,6 +40,7 @@
 
 .perfil-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   padding: 0 30px;
   margin-top: -40px;
@@ -58,17 +59,6 @@
   background-position: center;
 }
 
-/* 🔥 NOVO BLOCO DIREITA (BOTÃO + STATS) */
-.perfil-header::after {
-  content: "";
-  flex: 1;
-}
-
-/* CONTAINER PARA BOTÃO + STATS */
-.perfil-header {
-  gap: 20px;
-}
-
 /* BOTÃO EDITAR */
 .btn-editar {
   background: white;
@@ -79,7 +69,8 @@
   cursor: pointer;
   font-weight: bold;
 
-  margin-left: 20px; /* 🔥 mais pra esquerda */
+  /* 🔥 AQUI É O AJUSTE SUAVE */
+  margin-right: 20px;
 }
 
 .btn-editar:hover {
@@ -119,16 +110,13 @@
 }
 
 /* ========================= */
-/* 🔥 STATS AGORA NA MESMA LINHA */
+/* STATS */
 /* ========================= */
 
 .stats {
-  position: absolute;
-  top: -60px; /* 🔥 sobe pra alinhar com botão */
-  right: 200px; /* 🔥 fica do lado do botão */
-  
   display: flex;
   gap: 25px;
+  margin-top: 10px;
   font-size: 14px;
   color: #aaa;
 }
