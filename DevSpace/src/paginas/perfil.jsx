@@ -128,21 +128,19 @@ export default function Perfil({ onLogout, irHome }) {
       }
     }
 
-    if (previewImg && editandoImagem) {
-      if (editandoImagem === "perfil") {
-        atualizadoUsuario.fotoPerfil = previewImg;
-        atualizadoUsuario.posPerfil = editPosPerfil;
-        setPosPerfil(editPosPerfil);
-      }
+    let novaPosPerfil = posPerfil;
+    let novaPosCapa = posCapa;
 
-      if (editandoImagem === "capa") {
-        atualizadoUsuario.fotoCapa = previewImg;
-        atualizadoUsuario.posCapa = editPosCapa;
-        setPosCapa(editPosCapa);
-      }
+    if (previewImg && editandoImagem === "perfil") {
+      atualizadoUsuario.fotoPerfil = previewImg;
+      atualizadoUsuario.posPerfil = editPosPerfil;
+      novaPosPerfil = editPosPerfil;
+    }
 
-      setPreviewImg(null);
-      setEditandoImagem(null);
+    if (previewImg && editandoImagem === "capa") {
+      atualizadoUsuario.fotoCapa = previewImg;
+      atualizadoUsuario.posCapa = editPosCapa;
+      novaPosCapa = editPosCapa;
     }
 
     const atualizado = {
@@ -150,8 +148,8 @@ export default function Perfil({ onLogout, irHome }) {
       ...form,
       senha: form.novaSenha ? form.novaSenha : atualizadoUsuario.senha,
       avaliacao,
-      posPerfil,
-      posCapa
+      posPerfil: novaPosPerfil,
+      posCapa: novaPosCapa
     };
 
     delete atualizado.novaSenha;
@@ -165,6 +163,12 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
     setUsuario(atualizado);
+    setPosPerfil(novaPosPerfil);
+    setPosCapa(novaPosCapa);
+
+    setPreviewImg(null);
+    setEditandoImagem(null);
+
     setEditando(false);
 
     setErro("");
