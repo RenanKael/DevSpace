@@ -24,12 +24,7 @@ export default function Perfil({ onLogout, irHome }) {
 
   const [avaliacao, setAvaliacao] = useState(0);
 
-  // 🔥 carregar usuário SEM sobrescrever depois
   useEffect(() => {
-    carregarUsuario();
-  }, []);
-
-  function carregarUsuario() {
     const user = JSON.parse(localStorage.getItem("usuarioLogado"));
 
     if (user) {
@@ -42,9 +37,8 @@ export default function Perfil({ onLogout, irHome }) {
       setPosPerfil(user.posPerfil || { x: 50, y: 50 });
       setPosCapa(user.posCapa || { x: 50, y: 50 });
     }
-  }
+  }, []);
 
-  // ESC
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape") {
@@ -75,32 +69,32 @@ export default function Perfil({ onLogout, irHome }) {
   }
 
   function salvarImagem() {
-    const atual = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+    const atualizado = { ...usuario };
 
     if (editandoImagem === "perfil") {
-      atual.fotoPerfil = previewImg;
-      atual.posPerfil = editPosPerfil;
+      atualizado.fotoPerfil = previewImg;
+      atualizado.posPerfil = editPosPerfil;
+      setPosPerfil(editPosPerfil);
     }
 
     if (editandoImagem === "capa") {
-      atual.fotoCapa = previewImg;
-      atual.posCapa = editPosCapa;
+      atualizado.fotoCapa = previewImg;
+      atualizado.posCapa = editPosCapa;
+      setPosCapa(editPosCapa);
     }
 
-    localStorage.setItem("usuarioLogado", JSON.stringify(atual));
+    localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    setUsuario(atualizado);
 
     setEditandoImagem(null);
     setPreviewImg(null);
-
-    carregarUsuario(); // 🔥 garante estado atualizado
   }
 
   function salvarPerfil() {
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-    let atual = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
 
     const emailExiste = usuarios.find(
-      (u) => u.email === form.email && u.email !== atual.email
+      (u) => u.email === form.email && u.email !== usuario.email
     );
 
     if (emailExiste) {
@@ -114,7 +108,7 @@ export default function Perfil({ onLogout, irHome }) {
         return;
       }
 
-      if (senhaAtual !== atual.senha) {
+      if (senhaAtual !== usuario.senha) {
         setErro("Senha atual incorreta!");
         return;
       }
@@ -125,46 +119,50 @@ export default function Perfil({ onLogout, irHome }) {
       }
     }
 
-    // 🔥 aplica imagem pendente automaticamente
+    let atualizadoUsuario = { ...usuario };
+
+    // 🔥 salva imagem automaticamente
     if (previewImg && editandoImagem) {
       if (editandoImagem === "perfil") {
-        atual.fotoPerfil = previewImg;
-        atual.posPerfil = editPosPerfil;
+        atualizadoUsuario.fotoPerfil = previewImg;
+        atualizadoUsuario.posPerfil = editPosPerfil;
+        setPosPerfil(editPosPerfil);
       }
 
       if (editandoImagem === "capa") {
-        atual.fotoCapa = previewImg;
-        atual.posCapa = editPosCapa;
+        atualizadoUsuario.fotoCapa = previewImg;
+        atualizadoUsuario.posCapa = editPosCapa;
+        setPosCapa(editPosCapa);
       }
+
+      setPreviewImg(null);
+      setEditandoImagem(null);
     }
 
     const atualizado = {
-      ...atual,
+      ...atualizadoUsuario,
       ...form,
-      senha: form.novaSenha ? form.novaSenha : atual.senha,
+      senha: form.novaSenha ? form.novaSenha : atualizadoUsuario.senha,
       avaliacao,
-      posPerfil: atual.posPerfil || posPerfil,
-      posCapa: atual.posCapa || posCapa
+      posPerfil,
+      posCapa
     };
 
     delete atualizado.novaSenha;
     delete atualizado.confirmarSenha;
 
     usuarios = usuarios.map((u) =>
-      u.email === atual.email ? atualizado : u
+      u.email === usuario.email ? atualizado : u
     );
 
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
+    setUsuario(atualizado);
     setEditando(false);
+
     setErro("");
     setSucesso("Perfil atualizado!");
-
-    setPreviewImg(null);
-    setEditandoImagem(null);
-
-    carregarUsuario(); // 🔥 ESSA LINHA resolve o bug
   }
 
   function logout() {
@@ -192,6 +190,7 @@ export default function Perfil({ onLogout, irHome }) {
         </div>
 
         <div
+          key={usuario.fotoCapa}
           className="capa"
           style={{
             backgroundImage: `url(${usuario.fotoCapa || ""})`,
@@ -201,6 +200,7 @@ export default function Perfil({ onLogout, irHome }) {
 
         <div className="perfil-header">
           <div
+            key={usuario.fotoPerfil}
             className="foto"
             style={{
               backgroundImage: `url(${usuario.fotoPerfil || ""})`,
@@ -234,7 +234,137 @@ export default function Perfil({ onLogout, irHome }) {
           Sair da conta
         </button>
 
-        {/* resto do código (modais) permanece exatamente igual */}
+        {editando && (
+          <div className="overlay">
+            <div className="popup">
+
+              <button className="close-btn" onClick={() => setEditando(false)}>✕</button>
+
+              <h2>Editar Perfil</h2>
+
+              <input
+                value={form.username || ""}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                placeholder="Nome"
+              />
+
+              <input
+                value={form.bio || ""}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                placeholder="Bio"
+              />
+
+              <input
+                value={form.email || ""}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="Email"
+              />
+
+              <input
+                type="password"
+                placeholder="Senha atual"
+                value={senhaAtual}
+                onChange={(e) => setSenhaAtual(e.target.value)}
+              />
+
+              <input
+                type="password"
+                placeholder="Nova senha"
+                onChange={(e) => setForm({ ...form, novaSenha: e.target.value })}
+              />
+
+              <input
+                type="password"
+                placeholder="Confirmar senha"
+                onChange={(e) => setForm({ ...form, confirmarSenha: e.target.value })}
+              />
+
+              <button onClick={() => document.getElementById("perfil").click()}>
+                Alterar Foto Perfil
+              </button>
+
+              <input id="perfil" type="file" hidden onChange={(e) => handleImagem(e, "perfil")} />
+
+              <button onClick={() => document.getElementById("capa").click()}>
+                Alterar Capa
+              </button>
+
+              <input id="capa" type="file" hidden onChange={(e) => handleImagem(e, "capa")} />
+
+              {erro && <p>{erro}</p>}
+              {sucesso && <p>{sucesso}</p>}
+
+              <div className="popup-btns">
+                <button onClick={salvarPerfil}>Salvar</button>
+                <button onClick={() => setEditando(false)}>Cancelar</button>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {editandoImagem && (
+          <div className="overlay">
+            <div className="popup">
+
+              <h2>Editar Imagem</h2>
+
+              <div className="preview-box">
+                <img
+                  src={previewImg}
+                  className={
+                    editandoImagem === "perfil"
+                      ? "preview-img perfil"
+                      : "preview-img capa"
+                  }
+                  style={{
+                    objectPosition:
+                      editandoImagem === "perfil"
+                        ? `${editPosPerfil.x}% ${editPosPerfil.y}%`
+                        : `${editPosCapa.x}% ${editPosCapa.y}%`
+                  }}
+                />
+              </div>
+
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={editandoImagem === "perfil" ? editPosPerfil.x : editPosCapa.x}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (editandoImagem === "perfil") {
+                    setEditPosPerfil({ ...editPosPerfil, x: v });
+                  } else {
+                    setEditPosCapa({ ...editPosCapa, x: v });
+                  }
+                }}
+              />
+
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={editandoImagem === "perfil" ? editPosPerfil.y : editPosCapa.y}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (editandoImagem === "perfil") {
+                    setEditPosPerfil({ ...editPosPerfil, y: v });
+                  } else {
+                    setEditPosCapa({ ...editPosCapa, y: v });
+                  }
+                }}
+              />
+
+              <div className="popup-btns">
+                <button onClick={salvarImagem}>Salvar Imagem</button>
+                <button onClick={() => setEditandoImagem(null)}>Cancelar</button>
+              </div>
+
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
