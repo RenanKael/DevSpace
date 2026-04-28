@@ -198,7 +198,7 @@ export default function Perfil({ onLogout, irHome }) {
         <div
           className="capa"
           style={{
-            backgroundImage: `url(${usuario.fotoCapa || ""}?t=${Date.now()})`,
+            backgroundImage: `url(${usuario.fotoCapa || ""})`,
             backgroundPosition: `${posCapa.x}% ${posCapa.y}%`
           }}
         />
@@ -207,7 +207,7 @@ export default function Perfil({ onLogout, irHome }) {
           <div
             className="foto"
             style={{
-              backgroundImage: `url(${usuario.fotoPerfil || ""}?t=${Date.now()})`,
+              backgroundImage: `url(${usuario.fotoPerfil || ""})`,
               backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`
             }}
           />
