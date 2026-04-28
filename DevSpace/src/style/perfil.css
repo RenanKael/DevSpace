@@ -27,7 +27,6 @@
   padding: 20px;
 }
 
-/* overlay escuro */
 .capa::after {
   content: "";
   position: absolute;
@@ -36,18 +35,14 @@
 }
 
 /* ========================= */
-/* HEADER SOBRE CAPA */
+/* HEADER */
 /* ========================= */
 
 .perfil-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 0 30px;
-
-  /* 🔥 AJUSTE AQUI (ANTES ERA -80) */
   margin-top: -40px;
-
   position: relative;
   z-index: 3;
 }
@@ -63,6 +58,17 @@
   background-position: center;
 }
 
+/* 🔥 NOVO BLOCO DIREITA (BOTÃO + STATS) */
+.perfil-header::after {
+  content: "";
+  flex: 1;
+}
+
+/* CONTAINER PARA BOTÃO + STATS */
+.perfil-header {
+  gap: 20px;
+}
+
 /* BOTÃO EDITAR */
 .btn-editar {
   background: white;
@@ -73,8 +79,7 @@
   cursor: pointer;
   font-weight: bold;
 
-  /* 🔥 GARANTE QUE ELE FIQUE MAIS PRA BAIXO */
-  margin-top: 60px;
+  margin-left: 20px; /* 🔥 mais pra esquerda */
 }
 
 .btn-editar:hover {
@@ -114,17 +119,18 @@
 }
 
 /* ========================= */
-/* STATS (SEGUIDORES ETC) */
+/* 🔥 STATS AGORA NA MESMA LINHA */
 /* ========================= */
 
 .stats {
+  position: absolute;
+  top: -60px; /* 🔥 sobe pra alinhar com botão */
+  right: 200px; /* 🔥 fica do lado do botão */
+  
   display: flex;
-  flex-direction: row; /* 🔥 força linha */
   gap: 25px;
-  margin-top: 10px;
   font-size: 14px;
   color: #aaa;
-  align-items: center;
 }
 
 .stats span {
@@ -225,7 +231,6 @@
   background: #333;
 }
 
-/* BOTÕES EM LINHA */
 .popup-btns {
   display: flex;
   gap: 10px;
@@ -236,7 +241,6 @@
   flex: 1;
 }
 
-/* CANCELAR */
 .popup-btns button:last-child {
   background: #3a1a1a;
 }
@@ -309,7 +313,7 @@
 }
 
 /* ========================= */
-/* SCROLL PERSONALIZADO */
+/* SCROLL */
 /* ========================= */
 
 .popup::-webkit-scrollbar {
