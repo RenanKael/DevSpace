@@ -14,13 +14,14 @@ export default function Perfil({ onLogout, irHome }) {
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
 
-  const [previewImg, setPreviewImg] = useState(null);
+  const [fileTemp, setFileTemp] = useState(null);
 
   const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
   const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("usuarioLogado"));
+
     if (user) {
       setUsuario(user);
       setForm(user);
@@ -34,10 +35,12 @@ export default function Perfil({ onLogout, irHome }) {
     if (!file) return;
 
     const reader = new FileReader();
+
     reader.onload = () => {
-      setPreviewImg(reader.result);
-      setEditandoImagem(tipo); // abre modal separado
+      setFileTemp(reader.result);
+      setEditandoImagem(tipo);
     };
+
     reader.readAsDataURL(file);
   }
 
@@ -45,12 +48,12 @@ export default function Perfil({ onLogout, irHome }) {
     const atualizado = { ...usuario };
 
     if (editandoImagem === "perfil") {
-      atualizado.fotoPerfil = previewImg;
+      atualizado.fotoPerfil = fileTemp;
       atualizado.posPerfil = posPerfil;
     }
 
     if (editandoImagem === "capa") {
-      atualizado.fotoCapa = previewImg;
+      atualizado.fotoCapa = fileTemp;
       atualizado.posCapa = posCapa;
     }
 
@@ -58,7 +61,7 @@ export default function Perfil({ onLogout, irHome }) {
 
     setUsuario(atualizado);
     setEditandoImagem(null);
-    setPreviewImg(null);
+    setFileTemp(null);
   }
 
   function salvarPerfil() {
@@ -72,7 +75,12 @@ export default function Perfil({ onLogout, irHome }) {
     setEditandoPerfil(false);
   }
 
-  if (!usuario) return <h1>Carregando...</h1>;
+  function logout() {
+    localStorage.removeItem("usuarioLogado");
+    onLogout();
+  }
+
+  if (!usuario) return <h1 style={{ color: "white" }}>Carregando...</h1>;
 
   return (
     <div className="home">
@@ -82,7 +90,7 @@ export default function Perfil({ onLogout, irHome }) {
 
         {/* TOPO */}
         <div className="topo-perfil">
-          <span onClick={irHome}>←</span>
+          <span onClick={irHome} style={{ cursor: "pointer" }}>←</span>
           <h3>{usuario.username}</h3>
         </div>
 
@@ -111,8 +119,19 @@ export default function Perfil({ onLogout, irHome }) {
           </button>
         </div>
 
+        {/* INFO */}
+        <div className="info">
+          <h2>{usuario.username}</h2>
+          <span>@{usuario.username}</span>
+          <p className="bio">{usuario.bio || "Sem bio..."}</p>
+        </div>
+
+        <button className="logout" onClick={logout}>
+          Sair da conta
+        </button>
+
         {/* ========================= */}
-        {/* MODAL EDITAR PERFIL */}
+        {/* MODAL PERFIL */}
         {/* ========================= */}
         {editandoPerfil && (
           <div className="overlay">
@@ -122,23 +141,37 @@ export default function Perfil({ onLogout, irHome }) {
 
               <input
                 value={form.username || ""}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, username: e.target.value })
+                }
                 placeholder="Nome"
               />
 
               <input
                 value={form.bio || ""}
-                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, bio: e.target.value })
+                }
                 placeholder="Bio"
               />
 
-              <button onClick={() => setEditandoImagem("perfil")}>
-                Trocar Foto Perfil
+              <button onClick={() => document.getElementById("imgInput").click()}>
+                Alterar Imagem
               </button>
 
-              <button onClick={() => setEditandoImagem("capa")}>
-                Trocar Capa
-              </button>
+              <input
+                id="imgInput"
+                type="file"
+                hidden
+                onChange={(e) => handleImagem(e, "perfil")}
+              />
+
+              <input
+                type="file"
+                hidden
+                id="capaInput"
+                onChange={(e) => handleImagem(e, "capa")}
+              />
 
               <div className="popup-btns">
                 <button onClick={salvarPerfil}>Salvar</button>
@@ -150,22 +183,23 @@ export default function Perfil({ onLogout, irHome }) {
         )}
 
         {/* ========================= */}
-        {/* MODAL IMAGEM (NOVO - SEPARADO) */}
+        {/* MODAL IMAGEM */}
         {/* ========================= */}
         {editandoImagem && (
           <div className="overlay">
             <div className="popup">
 
-              <h2>Editar Imagem</h2>
+              <h2>Ajustar Imagem</h2>
 
-              <div className="preview-box">
+              <div className="preview-wrapper-perfil">
                 <img
-                  src={previewImg}
-                  className={editandoImagem === "perfil" ? "preview-perfil" : "preview-capa"}
+                  src={fileTemp}
                   style={{
-                    objectPosition: editandoImagem === "perfil"
-                      ? `${posPerfil.x}% ${posPerfil.y}%`
-                      : `${posCapa.x}% ${posCapa.y}%`
+                    objectFit: "cover",
+                    objectPosition:
+                      editandoImagem === "perfil"
+                        ? `${posPerfil.x}% ${posPerfil.y}%`
+                        : `${posCapa.x}% ${posCapa.y}%`
                   }}
                 />
               </div>
