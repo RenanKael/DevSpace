@@ -74,13 +74,13 @@ export default function Perfil({ onLogout, irHome }) {
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
     if (editandoImagem === "perfil") {
-      atualizado.fotoPerfil = previewImg;
+      atualizado.fotoPerfil = previewImg + `?t=${Date.now()}`;
       atualizado.posPerfil = editPosPerfil;
       setPosPerfil(editPosPerfil);
     }
 
     if (editandoImagem === "capa") {
-      atualizado.fotoCapa = previewImg;
+      atualizado.fotoCapa = previewImg + `?t=${Date.now()}`;
       atualizado.posCapa = editPosCapa;
       setPosCapa(editPosCapa);
     }
@@ -132,13 +132,13 @@ export default function Perfil({ onLogout, irHome }) {
     let novaPosCapa = posCapa;
 
     if (previewImg && editandoImagem === "perfil") {
-      atualizadoUsuario.fotoPerfil = previewImg;
+      atualizadoUsuario.fotoPerfil = previewImg + `?t=${Date.now()}`;
       atualizadoUsuario.posPerfil = editPosPerfil;
       novaPosPerfil = editPosPerfil;
     }
 
     if (previewImg && editandoImagem === "capa") {
-      atualizadoUsuario.fotoCapa = previewImg;
+      atualizadoUsuario.fotoCapa = previewImg + `?t=${Date.now()}`;
       atualizadoUsuario.posCapa = editPosCapa;
       novaPosCapa = editPosCapa;
     }
