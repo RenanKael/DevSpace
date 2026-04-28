@@ -70,26 +70,34 @@ export default function Perfil({ onLogout, irHome }) {
   }
 
   function salvarImagem() {
-    const atualizado = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+  let atualizado = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+  let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
-    if (editandoImagem === "perfil") {
-      atualizado.fotoPerfil = previewImg;
-      atualizado.posPerfil = editPosPerfil;
-      setPosPerfil(editPosPerfil);
-    }
-
-    if (editandoImagem === "capa") {
-      atualizado.fotoCapa = previewImg;
-      atualizado.posCapa = editPosCapa;
-      setPosCapa(editPosCapa);
-    }
-
-    localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
-    setUsuario(atualizado);
-
-    setEditandoImagem(null);
-    setPreviewImg(null);
+  if (editandoImagem === "perfil") {
+    atualizado.fotoPerfil = previewImg;
+    atualizado.posPerfil = editPosPerfil;
+    setPosPerfil(editPosPerfil);
   }
+
+  if (editandoImagem === "capa") {
+    atualizado.fotoCapa = previewImg;
+    atualizado.posCapa = editPosCapa;
+    setPosCapa(editPosCapa);
+  }
+
+  // 🔥 ATUALIZA NO ARRAY TAMBÉM
+  usuarios = usuarios.map((u) =>
+    u.email === atualizado.email ? atualizado : u
+  );
+
+  localStorage.setItem("usuarios", JSON.stringify(usuarios));
+  localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+
+  setUsuario(atualizado);
+
+  setEditandoImagem(null);
+  setPreviewImg(null);
+}
 
   function salvarPerfil() {
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
