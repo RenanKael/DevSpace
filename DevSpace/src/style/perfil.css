@@ -465,3 +465,103 @@ input[type="range"]::-webkit-slider-thumb {
 .popup input.erro-input {
   border: 1px solid #ff4d4d;
 }
+/* ========================= */
+/* AJUSTES NOVOS (IMAGEM + UX) */
+/* ========================= */
+
+/* melhora visual do preview */
+.preview-perfil,
+.preview-capa {
+  transition: background-position 0.2s ease;
+}
+
+/* container pra centralizar melhor */
+.preview-perfil-box,
+.preview-capa-box {
+  margin: 10px 0;
+}
+
+/* destaque quando estiver editando imagem */
+.popup.small h2 {
+  text-align: center;
+}
+
+/* sliders mais bonitos */
+input[type="range"] {
+  margin-top: 8px;
+}
+
+/* label visual pros sliders (opcional se quiser colocar texto depois) */
+.slider-label {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 5px;
+}
+
+/* botão cancelar imagem (fica mais evidente) */
+.popup-btns button:last-child {
+  background: #5a2a2a;
+}
+
+.popup-btns button:last-child:hover {
+  background: #7a3a3a;
+}
+
+/* botão OK (imagem) mais destacado */
+.popup-btns button:first-child {
+  background: #0072ff;
+}
+
+.popup-btns button:first-child:hover {
+  background: #005edb;
+}
+
+/* animação suave quando abrir edição de imagem */
+.popup.small {
+  animation: zoomIn 0.2s ease;
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ========================= */
+/* MELHORIA DE USABILIDADE */
+/* ========================= */
+
+/* efeito ao passar mouse na foto */
+.foto:hover {
+  filter: brightness(0.8);
+  cursor: pointer;
+}
+
+.capa:hover {
+  filter: brightness(0.9);
+}
+
+/* melhora visual dos inputs quando erro */
+input.erro-input {
+  border: 1px solid #ff4d4d !important;
+  background: rgba(255, 0, 0, 0.05);
+}
+
+/* melhora foco geral */
+input:focus {
+  transition: 0.2s;
+}
+
+/* ========================= */
+/* ESC FEEDBACK (visual opcional) */
+/* ========================= */
+
+/* quando popup ativo, trava scroll */
+body.popup-aberto {
+  overflow: hidden;
+}
