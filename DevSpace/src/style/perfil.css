@@ -398,3 +398,60 @@ input[type="range"]::-webkit-slider-thumb {
     opacity: 1;
   }
 }
+/* ========================= */
+/* CAMPOS NOVOS (EMAIL / SENHA) */
+/* ========================= */
+
+.popup input[type="password"] {
+  letter-spacing: 1px;
+}
+
+/* separação visual melhor entre seções */
+.popup h2 {
+  margin-bottom: 5px;
+}
+
+/* grupo de inputs */
+.popup input + input {
+  margin-top: 5px;
+}
+
+/* destaque para inputs importantes */
+.popup input:focus {
+  outline: 2px solid #0072ff;
+  background: #1a1a1a;
+}
+
+/* ========================= */
+/* MENSAGENS MELHORADAS */
+/* ========================= */
+
+.erro {
+  background: rgba(255, 77, 77, 0.1);
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.sucesso {
+  background: rgba(76, 175, 80, 0.1);
+  padding: 8px;
+  border-radius: 6px;
+}
+
+/* ========================= */
+/* ORGANIZAÇÃO DO POPUP */
+/* ========================= */
+
+/* espaço extra entre blocos */
+.popup button {
+  margin-top: 5px;
+}
+
+/* botão salvar destacado */
+.popup-btns button:first-child {
+  background: #0072ff;
+}
+
+.popup-btns button:first-child:hover {
+  background: #005edb;
+}

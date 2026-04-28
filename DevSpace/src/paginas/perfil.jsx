@@ -58,12 +58,24 @@ export default function Perfil({ onLogout, irHome }) {
   function salvar() {
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
+    // 🔒 validação de senha
+    if (form.novaSenha || form.confirmarSenha) {
+      if (form.novaSenha !== form.confirmarSenha) {
+        setErro("As senhas não coincidem!");
+        return;
+      }
+    }
+
     const atualizado = {
       ...form,
+      senha: form.novaSenha ? form.novaSenha : usuario.senha,
       posPerfil,
       posCapa,
       avaliacao,
     };
+
+    delete atualizado.novaSenha;
+    delete atualizado.confirmarSenha;
 
     usuarios = usuarios.map((u) =>
       u.email === usuario.email ? atualizado : u
@@ -74,6 +86,8 @@ export default function Perfil({ onLogout, irHome }) {
 
     setUsuario(atualizado);
     setSucesso("Salvo com sucesso!");
+    setErro("");
+
     setTimeout(() => setSucesso(""), 2000);
   }
 
@@ -165,8 +179,28 @@ export default function Perfil({ onLogout, irHome }) {
 
               <h2>Editar Perfil</h2>
 
+              {/* USERNAME */}
               <input value={form.username || ""} onChange={(e)=>setForm({...form, username:e.target.value})}/>
+
+              {/* BIO */}
               <input value={form.bio || ""} onChange={(e)=>setForm({...form, bio:e.target.value})}/>
+
+              {/* EMAIL */}
+              <input value={form.email || ""} onChange={(e)=>setForm({...form, email:e.target.value})} placeholder="Alterar email" />
+
+              {/* SENHA */}
+              <input type="password" placeholder="Nova senha"
+                value={form.novaSenha || ""}
+                onChange={(e)=>setForm({...form, novaSenha:e.target.value})}
+              />
+
+              <input type="password" placeholder="Confirmar nova senha"
+                value={form.confirmarSenha || ""}
+                onChange={(e)=>setForm({...form, confirmarSenha:e.target.value})}
+              />
+
+              {erro && <p className="erro">{erro}</p>}
+              {sucesso && <p className="sucesso">{sucesso}</p>}
 
               <button onClick={()=>document.getElementById("perfilInput").click()}>
                 Foto Perfil
