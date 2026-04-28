@@ -57,11 +57,10 @@
 .capa {
   width: 100%;
   height: 260px;
-  background: #777;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   position: relative;
-  z-index: 1;
 }
 
 .capa::after {
@@ -91,12 +90,10 @@
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  background: #aaa;
   border: 5px solid black;
   background-size: cover;
   background-position: center;
-  position: relative;
-  z-index: 5;
+  background-repeat: no-repeat;
 }
 
 /* STATS */
@@ -161,15 +158,12 @@
 }
 
 /* ========================= */
-/* POPUPS */
+/* POPUP */
 /* ========================= */
 
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0,0,0,0.7);
   display: flex;
   justify-content: center;
@@ -189,11 +183,6 @@
   max-height: 85vh;
   overflow-y: auto;
   position: relative;
-  animation: slideDown 0.3s ease;
-}
-
-.popup.small {
-  width: 320px;
 }
 
 /* INPUTS */
@@ -237,48 +226,51 @@
   background: #5a2a2a;
 }
 
-/* X */
+/* FECHAR */
 .close-btn {
   position: absolute;
   top: 10px;
   right: 10px;
   background: transparent;
+  border: none;
   color: white;
   font-size: 18px;
-  border: none;
   cursor: pointer;
 }
 
-.close-btn:hover {
-  color: #ff4d4d;
-}
-
 /* ========================= */
-/* PREVIEW (CORRIGIDO - SEM ACHATAR) */
+/* PREVIEW FUNCIONANDO 100% */
 /* ========================= */
 
-.preview-perfil,
-.preview-capa {
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-/* PERFIL PREVIEW */
-.preview-perfil {
+.preview-wrapper-perfil {
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  border: 3px solid white;
+  overflow: hidden;
   margin: 10px auto;
+  border: 3px solid white;
 }
 
-/* CAPA PREVIEW */
-.preview-capa {
+.preview-wrapper-perfil img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.preview-wrapper-capa {
   width: 100%;
   height: 140px;
-  border-radius: 10px;
+  overflow: hidden;
   margin: 10px 0;
+  border-radius: 10px;
+}
+
+.preview-wrapper-capa img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* ========================= */
@@ -286,28 +278,11 @@
 /* ========================= */
 
 input[type="range"] {
-  -webkit-appearance: none;
   width: 100%;
   height: 6px;
-  border-radius: 10px;
   background: #333;
-  margin-top: 8px;
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-  background: linear-gradient(90deg, #00c6ff, #0072ff);
-  height: 6px;
   border-radius: 10px;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  background: white;
-  border-radius: 50%;
-  margin-top: -5px;
-  cursor: pointer;
+  margin-top: 8px;
 }
 
 /* ========================= */
@@ -326,43 +301,11 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* ========================= */
-/* MELHORIAS UX */
+/* UX */
 /* ========================= */
 
-.foto:hover {
-  filter: brightness(0.8);
-  cursor: pointer;
-}
-
+.foto:hover,
 .capa:hover {
-  filter: brightness(0.9);
-}
-.preview-wrapper-perfil {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  overflow: hidden;
-  margin: 10px auto;
-  border: 3px solid white;
-}
-
-.preview-wrapper-perfil img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(1.2); /* deixa mais “zoomável” tipo Instagram */
-}
-
-.preview-wrapper-capa {
-  width: 100%;
-  height: 140px;
-  border-radius: 10px;
-  overflow: hidden;
-  margin: 10px 0;
-}
-
-.preview-wrapper-capa img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  filter: brightness(0.85);
+  cursor: pointer;
 }

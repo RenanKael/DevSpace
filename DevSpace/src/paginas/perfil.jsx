@@ -41,7 +41,6 @@ export default function Perfil({ onLogout, irHome }) {
     }
   }, []);
 
-  // ESC fecha popup
   useEffect(() => {
     function handleEsc(e) {
       if (e.key === "Escape") {
@@ -73,11 +72,9 @@ export default function Perfil({ onLogout, irHome }) {
         return;
       }
 
-      const usuarioAtualizado = usuarios.find(
-        (u) => u.email === usuario.email
-      );
+      const usuarioAtual = usuarios.find((u) => u.email === usuario.email);
 
-      if (!usuarioAtualizado || senhaAtual !== usuarioAtualizado.senha) {
+      if (!usuarioAtual || senhaAtual !== usuarioAtual.senha) {
         setErro("Senha atual incorreta!");
         return;
       }
@@ -109,6 +106,7 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
     setUsuario(atualizado);
+
     setPosPerfil(editPosPerfil);
     setPosCapa(editPosCapa);
 
@@ -116,10 +114,13 @@ export default function Perfil({ onLogout, irHome }) {
     setEditandoPerfilImg(false);
     setEditandoCapaImg(false);
 
+    setPreviewPerfil(null);
+    setPreviewCapa(null);
+
     setErro("");
     setSenhaAtual("");
 
-    setTimeout(() => setSucesso("Salvo com sucesso!"), 2000);
+    setTimeout(() => setSucesso("Salvo com sucesso!"), 1500);
   }
 
   function handleImagem(e, tipo) {
@@ -127,6 +128,7 @@ export default function Perfil({ onLogout, irHome }) {
     if (!file) return;
 
     const reader = new FileReader();
+
     reader.onloadend = () => {
       if (tipo === "fotoPerfil") {
         setPreviewPerfil(reader.result);
@@ -147,14 +149,14 @@ export default function Perfil({ onLogout, irHome }) {
   function cancelarImagem(tipo) {
     if (tipo === "perfil") {
       setPreviewPerfil(null);
-      setEditPosPerfil(posPerfil);
       setEditandoPerfilImg(false);
+      setEditPosPerfil(posPerfil);
     }
 
     if (tipo === "capa") {
       setPreviewCapa(null);
-      setEditPosCapa(posCapa);
       setEditandoCapaImg(false);
+      setEditPosCapa(posCapa);
     }
   }
 
@@ -185,7 +187,7 @@ export default function Perfil({ onLogout, irHome }) {
           </div>
         </div>
 
-        {/* CAPA REAL */}
+        {/* CAPA */}
         <div
           className="capa"
           style={{
@@ -194,7 +196,7 @@ export default function Perfil({ onLogout, irHome }) {
           }}
         />
 
-        {/* PERFIL REAL */}
+        {/* PERFIL */}
         <div className="perfil-header">
           <div
             className="foto"
@@ -234,91 +236,128 @@ export default function Perfil({ onLogout, irHome }) {
 
               <h2>Editar Perfil</h2>
 
-              <input value={form.username || ""} onChange={(e)=>setForm({...form, username:e.target.value})}/>
-              <input value={form.bio || ""} onChange={(e)=>setForm({...form, bio:e.target.value})}/>
-              <input value={form.email || ""} onChange={(e)=>setForm({...form, email:e.target.value})}/>
+              <input
+                value={form.username || ""}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+              />
 
-              <input type="password" placeholder="Senha atual"
+              <input
+                value={form.bio || ""}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              />
+
+              <input
+                value={form.email || ""}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+
+              <input
+                type="password"
+                placeholder="Senha atual"
                 value={senhaAtual}
-                onChange={(e)=>setSenhaAtual(e.target.value)}
+                onChange={(e) => setSenhaAtual(e.target.value)}
               />
 
-              <input type="password" placeholder="Nova senha"
-                value={form.novaSenha || ""}
-                onChange={(e)=>setForm({...form, novaSenha:e.target.value})}
+              <input
+                type="password"
+                placeholder="Nova senha"
+                onChange={(e) => setForm({ ...form, novaSenha: e.target.value })}
               />
 
-              <input type="password" placeholder="Confirmar nova senha"
-                value={form.confirmarSenha || ""}
-                onChange={(e)=>setForm({...form, confirmarSenha:e.target.value})}
+              <input
+                type="password"
+                placeholder="Confirmar senha"
+                onChange={(e) => setForm({ ...form, confirmarSenha: e.target.value })}
               />
 
               {erro && <p className="erro">{erro}</p>}
               {sucesso && <p className="sucesso">{sucesso}</p>}
 
-              {/* PERFIL EDIT */}
+              {/* PREVIEW PERFIL */}
               {editandoPerfilImg && (
                 <>
                   <div className="preview-wrapper-perfil">
-  <img
-    src={form.fotoPerfil}
-    style={{
-      objectPosition: `${editPosPerfil.x}% ${editPosPerfil.y}%`
-    }}
-    alt="preview"
-  />
-</div>
+                    <img
+                      src={previewPerfil || usuario.fotoPerfil}
+                      className="preview-img"
+                      style={{
+                        objectPosition: `${editPosPerfil.x}% ${editPosPerfil.y}%`
+                      }}
+                    />
+                  </div>
 
                   <input type="range" min="0" max="100"
                     value={editPosPerfil.x}
-                    onChange={(e)=>setEditPosPerfil({...editPosPerfil, x:e.target.value})}
+                    onChange={(e) =>
+                      setEditPosPerfil({ ...editPosPerfil, x: e.target.value })
+                    }
                   />
 
                   <input type="range" min="0" max="100"
                     value={editPosPerfil.y}
-                    onChange={(e)=>setEditPosPerfil({...editPosPerfil, y:e.target.value})}
+                    onChange={(e) =>
+                      setEditPosPerfil({ ...editPosPerfil, y: e.target.value })
+                    }
                   />
 
-                  <button onClick={()=>cancelarImagem("perfil")}>Cancelar</button>
+                  <button onClick={() => cancelarImagem("perfil")}>
+                    Cancelar
+                  </button>
                 </>
               )}
 
-              <button onClick={()=>document.getElementById("perfilInput").click()}>
+              <button onClick={() => document.getElementById("perfilInput").click()}>
                 Foto Perfil
               </button>
-              <input id="perfilInput" type="file" hidden onChange={(e)=>handleImagem(e,"fotoPerfil")}/>
+              <input
+                id="perfilInput"
+                type="file"
+                hidden
+                onChange={(e) => handleImagem(e, "fotoPerfil")}
+              />
 
-              {/* CAPA EDIT */}
+              {/* PREVIEW CAPA */}
               {editandoCapaImg && (
                 <>
-                 <div className="preview-wrapper-capa">
-  <img
-    src={form.fotoCapa}
-    style={{
-      objectPosition: `${editPosCapa.x}% ${editPosCapa.y}%`
-    }}
-    alt="preview"
-  />
-</div>
+                  <div className="preview-wrapper-capa">
+                    <img
+                      src={previewCapa || usuario.fotoCapa}
+                      className="preview-img"
+                      style={{
+                        objectPosition: `${editPosCapa.x}% ${editPosCapa.y}%`
+                      }}
+                    />
+                  </div>
 
                   <input type="range" min="0" max="100"
                     value={editPosCapa.x}
-                    onChange={(e)=>setEditPosCapa({...editPosCapa, x:e.target.value})}
+                    onChange={(e) =>
+                      setEditPosCapa({ ...editPosCapa, x: e.target.value })
+                    }
                   />
 
                   <input type="range" min="0" max="100"
                     value={editPosCapa.y}
-                    onChange={(e)=>setEditPosCapa({...editPosCapa, y:e.target.value})}
+                    onChange={(e) =>
+                      setEditPosCapa({ ...editPosCapa, y: e.target.value })
+                    }
                   />
 
-                  <button onClick={()=>cancelarImagem("capa")}>Cancelar</button>
+                  <button onClick={() => cancelarImagem("capa")}>
+                    Cancelar
+                  </button>
                 </>
               )}
 
-              <button onClick={()=>document.getElementById("capaInput").click()}>
+              <button onClick={() => document.getElementById("capaInput").click()}>
                 Foto Capa
               </button>
-              <input id="capaInput" type="file" hidden onChange={(e)=>handleImagem(e,"fotoCapa")}/>
+              <input
+                id="capaInput"
+                type="file"
+                hidden
+                onChange={(e) => handleImagem(e, "fotoCapa")}
+              />
 
               <div className="popup-btns">
                 <button onClick={salvar}>Salvar</button>
