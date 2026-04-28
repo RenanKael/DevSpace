@@ -103,7 +103,6 @@ export default function Perfil({ onLogout, irHome }) {
       return;
     }
 
-    // valida senha correta (ESSENCIAL NÃO REMOVER)
     if (form.novaSenha || form.confirmarSenha) {
       if (!senhaAtual) {
         setErro("Digite a senha atual!");
@@ -299,7 +298,11 @@ export default function Perfil({ onLogout, irHome }) {
               <div className="preview-box">
                 <img
                   src={previewImg}
-                  className="preview-img"
+                  className={
+                    editandoImagem === "perfil"
+                      ? "preview-img perfil"
+                      : "preview-img capa"
+                  }
                   style={{
                     objectPosition:
                       editandoImagem === "perfil"

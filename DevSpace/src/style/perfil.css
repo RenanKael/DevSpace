@@ -343,3 +343,27 @@ input[type="range"] {
   justify-content: center;
   align-items: center;
 }
+
+.preview-img {
+  display: block;
+  margin: 10px auto;
+}
+
+/* PERFIL (bolinha) */
+.preview-img.perfil {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+}
+
+/* CAPA (retangular sem corte) */
+.preview-img.capa {
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  border-radius: 10px;
+  object-fit: contain;
+  background: #000;
+}
