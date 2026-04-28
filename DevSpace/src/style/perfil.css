@@ -61,7 +61,6 @@
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
-  z-index: 1;
 }
 
 .capa::after {
@@ -95,7 +94,6 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  position: relative;
 }
 
 /* STATS */
@@ -160,26 +158,7 @@
 }
 
 /* ========================= */
-/* LOGOUT */
-/* ========================= */
-
-.logout {
-  margin: 20px 30px;
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  background: red;
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.logout:hover {
-  background: darkred;
-}
-
-/* ========================= */
-/* POPUP BASE */
+/* POPUP */
 /* ========================= */
 
 .overlay {
@@ -260,35 +239,34 @@
 }
 
 /* ========================= */
-/* 🔥 PREVIEW CORRIGIDO (ÚNICO SISTEMA) */
+/* PREVIEW FUNCIONANDO (VERSÃO ANTIGA ESTÁVEL) */
 /* ========================= */
 
-.preview-wrapper-perfil,
-.preview-wrapper-capa {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  overflow: hidden;
-  margin: 10px 0;
-}
-
-/* PERFIL */
 .preview-wrapper-perfil {
   width: 140px;
   height: 140px;
   border-radius: 50%;
+  overflow: hidden;
+  margin: 10px auto;
   border: 3px solid white;
 }
 
-/* CAPA */
+.preview-wrapper-perfil img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .preview-wrapper-capa {
   width: 100%;
   height: 140px;
+  overflow: hidden;
+  margin: 10px 0;
   border-radius: 10px;
 }
 
-/* IMAGEM REAL */
-.preview-img {
+.preview-wrapper-capa img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -323,7 +301,7 @@ input[type="range"] {
 }
 
 /* ========================= */
-/* UX FINAL */
+/* UX */
 /* ========================= */
 
 .foto:hover,
