@@ -37,6 +37,46 @@ export default function Perfil({ onLogout, irHome }) {
     }
   }, []);
 
+  function handleImagem(e, tipo) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setForm((prev) => ({
+        ...prev,
+        [tipo]: reader.result,
+      }));
+
+      if (tipo === "fotoPerfil") setEditandoPerfilImg(true);
+      if (tipo === "fotoCapa") setEditandoCapaImg(true);
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function salvar() {
+    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+    const atualizado = {
+      ...form,
+      posPerfil,
+      posCapa,
+      avaliacao,
+    };
+
+    usuarios = usuarios.map((u) =>
+      u.email === usuario.email ? atualizado : u
+    );
+
+    localStorage.setItem("usuarios", JSON.stringify(usuarios));
+    localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+
+    setUsuario(atualizado);
+    setSucesso("Salvo com sucesso!");
+    setTimeout(() => setSucesso(""), 2000);
+  }
+
   function logout() {
     localStorage.removeItem("usuarioLogado");
     onLogout();
@@ -56,13 +96,8 @@ export default function Perfil({ onLogout, irHome }) {
           <h3>{usuario.username}</h3>
 
           <div className="avaliacao-topo">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <span
-                key={n}
-                className={n <= avaliacao ? "star ativa" : "star"}
-              >
-                ★
-              </span>
+            {[1,2,3,4,5].map(n => (
+              <span key={n} className={n <= avaliacao ? "star ativa" : "star"}>★</span>
             ))}
           </div>
         </div>
@@ -76,7 +111,7 @@ export default function Perfil({ onLogout, irHome }) {
           }}
         ></div>
 
-        {/* PERFIL */}
+        {/* HEADER */}
         <div className="perfil-header">
           <div
             className="foto"
@@ -101,11 +136,9 @@ export default function Perfil({ onLogout, irHome }) {
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
-
           <p className="data">
             Entrou em {new Date(usuario.criadoEm).toLocaleDateString("pt-BR")}
           </p>
-
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
         </div>
 
@@ -113,11 +146,12 @@ export default function Perfil({ onLogout, irHome }) {
           Sair da conta
         </button>
 
-        {/* 🔥 EDITAR PERFIL (RESTAURADO) */}
+        {/* 🔥 POPUP COMPLETO RESTAURADO */}
         {editando && (
           <div className="overlay">
             <div className="popup">
               <button className="close-btn" onClick={() => setEditando(false)}>✕</button>
+
               <h2>Editar Perfil</h2>
 
               <input
@@ -136,8 +170,60 @@ export default function Perfil({ onLogout, irHome }) {
                 }
               />
 
+              <label>Foto de Perfil</label>
+              <button onClick={() => document.getElementById("perfilInput").click()}>
+                Alterar Foto
+              </button>
+
+              <input
+                id="perfilInput"
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => handleImagem(e, "fotoPerfil")}
+              />
+
+              <label>Foto de Capa</label>
+              <button onClick={() => document.getElementById("capaInput").click()}>
+                Alterar Capa
+              </button>
+
+              <input
+                id="capaInput"
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => handleImagem(e, "fotoCapa")}
+              />
+
+              <input
+                placeholder="Novo email"
+                value={form.email || ""}
+                onChange={(e) =>
+                  setForm({ ...form, email: e.target.value })
+                }
+              />
+
+              <input
+                type="password"
+                placeholder="Nova senha"
+                onChange={(e) =>
+                  setForm({ ...form, senha: e.target.value })
+                }
+              />
+
+              <input
+                type="password"
+                placeholder="Senha atual"
+                value={senhaAtual}
+                onChange={(e) => setSenhaAtual(e.target.value)}
+              />
+
+              {erro && <p className="erro">{erro}</p>}
+              {sucesso && <p className="sucesso">{sucesso}</p>}
+
               <div className="popup-btns">
-                <button onClick={() => setEditando(false)}>Salvar</button>
+                <button onClick={salvar}>Salvar</button>
               </div>
             </div>
           </div>

@@ -1,17 +1,27 @@
+/* ========================= */
+/* PROFILE PAGE */
+/* ========================= */
+
 .profile-page {
   margin-left: 250px;
   width: calc(100% - 250px);
   background: black;
   min-height: 100vh;
   color: white;
+  position: relative;
 }
 
-/* TOPO */
+/* ========================= */
+/* TOPO PERFIL */
+/* ========================= */
+
 .topo-perfil {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px 25px;
+  justify-content: space-between;
+  padding: 15px 20px;
+  position: relative;
+  z-index: 5;
 }
 
 .voltar {
@@ -19,94 +29,372 @@
   font-size: 20px;
 }
 
-/* ESTRELAS */
-.avaliacao-topo {
-  margin-left: auto;
+.topo-perfil h3 {
+  position: absolute;
+  left: 50px;
+}
+
+/* ⭐ estrelas no topo (linha amarela) */
+.avaliacao {
   display: flex;
   gap: 5px;
+  margin-right: 20px;
 }
 
 .star {
   color: #555;
+  font-size: 18px;
 }
 
 .star.ativa {
   color: gold;
 }
 
+/* ========================= */
 /* CAPA */
+/* ========================= */
+
 .capa {
   width: 100%;
   height: 260px;
+  background: #777;
   background-size: cover;
   background-position: center;
+
   position: relative;
-  z-index: 1; /* 🔥 FICA ATRÁS */
+  z-index: 1;
 }
 
-/* HEADER */
+.capa::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+}
+
+/* ========================= */
+/* HEADER PERFIL */
+/* ========================= */
+
 .perfil-header {
   display: flex;
-  align-items: center;
-  gap: 30px;
+  justify-content: space-between;
+  align-items: flex-end;
   padding: 0 30px;
 
-  margin-top: -60px;
+  margin-top: -70px; /* sobe por cima da capa */
   position: relative;
-  z-index: 2; /* 🔥 FICA NA FRENTE */
+  z-index: 3;
 }
 
-/* FOTO */
+/* FOTO PERFIL */
 .foto {
   width: 140px;
   height: 140px;
   border-radius: 50%;
+  background: #aaa;
   border: 5px solid black;
   background-size: cover;
   background-position: center;
 
-  z-index: 3; /* 🔥 GARANTE NA FRENTE DE TUDO */
+  z-index: 4; /* 🔥 garante que fique na frente da capa */
 }
 
-/* STATS */
-.stats-linha {
-  display: flex;
-  gap: 30px;
-  font-size: 14px;
-  color: #aaa;
-}
-
-/* BOTÃO */
+/* BOTÃO EDITAR */
 .btn-editar {
-  margin-left: auto;
-  margin-top: 10px;
-
   background: white;
   color: black;
   border: none;
   padding: 10px 18px;
   border-radius: 20px;
   cursor: pointer;
+  font-weight: bold;
+
+  margin-right: 25px;
+  margin-bottom: 15px; /* 🔥 desce ele para alinhar com stats */
 }
 
-/* INFO */
-.info {
-  padding: 20px 30px;
+.btn-editar:hover {
+  background: #ddd;
 }
+
+/* ========================= */
+/* INFO */
+/* ========================= */
+
+.info {
+  padding: 10px 30px;
+}
+
+.info h2 {
+  font-size: 22px;
+  margin-bottom: 5px;
+}
+
+.info span {
+  color: #888;
+  font-size: 14px;
+}
+
+.data {
+  color: #aaa;
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+/* ========================= */
+/* STATS (LINHA VERMELHA) */
+/* ========================= */
+
+.stats {
+  display: flex;
+  gap: 30px;
+
+  position: absolute;
+  right: 200px; /* 🔥 aproxima do botão editar */
+  top: 330px;   /* 🔥 altura alinhada com botão */
+
+  font-size: 14px;
+  color: #aaa;
+}
+
+.stats span {
+  display: flex;
+  gap: 5px;
+}
+
+.stats b {
+  color: white;
+}
+
+/* ========================= */
+/* BIO */
+/* ========================= */
 
 .bio {
-  margin-top: 15px;
+  margin-top: 40px;
   background: #111;
   padding: 15px;
   border-radius: 12px;
+  line-height: 1.4;
 }
 
+/* ========================= */
 /* LOGOUT */
+/* ========================= */
+
 .logout {
   margin: 20px 30px;
   padding: 10px;
-  background: red;
-  color: white;
   border: none;
   border-radius: 10px;
+  background: red;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.logout:hover {
+  background: darkred;
+}
+
+/* ========================= */
+/* POPUPS (VOLTOU NORMAL) */
+/* ========================= */
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 40px;
+
+  z-index: 9999;
+}
+
+.popup {
+  background: #111;
+  padding: 20px;
+  border-radius: 12px;
+  width: 420px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  max-height: 85vh;
+  overflow-y: auto;
+
+  position: relative;
+  animation: slideDown 0.3s ease;
+}
+
+.popup.small {
+  width: 320px;
+}
+
+/* INPUTS */
+
+.popup input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #222;
+  color: white;
+}
+
+/* BOTÕES */
+
+.popup button {
+  background: #222;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.popup button:hover {
+  background: #333;
+}
+
+.popup-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.popup-btns button {
+  flex: 1;
+}
+
+/* CANCELAR */
+
+.popup-btns button:last-child {
+  background: #3a1a1a;
+}
+
+.popup-btns button:last-child:hover {
+  background: #5a2a2a;
+}
+
+/* BOTÃO X */
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  color: white;
+  font-size: 18px;
+  border: none;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  color: #ff4d4d;
+}
+
+/* MENSAGENS */
+
+.erro {
+  color: #ff4d4d;
+  font-size: 14px;
+}
+
+.sucesso {
+  color: #4caf50;
+  font-size: 14px;
+}
+
+/* PREVIEW */
+
+.preview-perfil-box {
+  display: flex;
+  justify-content: center;
+}
+
+.preview-perfil {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  border: 3px solid white;
+}
+
+.preview-capa-box {
+  width: 100%;
+}
+
+.preview-capa {
+  width: 100%;
+  height: 100px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+}
+
+/* SCROLL */
+
+.popup::-webkit-scrollbar {
+  width: 8px;
+}
+
+.popup::-webkit-scrollbar-track {
+  background: #111;
+}
+
+.popup::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 10px;
+}
+
+.popup::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* SLIDER */
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 10px;
+  background: #333;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, #00c6ff, #0072ff);
+  height: 6px;
+  border-radius: 10px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  margin-top: -5px;
+  cursor: pointer;
+}
+
+/* ANIMAÇÃO */
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
