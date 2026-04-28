@@ -9,6 +9,7 @@
   min-height: 100vh;
   color: white;
   position: relative;
+  overflow-x: hidden;
 }
 
 /* ========================= */
@@ -31,7 +32,7 @@
 
 .topo-perfil h3 {
   position: absolute;
-  left: 50px;
+  left: 70px;
 }
 
 /* ESTRELAS */
@@ -98,10 +99,10 @@
   background-position: center;
 
   position: relative;
-  z-index: 5; /* 🔥 garante que fica na frente da capa */
+  z-index: 10; /* mais alto que a capa */
 }
 
-/* STATS AO LADO DA FOTO */
+/* STATS */
 .stats {
   display: flex;
   gap: 25px;
@@ -119,7 +120,7 @@
   color: white;
 }
 
-/* BOTÃO EDITAR */
+/* BOTÃO */
 .btn-editar {
   margin-left: auto;
   margin-bottom: 20px;
@@ -161,10 +162,8 @@
   font-size: 14px;
 }
 
-/* BIO */
-
 .bio {
-  margin-top: 40px;
+  margin-top: 20px;
   background: #111;
   padding: 15px;
   border-radius: 12px;
@@ -293,26 +292,9 @@
   color: #ff4d4d;
 }
 
-/* MENSAGENS */
-
-.erro {
-  color: #ff4d4d;
-  font-size: 14px;
-}
-
-.sucesso {
-  color: #4caf50;
-  font-size: 14px;
-}
-
 /* ========================= */
 /* PREVIEW */
 /* ========================= */
-
-.preview-perfil-box {
-  display: flex;
-  justify-content: center;
-}
 
 .preview-perfil {
   width: 100px;
@@ -321,10 +303,7 @@
   background-size: cover;
   background-position: center;
   border: 3px solid white;
-}
-
-.preview-capa-box {
-  width: 100%;
+  margin: 0 auto;
 }
 
 .preview-capa {

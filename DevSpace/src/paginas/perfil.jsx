@@ -10,11 +10,6 @@ export default function Perfil({ onLogout, irHome }) {
   const [editandoCapaImg, setEditandoCapaImg] = useState(false);
 
   const [form, setForm] = useState({});
-  const [senhaAtual, setSenhaAtual] = useState("");
-
-  const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState("");
-
   const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
   const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
 
@@ -31,7 +26,6 @@ export default function Perfil({ onLogout, irHome }) {
       setUsuario(user);
       setForm(user);
       setAvaliacao(user.avaliacao || 0);
-
       setPosPerfil(user.posPerfil || { x: 50, y: 50 });
       setPosCapa(user.posCapa || { x: 50, y: 50 });
     }
@@ -73,8 +67,7 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
     setUsuario(atualizado);
-    setSucesso("Salvo com sucesso!");
-    setTimeout(() => setSucesso(""), 2000);
+    setEditando(false);
   }
 
   function cancelarImagem(tipo) {
@@ -121,7 +114,7 @@ export default function Perfil({ onLogout, irHome }) {
             backgroundImage: `url(${usuario.fotoCapa || ""})`,
             backgroundPosition: `${posCapa.x}% ${posCapa.y}%`,
           }}
-        ></div>
+        />
 
         <div className="perfil-header">
 
@@ -131,7 +124,7 @@ export default function Perfil({ onLogout, irHome }) {
               backgroundImage: `url(${usuario.fotoPerfil || ""})`,
               backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`,
             }}
-          ></div>
+          />
 
           <div className="stats">
             <span><b>0</b> Seguindo</span>
@@ -157,7 +150,7 @@ export default function Perfil({ onLogout, irHome }) {
           Sair da conta
         </button>
 
-        {/* POPUP PRINCIPAL */}
+        {/* POPUP */}
         {editando && (
           <div className="overlay">
             <div className="popup">
@@ -185,7 +178,7 @@ export default function Perfil({ onLogout, irHome }) {
           </div>
         )}
 
-        {/* EDITAR PERFIL IMG */}
+        {/* PERFIL IMG */}
         {editandoPerfilImg && (
           <div className="overlay">
             <div className="popup small">
@@ -194,7 +187,7 @@ export default function Perfil({ onLogout, irHome }) {
               <div className="preview-perfil" style={{
                 backgroundImage: `url(${form.fotoPerfil})`,
                 backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`
-              }}></div>
+              }}/>
 
               <input type="range" min="0" max="100"
                 value={posPerfil.y}
@@ -214,7 +207,7 @@ export default function Perfil({ onLogout, irHome }) {
           </div>
         )}
 
-        {/* EDITAR CAPA */}
+        {/* CAPA IMG */}
         {editandoCapaImg && (
           <div className="overlay">
             <div className="popup small">
@@ -223,7 +216,7 @@ export default function Perfil({ onLogout, irHome }) {
               <div className="preview-capa" style={{
                 backgroundImage: `url(${form.fotoCapa})`,
                 backgroundPosition: `${posCapa.x}% ${posCapa.y}%`
-              }}></div>
+              }}/>
 
               <input type="range" min="0" max="100"
                 value={posCapa.y}
