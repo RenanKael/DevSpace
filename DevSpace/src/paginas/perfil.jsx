@@ -70,34 +70,33 @@ export default function Perfil({ onLogout, irHome }) {
   }
 
   function salvarImagem() {
-  let atualizado = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
-  let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    let atualizado = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
-  if (editandoImagem === "perfil") {
-    atualizado.fotoPerfil = previewImg;
-    atualizado.posPerfil = editPosPerfil;
-    setPosPerfil(editPosPerfil);
+    if (editandoImagem === "perfil") {
+      atualizado.fotoPerfil = previewImg;
+      atualizado.posPerfil = editPosPerfil;
+      setPosPerfil(editPosPerfil);
+    }
+
+    if (editandoImagem === "capa") {
+      atualizado.fotoCapa = previewImg;
+      atualizado.posCapa = editPosCapa;
+      setPosCapa(editPosCapa);
+    }
+
+    usuarios = usuarios.map((u) =>
+      u.email === atualizado.email ? atualizado : u
+    );
+
+    localStorage.setItem("usuarios", JSON.stringify(usuarios));
+    localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+
+    setUsuario(atualizado);
+
+    setEditandoImagem(null);
+    setPreviewImg(null);
   }
-
-  if (editandoImagem === "capa") {
-    atualizado.fotoCapa = previewImg;
-    atualizado.posCapa = editPosCapa;
-    setPosCapa(editPosCapa);
-  }
-
-  // 🔥 ATUALIZA NO ARRAY TAMBÉM
-  usuarios = usuarios.map((u) =>
-    u.email === atualizado.email ? atualizado : u
-  );
-
-  localStorage.setItem("usuarios", JSON.stringify(usuarios));
-  localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
-
-  setUsuario(atualizado);
-
-  setEditandoImagem(null);
-  setPreviewImg(null);
-}
 
   function salvarPerfil() {
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
@@ -197,20 +196,18 @@ export default function Perfil({ onLogout, irHome }) {
         </div>
 
         <div
-          key={usuario.fotoCapa}
           className="capa"
           style={{
-            backgroundImage: `url(${usuario.fotoCapa || ""})`,
+            backgroundImage: `url(${usuario.fotoCapa || ""}?t=${Date.now()})`,
             backgroundPosition: `${posCapa.x}% ${posCapa.y}%`
           }}
         />
 
         <div className="perfil-header">
           <div
-            key={usuario.fotoPerfil}
             className="foto"
             style={{
-              backgroundImage: `url(${usuario.fotoPerfil || ""})`,
+              backgroundImage: `url(${usuario.fotoPerfil || ""}?t=${Date.now()})`,
               backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`
             }}
           />
@@ -244,7 +241,6 @@ export default function Perfil({ onLogout, irHome }) {
         {editando && createPortal(
           <div className="overlay">
             <div className="popup">
-
               <button className="close-btn" onClick={() => setEditando(false)}>✕</button>
 
               <h2>Editar Perfil</h2>
@@ -270,7 +266,6 @@ export default function Perfil({ onLogout, irHome }) {
                 <button onClick={salvarPerfil}>Salvar</button>
                 <button onClick={() => setEditando(false)}>Cancelar</button>
               </div>
-
             </div>
           </div>,
           document.body
