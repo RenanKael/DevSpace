@@ -1,4 +1,4 @@
-import "../style/login.css";
+import "../style/login.css"; 
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import { useState } from "react";
 
@@ -61,6 +61,45 @@ export default function Login({ onLogin }) {
 
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
+    // 🔥 LOGINS ADMIN
+    const loginsAdmin = [
+      { login: "renan.kael@gmail.com", senha: "rklv2007" },
+      { login: "AllzynADM", senha: "rklv2007" }
+    ];
+
+    const isAdminLogin = loginsAdmin.find(
+      (l) => l.login === email && l.senha === senha
+    );
+
+    if (isAdminLogin) {
+      let admin = usuarios.find(
+        (u) => u.email === "renan.kael@gmail.com"
+      );
+
+      if (!admin) {
+        admin = {
+          username: "RenanADM",
+          email: "renan.kael@gmail.com",
+          senha: "rklv2007",
+          criadoEm: new Date().toISOString(),
+          bio: "Conta administrativa",
+          fotoPerfil: "",
+          fotoCapa: "",
+          estrelas: 5,
+          projetos: [],
+          avaliacao: 5
+        };
+
+        usuarios.push(admin);
+        localStorage.setItem("usuarios", JSON.stringify(usuarios));
+      }
+
+      localStorage.setItem("usuarioLogado", JSON.stringify(admin));
+      onLogin();
+      return;
+    }
+
+    // 🔹 LOGIN NORMAL
     const usuarioEncontrado = usuarios.find(
       (u) =>
         (u.email === email || u.username === email) &&
