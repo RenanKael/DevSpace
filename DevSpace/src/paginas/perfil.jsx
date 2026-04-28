@@ -259,13 +259,15 @@ export default function Perfil({ onLogout, irHome }) {
               {/* PERFIL EDIT */}
               {editandoPerfilImg && (
                 <>
-                  <div
-                    className="preview-perfil"
-                    style={{
-                      backgroundImage: `url(${previewPerfil})`,
-                      backgroundPosition: `${editPosPerfil.x}% ${editPosPerfil.y}%`
-                    }}
-                  />
+                  <div className="preview-wrapper-perfil">
+  <img
+    src={form.fotoPerfil}
+    style={{
+      objectPosition: `${editPosPerfil.x}% ${editPosPerfil.y}%`
+    }}
+    alt="preview"
+  />
+</div>
 
                   <input type="range" min="0" max="100"
                     value={editPosPerfil.x}
@@ -289,13 +291,15 @@ export default function Perfil({ onLogout, irHome }) {
               {/* CAPA EDIT */}
               {editandoCapaImg && (
                 <>
-                  <div
-                    className="preview-capa"
-                    style={{
-                      backgroundImage: `url(${previewCapa})`,
-                      backgroundPosition: `${editPosCapa.x}% ${editPosCapa.y}%`
-                    }}
-                  />
+                 <div className="preview-wrapper-capa">
+  <img
+    src={form.fotoCapa}
+    style={{
+      objectPosition: `${editPosCapa.x}% ${editPosCapa.y}%`
+    }}
+    alt="preview"
+  />
+</div>
 
                   <input type="range" min="0" max="100"
                     value={editPosCapa.x}

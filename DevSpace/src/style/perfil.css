@@ -337,3 +337,32 @@ input[type="range"]::-webkit-slider-thumb {
 .capa:hover {
   filter: brightness(0.9);
 }
+.preview-wrapper-perfil {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 10px auto;
+  border: 3px solid white;
+}
+
+.preview-wrapper-perfil img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.2); /* deixa mais “zoomável” tipo Instagram */
+}
+
+.preview-wrapper-capa {
+  width: 100%;
+  height: 140px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.preview-wrapper-capa img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
