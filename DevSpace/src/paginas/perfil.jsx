@@ -6,7 +6,7 @@ export default function Perfil({ onLogout, irHome }) {
   const [usuario, setUsuario] = useState(null);
 
   const [editandoPerfil, setEditandoPerfil] = useState(false);
-  const [editandoImagem, setEditandoImagem] = useState(null); // "perfil" | "capa" | null
+  const [editandoImagem, setEditandoImagem] = useState(null);
 
   const [form, setForm] = useState({});
   const [senhaAtual, setSenhaAtual] = useState("");
@@ -19,12 +19,15 @@ export default function Perfil({ onLogout, irHome }) {
   const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
   const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
 
+  const [avaliacao, setAvaliacao] = useState(0);
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("usuarioLogado"));
 
     if (user) {
       setUsuario(user);
       setForm(user);
+      setAvaliacao(user.avaliacao || 0);
       setPosPerfil(user.posPerfil || { x: 50, y: 50 });
       setPosCapa(user.posCapa || { x: 50, y: 50 });
     }
@@ -73,6 +76,9 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
     setUsuario(atualizado);
     setEditandoPerfil(false);
+
+    setSucesso("Perfil atualizado!");
+    setErro("");
   }
 
   function logout() {
@@ -80,7 +86,7 @@ export default function Perfil({ onLogout, irHome }) {
     onLogout();
   }
 
-  if (!usuario) return <h1 style={{ color: "white" }}>Carregando...</h1>;
+  if (!usuario) return <h1>Carregando...</h1>;
 
   return (
     <div className="home">
@@ -90,8 +96,15 @@ export default function Perfil({ onLogout, irHome }) {
 
         {/* TOPO */}
         <div className="topo-perfil">
-          <span onClick={irHome} style={{ cursor: "pointer" }}>←</span>
+          <span className="voltar" onClick={irHome}>←</span>
           <h3>{usuario.username}</h3>
+
+          {/* ESTRELAS */}
+          <div className="avaliacao">
+            {[1,2,3,4,5].map(n => (
+              <span key={n} className={n <= avaliacao ? "star ativa" : "star"}>★</span>
+            ))}
+          </div>
         </div>
 
         {/* CAPA */}
@@ -103,7 +116,7 @@ export default function Perfil({ onLogout, irHome }) {
           }}
         />
 
-        {/* PERFIL */}
+        {/* PERFIL HEADER */}
         <div className="perfil-header">
 
           <div
@@ -114,7 +127,14 @@ export default function Perfil({ onLogout, irHome }) {
             }}
           />
 
-          <button onClick={() => setEditandoPerfil(true)}>
+          {/* STATS */}
+          <div className="stats">
+            <span><b>{usuario.seguindo || 0}</b> Seguindo</span>
+            <span><b>{usuario.seguidores || 0}</b> Seguidores</span>
+            <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
+          </div>
+
+          <button className="btn-editar" onClick={() => setEditandoPerfil(true)}>
             Editar Perfil
           </button>
         </div>
@@ -123,6 +143,15 @@ export default function Perfil({ onLogout, irHome }) {
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
+
+          {/* DATA CRIAÇÃO */}
+          <p style={{ color: "#aaa", fontSize: "13px" }}>
+            Conta criada em:{" "}
+            {usuario.criadoEm
+              ? new Date(usuario.criadoEm).toLocaleDateString()
+              : "Desconhecido"}
+          </p>
+
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
         </div>
 
@@ -155,23 +184,13 @@ export default function Perfil({ onLogout, irHome }) {
                 placeholder="Bio"
               />
 
-              <button onClick={() => document.getElementById("imgInput").click()}>
-                Alterar Imagem
+              <button onClick={() => setEditandoImagem("perfil")}>
+                Alterar Foto Perfil
               </button>
 
-              <input
-                id="imgInput"
-                type="file"
-                hidden
-                onChange={(e) => handleImagem(e, "perfil")}
-              />
-
-              <input
-                type="file"
-                hidden
-                id="capaInput"
-                onChange={(e) => handleImagem(e, "capa")}
-              />
+              <button onClick={() => setEditandoImagem("capa")}>
+                Alterar Capa
+              </button>
 
               <div className="popup-btns">
                 <button onClick={salvarPerfil}>Salvar</button>
@@ -211,6 +230,7 @@ export default function Perfil({ onLogout, irHome }) {
                 value={editandoImagem === "perfil" ? posPerfil.x : posCapa.x}
                 onChange={(e) => {
                   const value = e.target.value;
+
                   if (editandoImagem === "perfil") {
                     setPosPerfil({ ...posPerfil, x: value });
                   } else {
@@ -226,6 +246,7 @@ export default function Perfil({ onLogout, irHome }) {
                 value={editandoImagem === "perfil" ? posPerfil.y : posCapa.y}
                 onChange={(e) => {
                   const value = e.target.value;
+
                   if (editandoImagem === "perfil") {
                     setPosPerfil({ ...posPerfil, y: value });
                   } else {
