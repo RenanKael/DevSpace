@@ -73,6 +73,16 @@ export default function Perfil({ onLogout, irHome }) {
     let atualizado = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
+    // 🔥 REMOVE IMAGEM ANTIGA
+    if (editandoImagem === "perfil") {
+      delete atualizado.fotoPerfil;
+    }
+
+    if (editandoImagem === "capa") {
+      delete atualizado.fotoCapa;
+    }
+
+    // 🔥 SALVA NOVA
     if (editandoImagem === "perfil") {
       atualizado.fotoPerfil = previewImg + `?t=${Date.now()}`;
       atualizado.posPerfil = editPosPerfil;
@@ -92,7 +102,11 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
-    setUsuario({ ...atualizado });
+    // 🔥 força re-render REAL
+    setUsuario(null);
+    setTimeout(() => {
+      setUsuario({ ...atualizado });
+    }, 0);
 
     setEditandoImagem(null);
     setPreviewImg(null);
@@ -130,6 +144,15 @@ export default function Perfil({ onLogout, irHome }) {
 
     let novaPosPerfil = posPerfil;
     let novaPosCapa = posCapa;
+
+    // 🔥 REMOVE ANTIGA
+    if (previewImg && editandoImagem === "perfil") {
+      delete atualizadoUsuario.fotoPerfil;
+    }
+
+    if (previewImg && editandoImagem === "capa") {
+      delete atualizadoUsuario.fotoCapa;
+    }
 
     if (previewImg && editandoImagem === "perfil") {
       atualizadoUsuario.fotoPerfil = previewImg + `?t=${Date.now()}`;
