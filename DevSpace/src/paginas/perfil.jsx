@@ -171,6 +171,10 @@ export default function Perfil({ onLogout, irHome }) {
 
   if (!usuario) return <h1>Carregando...</h1>;
 
+  const isRenan = usuario.email === "renan.kael@gmail.com";
+  const starCount = isRenan ? 6 : 5;
+  const activeStars = isRenan ? 6 : avaliacao;
+
   return (
     <div className="home">
       <Sidebar onReload={irHome} />
@@ -182,9 +186,12 @@ export default function Perfil({ onLogout, irHome }) {
           <h3>{usuario.username}</h3>
 
           <div className="avaliacao">
-            {[1,2,3,4,5].map(n => (
-              <span key={n} className={n <= avaliacao ? "star ativa" : "star"}>★</span>
-            ))}
+            {Array.from({ length: starCount }, (_, index) => {
+              const n = index + 1;
+              return (
+                <span key={n} className={n <= activeStars ? "star ativa" : "star"}>★</span>
+              );
+            })}
           </div>
         </div>
 
