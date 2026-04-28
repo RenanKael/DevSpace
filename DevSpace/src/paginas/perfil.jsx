@@ -25,6 +25,8 @@ export default function Perfil({ onLogout, irHome }) {
 
   const [avaliacao, setAvaliacao] = useState(0);
 
+  const [reloadImg, setReloadImg] = useState(0); // 🔥 força re-render REAL
+
   useEffect(() => {
     let user = JSON.parse(localStorage.getItem("usuarioLogado"));
 
@@ -73,24 +75,14 @@ export default function Perfil({ onLogout, irHome }) {
     let atualizado = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
-    // 🔥 REMOVE IMAGEM ANTIGA
     if (editandoImagem === "perfil") {
-      delete atualizado.fotoPerfil;
-    }
-
-    if (editandoImagem === "capa") {
-      delete atualizado.fotoCapa;
-    }
-
-    // 🔥 SALVA NOVA
-    if (editandoImagem === "perfil") {
-      atualizado.fotoPerfil = previewImg + `?t=${Date.now()}`;
+      atualizado.fotoPerfil = previewImg; // 🔥 sem ?t
       atualizado.posPerfil = editPosPerfil;
       setPosPerfil(editPosPerfil);
     }
 
     if (editandoImagem === "capa") {
-      atualizado.fotoCapa = previewImg + `?t=${Date.now()}`;
+      atualizado.fotoCapa = previewImg;
       atualizado.posCapa = editPosCapa;
       setPosCapa(editPosCapa);
     }
@@ -102,11 +94,9 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
-    // 🔥 força re-render REAL
-    setUsuario(null);
-    setTimeout(() => {
-      setUsuario({ ...atualizado });
-    }, 0);
+    setUsuario({ ...atualizado });
+
+    setReloadImg(Date.now()); // 🔥 FORÇA atualização real
 
     setEditandoImagem(null);
     setPreviewImg(null);
@@ -145,23 +135,14 @@ export default function Perfil({ onLogout, irHome }) {
     let novaPosPerfil = posPerfil;
     let novaPosCapa = posCapa;
 
-    // 🔥 REMOVE ANTIGA
     if (previewImg && editandoImagem === "perfil") {
-      delete atualizadoUsuario.fotoPerfil;
-    }
-
-    if (previewImg && editandoImagem === "capa") {
-      delete atualizadoUsuario.fotoCapa;
-    }
-
-    if (previewImg && editandoImagem === "perfil") {
-      atualizadoUsuario.fotoPerfil = previewImg + `?t=${Date.now()}`;
+      atualizadoUsuario.fotoPerfil = previewImg;
       atualizadoUsuario.posPerfil = editPosPerfil;
       novaPosPerfil = editPosPerfil;
     }
 
     if (previewImg && editandoImagem === "capa") {
-      atualizadoUsuario.fotoCapa = previewImg + `?t=${Date.now()}`;
+      atualizadoUsuario.fotoCapa = previewImg;
       atualizadoUsuario.posCapa = editPosCapa;
       novaPosCapa = editPosCapa;
     }
@@ -186,6 +167,9 @@ export default function Perfil({ onLogout, irHome }) {
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
     setUsuario({ ...atualizado });
+
+    setReloadImg(Date.now()); // 🔥 FORÇA atualização
+
     setPosPerfil(novaPosPerfil);
     setPosCapa(novaPosCapa);
 
@@ -223,7 +207,7 @@ export default function Perfil({ onLogout, irHome }) {
 
         <div
           className="capa"
-          key={usuario.fotoCapa}
+          key={reloadImg} // 🔥 força reload
           style={{
             backgroundImage: usuario.fotoCapa ? `url(${usuario.fotoCapa})` : "none",
             backgroundPosition: `${posCapa.x}% ${posCapa.y}%`
@@ -233,7 +217,7 @@ export default function Perfil({ onLogout, irHome }) {
         <div className="perfil-header">
           <div
             className="foto"
-            key={usuario.fotoPerfil}
+            key={reloadImg + "perfil"} // 🔥 força reload
             style={{
               backgroundImage: usuario.fotoPerfil ? `url(${usuario.fotoPerfil})` : "none",
               backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`
@@ -266,6 +250,7 @@ export default function Perfil({ onLogout, irHome }) {
           Sair da conta
         </button>
 
+        {/* POPUPS continuam iguais */}
         {editando && createPortal(
           <div className="overlay">
             <div className="popup">
