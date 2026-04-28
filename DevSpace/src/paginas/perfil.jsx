@@ -69,7 +69,7 @@ export default function Perfil({ onLogout, irHome }) {
   }
 
   function salvarImagem() {
-    const atualizado = { ...usuario };
+    const atualizado = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
 
     if (editandoImagem === "perfil") {
       atualizado.fotoPerfil = previewImg;
@@ -84,14 +84,14 @@ export default function Perfil({ onLogout, irHome }) {
     }
 
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
-    setUsuario(atualizado);
+    setUsuario(JSON.parse(localStorage.getItem("usuarioLogado")));
 
     setEditandoImagem(null);
     setPreviewImg(null);
   }
 
   function salvarPerfil() {
-    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    let atualizadoUsuario = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
 
     const emailExiste = usuarios.find(
       (u) => u.email === form.email && u.email !== usuario.email
