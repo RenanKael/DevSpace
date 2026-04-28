@@ -35,26 +35,12 @@ export default function Perfil({ onLogout, irHome }) {
       setPosPerfil(user.posPerfil || { x: 50, y: 50 });
       setPosCapa(user.posCapa || { x: 50, y: 50 });
     }
-
-    // 🔥 ESC fecha tudo
-    const handleEsc = (e) => {
-      if (e.key === "Escape") {
-        setEditando(false);
-        setEditandoPerfilImg(false);
-        setEditandoCapaImg(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleEsc);
-
-    return () => {
-      window.removeEventListener("keydown", handleEsc);
-    };
   }, []);
 
   function salvar() {
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
+    // 🔒 EMAIL DUPLICADO
     const emailJaExiste = usuarios.find(
       (u) => u.email === form.email && u.email !== usuario.email
     );
@@ -64,6 +50,7 @@ export default function Perfil({ onLogout, irHome }) {
       return;
     }
 
+    // 🔒 VALIDAÇÃO DE SENHA (CORRIGIDA)
     if (form.novaSenha || form.confirmarSenha) {
 
       if (!senhaAtual) {
@@ -71,7 +58,12 @@ export default function Perfil({ onLogout, irHome }) {
         return;
       }
 
-      if (senhaAtual !== usuario.senha) {
+      // 🔥 pega SEMPRE o dado mais atualizado
+      const usuarioAtualizado = usuarios.find(
+        (u) => u.email === usuario.email
+      );
+
+      if (!usuarioAtualizado || senhaAtual !== usuarioAtualizado.senha) {
         setErro("Senha atual incorreta!");
         return;
       }
@@ -208,7 +200,6 @@ export default function Perfil({ onLogout, irHome }) {
           Sair da conta
         </button>
 
-        {/* POPUP PRINCIPAL */}
         {editando && (
           <div className="overlay">
             <div className="popup">
@@ -218,7 +209,7 @@ export default function Perfil({ onLogout, irHome }) {
 
               <input value={form.username || ""} onChange={(e)=>setForm({...form, username:e.target.value})}/>
               <input value={form.bio || ""} onChange={(e)=>setForm({...form, bio:e.target.value})}/>
-              <input value={form.email || ""} onChange={(e)=>setForm({...form, email:e.target.value})}/>
+              <input value={form.email || ""} onChange={(e)=>setForm({...form, email:e.target.value})} placeholder="Alterar email" />
 
               <input type="password" placeholder="Senha atual"
                 value={senhaAtual}
@@ -250,72 +241,6 @@ export default function Perfil({ onLogout, irHome }) {
 
               <div className="popup-btns">
                 <button onClick={salvar}>Salvar</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* EDITAR PERFIL IMG */}
-        {editandoPerfilImg && (
-          <div className="overlay">
-            <div className="popup small">
-              <h2>Ajustar Foto</h2>
-
-              <div className="preview-perfil-box">
-                <div className="preview-perfil"
-                  style={{
-                    backgroundImage: `url(${form.fotoPerfil})`,
-                    backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`
-                  }}
-                ></div>
-              </div>
-
-              <input type="range" min="0" max="100"
-                value={posPerfil.y}
-                onChange={(e)=>setPosPerfil({...posPerfil, y:e.target.value})}
-              />
-
-              <input type="range" min="0" max="100"
-                value={posPerfil.x}
-                onChange={(e)=>setPosPerfil({...posPerfil, x:e.target.value})}
-              />
-
-              <div className="popup-btns">
-                <button onClick={()=>setEditandoPerfilImg(false)}>OK</button>
-                <button onClick={()=>cancelarImagem("perfil")}>Cancelar</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* EDITAR CAPA */}
-        {editandoCapaImg && (
-          <div className="overlay">
-            <div className="popup small">
-              <h2>Ajustar Capa</h2>
-
-              <div className="preview-capa-box">
-                <div className="preview-capa"
-                  style={{
-                    backgroundImage: `url(${form.fotoCapa})`,
-                    backgroundPosition: `${posCapa.x}% ${posCapa.y}%`
-                  }}
-                ></div>
-              </div>
-
-              <input type="range" min="0" max="100"
-                value={posCapa.y}
-                onChange={(e)=>setPosCapa({...posCapa, y:e.target.value})}
-              />
-
-              <input type="range" min="0" max="100"
-                value={posCapa.x}
-                onChange={(e)=>setPosCapa({...posCapa, x:e.target.value})}
-              />
-
-              <div className="popup-btns">
-                <button onClick={()=>setEditandoCapaImg(false)}>OK</button>
-                <button onClick={()=>cancelarImagem("capa")}>Cancelar</button>
               </div>
             </div>
           </div>
