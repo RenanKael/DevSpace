@@ -39,25 +39,19 @@ export default function Perfil({ onLogout, irHome }) {
     }
   }, []);
 
-  /* ========================= */
-  /* ESC FECHA TUDO (CORRIGIDO) */
-  /* ========================= */
+  // ESC fecha tudo
   useEffect(() => {
-    function handleEsc(e) {
+    const handleEsc = (e) => {
       if (e.key === "Escape") {
         setEditando(false);
         setEditandoImagem(null);
-        setPreviewImg(null);
       }
-    }
+    };
 
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  /* ========================= */
-  /* UPLOAD IMAGEM (CORRIGIDO)
-  /* ========================= */
   function handleImagem(e, tipo) {
     const file = e.target.files[0];
     if (!file) return;
@@ -73,14 +67,8 @@ export default function Perfil({ onLogout, irHome }) {
     };
 
     reader.readAsDataURL(file);
-
-    // 🔥 IMPORTANTE: reset input pra permitir selecionar mesma imagem de novo
-    e.target.value = "";
   }
 
-  /* ========================= */
-  /* SALVAR IMAGEM
-  /* ========================= */
   function salvarImagem() {
     const atualizado = { ...usuario };
 
@@ -103,9 +91,6 @@ export default function Perfil({ onLogout, irHome }) {
     setPreviewImg(null);
   }
 
-  /* ========================= */
-  /* SALVAR PERFIL (SENHA CORRIGIDA)
-  /* ========================= */
   function salvarPerfil() {
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
@@ -118,9 +103,7 @@ export default function Perfil({ onLogout, irHome }) {
       return;
     }
 
-    // 🔐 VALIDAÇÃO REAL DE SENHA
-    let novaSenhaFinal = usuario.senha;
-
+    // valida senha correta (ESSENCIAL NÃO REMOVER)
     if (form.novaSenha || form.confirmarSenha) {
       if (!senhaAtual) {
         setErro("Digite a senha atual!");
@@ -136,15 +119,15 @@ export default function Perfil({ onLogout, irHome }) {
         setErro("Senhas não coincidem!");
         return;
       }
-
-      novaSenhaFinal = form.novaSenha;
     }
 
     const atualizado = {
       ...usuario,
       ...form,
-      senha: novaSenhaFinal,
+      senha: form.novaSenha ? form.novaSenha : usuario.senha,
       avaliacao,
+      posPerfil,
+      posCapa
     };
 
     delete atualizado.novaSenha;
@@ -159,6 +142,7 @@ export default function Perfil({ onLogout, irHome }) {
 
     setUsuario(atualizado);
     setEditando(false);
+
     setErro("");
     setSucesso("Perfil atualizado!");
   }
@@ -223,7 +207,9 @@ export default function Perfil({ onLogout, irHome }) {
         <div className="info">
           <h2>{usuario.username}</h2>
           <span>@{usuario.username}</span>
+
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
+
           <p className="data">
             Criado em: {new Date(usuario.criadoEm).toLocaleDateString()}
           </p>
@@ -242,41 +228,61 @@ export default function Perfil({ onLogout, irHome }) {
 
               <h2>Editar Perfil</h2>
 
-              <input value={form.username || ""} onChange={(e)=>setForm({...form, username:e.target.value})}/>
-              <input value={form.bio || ""} onChange={(e)=>setForm({...form, bio:e.target.value})}/>
-              <input value={form.email || ""} onChange={(e)=>setForm({...form, email:e.target.value})}/>
-
-              <input type="password" placeholder="Senha atual"
-                value={senhaAtual}
-                onChange={(e)=>setSenhaAtual(e.target.value)}
+              <input
+                value={form.username || ""}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                placeholder="Nome"
               />
-
-              <input type="password" placeholder="Nova senha"
-                onChange={(e)=>setForm({...form, novaSenha:e.target.value})}
-              />
-
-              <input type="password" placeholder="Confirmar senha"
-                onChange={(e)=>setForm({...form, confirmarSenha:e.target.value})}
-              />
-
-              <button onClick={() => document.getElementById("imgInput").click()}>
-                Alterar Imagem
-              </button>
 
               <input
-                id="imgInput"
-                type="file"
-                hidden
-                accept="image/*"
-                onChange={(e)=>handleImagem(e,"perfil")}
+                value={form.bio || ""}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                placeholder="Bio"
               />
 
-              {erro && <p className="erro">{erro}</p>}
-              {sucesso && <p className="sucesso">{sucesso}</p>}
+              <input
+                value={form.email || ""}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="Email"
+              />
+
+              <input
+                type="password"
+                placeholder="Senha atual"
+                value={senhaAtual}
+                onChange={(e) => setSenhaAtual(e.target.value)}
+              />
+
+              <input
+                type="password"
+                placeholder="Nova senha"
+                onChange={(e) => setForm({ ...form, novaSenha: e.target.value })}
+              />
+
+              <input
+                type="password"
+                placeholder="Confirmar senha"
+                onChange={(e) => setForm({ ...form, confirmarSenha: e.target.value })}
+              />
+
+              <button onClick={() => document.getElementById("perfil").click()}>
+                Alterar Foto Perfil
+              </button>
+
+              <input id="perfil" type="file" hidden onChange={(e) => handleImagem(e, "perfil")} />
+
+              <button onClick={() => document.getElementById("capa").click()}>
+                Alterar Capa
+              </button>
+
+              <input id="capa" type="file" hidden onChange={(e) => handleImagem(e, "capa")} />
+
+              {erro && <p>{erro}</p>}
+              {sucesso && <p>{sucesso}</p>}
 
               <div className="popup-btns">
                 <button onClick={salvarPerfil}>Salvar</button>
-                <button onClick={()=>setEditando(false)}>Cancelar</button>
+                <button onClick={() => setEditando(false)}>Cancelar</button>
               </div>
 
             </div>
@@ -291,12 +297,51 @@ export default function Perfil({ onLogout, irHome }) {
               <h2>Editar Imagem</h2>
 
               <div className="preview-box">
-                <img src={previewImg} className="preview-img"/>
+                <img
+                  src={previewImg}
+                  className="preview-img"
+                  style={{
+                    objectPosition:
+                      editandoImagem === "perfil"
+                        ? `${editPosPerfil.x}% ${editPosPerfil.y}%`
+                        : `${editPosCapa.x}% ${editPosCapa.y}%`
+                  }}
+                />
               </div>
+
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={editandoImagem === "perfil" ? editPosPerfil.x : editPosCapa.x}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (editandoImagem === "perfil") {
+                    setEditPosPerfil({ ...editPosPerfil, x: v });
+                  } else {
+                    setEditPosCapa({ ...editPosCapa, x: v });
+                  }
+                }}
+              />
+
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={editandoImagem === "perfil" ? editPosPerfil.y : editPosCapa.y}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (editandoImagem === "perfil") {
+                    setEditPosPerfil({ ...editPosPerfil, y: v });
+                  } else {
+                    setEditPosCapa({ ...editPosCapa, y: v });
+                  }
+                }}
+              />
 
               <div className="popup-btns">
                 <button onClick={salvarImagem}>Salvar Imagem</button>
-                <button onClick={()=>setEditandoImagem(null)}>Cancelar</button>
+                <button onClick={() => setEditandoImagem(null)}>Cancelar</button>
               </div>
 
             </div>
