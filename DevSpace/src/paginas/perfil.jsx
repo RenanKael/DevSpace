@@ -22,6 +22,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const [sucesso, setSucesso] = useState("");
 
   const [previewImg, setPreviewImg] = useState(null);
+  const [fotoPerfilAberta, setFotoPerfilAberta] = useState(false);
 
   const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
   const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
@@ -201,6 +202,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       if (e.key === "Escape") {
         setEditando(false);
         setEditandoImagem(null);
+        setFotoPerfilAberta(false);
       }
     };
 
@@ -528,9 +530,12 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
         </div>
 
         <div className="perfil-header">
-          <div
+          <button
+            type="button"
             className="foto"
             key={reloadImg + "perfil"}
+            onClick={() => usuario.fotoPerfil && setFotoPerfilAberta(true)}
+            aria-label="Abrir foto do perfil"
           >
             {usuario.fotoPerfil && (
               <img
@@ -541,7 +546,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                 }}
               />
             )}
-          </div>
+          </button>
 
           <div className="stats">
             <span><b>{usuario.seguindo?.length || 0}</b> Seguindo</span>
@@ -763,6 +768,32 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                 <button onClick={() => setEditandoImagem(null)}>Cancelar</button>
               </div>
 
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {fotoPerfilAberta && usuario.fotoPerfil && createPortal(
+          <div className="overlay foto-perfil-overlay" onClick={() => setFotoPerfilAberta(false)}>
+            <div className="foto-perfil-popup" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="close-btn"
+                onClick={() => setFotoPerfilAberta(false)}
+                type="button"
+                title="Fechar"
+              >
+                x
+              </button>
+
+              <div className="foto-perfil-ampliada">
+                <img
+                  src={usuario.fotoPerfil}
+                  alt={`Foto de perfil de ${usuario.username}`}
+                  style={{
+                    transform: `translate(${perfilTx}%, ${perfilTy}%) scale(${perfilScale})`,
+                  }}
+                />
+              </div>
             </div>
           </div>,
           document.body
