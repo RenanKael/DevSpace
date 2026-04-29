@@ -603,7 +603,8 @@ input[type="range"] {
   min-height: 140px !important;
   max-width: 140px !important;
   max-height: 140px !important;
-  border-radius: 999px !important;
+  border-radius: 0 !important;
   object-fit: cover !important;
   display: block !important;
+  image-rendering: auto;
 }
