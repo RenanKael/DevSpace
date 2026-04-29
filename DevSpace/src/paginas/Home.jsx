@@ -69,6 +69,35 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
     });
   }
 
+  function addCommentToPost(postId, texto) {
+    if (!usuario) return;
+
+    setPosts((prevPosts) => {
+      const updatedPosts = prevPosts.map((post) => {
+        if (post.id !== postId) return post;
+
+        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+        const novoComentario = {
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          username: usuario.username || "Usuario",
+          handle: (usuario.handle || usuario.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+          texto,
+          criadoEm: new Date().toISOString(),
+        };
+
+        const nextComments = [novoComentario, ...commentsList];
+        return {
+          ...post,
+          commentsList: nextComments,
+          comments: nextComments.length,
+        };
+      });
+
+      localStorage.setItem("posts", JSON.stringify(updatedPosts));
+      return updatedPosts;
+    });
+  }
+
   useEffect(() => {
     let saved = [];
     const raw = localStorage.getItem("posts");
@@ -94,6 +123,23 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
             texto: "Comecando a semana com foco e cafe na mesa. Vamos fazer acontecer!",
             imagem: "",
             comments: 2,
+            commentsList: [
+              {
+                id: 1001,
+                username: "Felipe Rocha",
+                handle: "feliperocha",
+                texto: "Boa! Bora pra cima nessa semana.",
+                criadoEm: new Date(Date.now() - 3600000).toISOString(),
+              },
+              {
+                id: 1002,
+                username: "Nina Correa",
+                handle: "ninacorrea",
+                texto: "Post motivador, curti demais.",
+                criadoEm: new Date(Date.now() - 5400000).toISOString(),
+              },
+            ],
+            isSeedFake: true,
             shares: 1,
             likes: 5,
             bookmarks: 1,
@@ -109,6 +155,30 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
             texto: "Adorei o novo projeto, ja estou testando as ideias no prototipo.",
             imagem: "",
             comments: 3,
+            commentsList: [
+              {
+                id: 2001,
+                username: "Lia Gomes",
+                handle: "liagomes",
+                texto: "Manda depois o resultado desse prototipo.",
+                criadoEm: new Date(Date.now() - 4200000).toISOString(),
+              },
+              {
+                id: 2002,
+                username: "Arthur Silva",
+                handle: "arthursilva",
+                texto: "Tambem to testando algo parecido.",
+                criadoEm: new Date(Date.now() - 6500000).toISOString(),
+              },
+              {
+                id: 2003,
+                username: "Ana Tech",
+                handle: "anatech",
+                texto: "Curti a ideia, compartilha updates.",
+                criadoEm: new Date(Date.now() - 8000000).toISOString(),
+              },
+            ],
+            isSeedFake: true,
             shares: 2,
             likes: 8,
             bookmarks: 2,
@@ -124,6 +194,37 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
             texto: "Hora de aprender algo novo: hoje vou estudar animacoes CSS para fazer cards mais fluidos.",
             imagem: "",
             comments: 4,
+            commentsList: [
+              {
+                id: 3001,
+                username: "Pedro Code",
+                handle: "pedrocode",
+                texto: "Animacao em CSS faz muita diferenca mesmo.",
+                criadoEm: new Date(Date.now() - 5100000).toISOString(),
+              },
+              {
+                id: 3002,
+                username: "Maria Silva",
+                handle: "mariasilva",
+                texto: "Se quiser posso te mandar referencias boas.",
+                criadoEm: new Date(Date.now() - 8400000).toISOString(),
+              },
+              {
+                id: 3003,
+                username: "Carlos Devs",
+                handle: "carlosdevs",
+                texto: "Boa trilha de estudo.",
+                criadoEm: new Date(Date.now() - 10400000).toISOString(),
+              },
+              {
+                id: 3004,
+                username: "Felipe Rocha",
+                handle: "feliperocha",
+                texto: "Depois posta o antes e depois dos cards.",
+                criadoEm: new Date(Date.now() - 12400000).toISOString(),
+              },
+            ],
+            isSeedFake: true,
             shares: 1,
             likes: 11,
             bookmarks: 3,
@@ -139,6 +240,16 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
             texto: "Todo dia e dia de melhorar o design e deixar o app mais agradavel para as pessoas.",
             imagem: "",
             comments: 1,
+            commentsList: [
+              {
+                id: 4001,
+                username: "Lia Gomes",
+                handle: "liagomes",
+                texto: "Design centrado no usuario sempre vence.",
+                criadoEm: new Date(Date.now() - 4800000).toISOString(),
+              },
+            ],
+            isSeedFake: true,
             shares: 0,
             likes: 7,
             bookmarks: 1,
@@ -154,7 +265,20 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
         setPosts(saved);
       }
     } else {
-      setPosts(saved);
+      const normalizedPosts = saved.map((post) => {
+        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+        const isSeedFake = !!post.isSeedFake;
+        const normalizedComments = isSeedFake
+          ? commentsList.length || Number(post.comments || 0)
+          : commentsList.length;
+        return {
+          ...post,
+          commentsList,
+          comments: normalizedComments,
+          isSeedFake,
+        };
+      });
+      setPosts(normalizedPosts);
     }
   }, [refreshFeed, usuario]);
 
@@ -262,7 +386,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                   onClick={() => toggleComments(post.id)}
                 >
                   <span>??</span>
-                  <strong>{post.comments ?? 1}</strong>
+                  <strong>{Array.isArray(post.commentsList) ? post.commentsList.length : post.comments ?? 0}</strong>
                 </button>
                 <button
                   type="button"
@@ -302,7 +426,13 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                 </button>
               </div>
 
-              <PostComments postId={post.id} isExpanded={!!openedComments[post.id]} />
+              <PostComments
+                postId={post.id}
+                isExpanded={!!openedComments[post.id]}
+                comments={post.commentsList || []}
+                onAddComment={addCommentToPost}
+                usuario={usuario}
+              />
             </div>
           ))}
         </div>
@@ -351,7 +481,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                 onClick={() => toggleComments(selectedPostData.id)}
               >
                 <span>??</span>
-                <strong>{selectedPostData.comments ?? 1}</strong>
+                <strong>{Array.isArray(selectedPostData.commentsList) ? selectedPostData.commentsList.length : selectedPostData.comments ?? 0}</strong>
               </button>
               <button
                 type="button"
@@ -391,7 +521,13 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
               </button>
             </div>
 
-            <PostComments postId={selectedPostData.id} isExpanded={!!openedComments[selectedPostData.id]} />
+            <PostComments
+              postId={selectedPostData.id}
+              isExpanded={!!openedComments[selectedPostData.id]}
+              comments={selectedPostData.commentsList || []}
+              onAddComment={addCommentToPost}
+              usuario={usuario}
+            />
           </div>
         </div>
       )}

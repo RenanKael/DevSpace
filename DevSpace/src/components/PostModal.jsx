@@ -46,6 +46,8 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       imagem: preview || "",
       criadoEm: new Date().toISOString(),
       comments: 0,
+      commentsList: [],
+      isSeedFake: false,
       shares: 0,
       likes: 0,
       bookmarks: 0,

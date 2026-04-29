@@ -19,15 +19,37 @@ function App() {
       setLogado(true);
     }
 
-    // 🧹 Limpar postagens corrompidas ao inicializar
+    // Limpa e migra posts antigos
     try {
       const posts = JSON.parse(localStorage.getItem("posts")) || [];
       const postsValidos = posts.filter((post) => {
         return post && (post.email || post.username || post.handle) && post.criadoEm;
       });
 
-      if (postsValidos.length !== posts.length) {
-        localStorage.setItem("posts", JSON.stringify(postsValidos));
+      const postsMigrados = postsValidos.map((post) => {
+        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+        const isSeedFake = !!post.isSeedFake;
+        const comments = isSeedFake
+          ? commentsList.length || Number(post.comments || 0)
+          : commentsList.length;
+
+        return {
+          ...post,
+          commentsList,
+          isSeedFake,
+          comments,
+          shares: Number(post.shares || 0),
+          likes: Number(post.likes || 0),
+          bookmarks: Number(post.bookmarks || 0),
+          downloads: Number(post.downloads || 0),
+        };
+      });
+
+      if (
+        postsValidos.length !== posts.length ||
+        JSON.stringify(postsMigrados) !== JSON.stringify(posts)
+      ) {
+        localStorage.setItem("posts", JSON.stringify(postsMigrados));
       }
     } catch (error) {
       console.warn("Erro ao limpar posts:", error);
@@ -54,7 +76,13 @@ function App() {
 
   function handlePostCreated(post) {
     const posts = JSON.parse(localStorage.getItem("posts")) || [];
-    const novos = [post, ...posts];
+    const novoPost = {
+      ...post,
+      comments: Number(post.comments || 0),
+      commentsList: Array.isArray(post.commentsList) ? post.commentsList : [],
+      isSeedFake: !!post.isSeedFake,
+    };
+    const novos = [novoPost, ...posts];
     localStorage.setItem("posts", JSON.stringify(novos));
     setPostRefresh((value) => value + 1);
     setIsPostModalOpen(false);

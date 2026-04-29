@@ -1,47 +1,20 @@
 import { useState } from "react";
 
-const FAKE_COMMENTS = [
-  {
-    id: 1,
-    username: "Maria Silva",
-    handle: "mariasilva",
-    avatar: "",
-    texto: "Adorei esse post! Muito inspirador",
-    criadoEm: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: 2,
-    username: "Carlos Devs",
-    handle: "carlosdevs",
-    avatar: "",
-    texto: "Concordo totalmente com essa abordagem!",
-    criadoEm: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: 3,
-    username: "Ana Tech",
-    handle: "anatech",
-    avatar: "",
-    texto: "Excelente contribuição para a comunidade",
-    criadoEm: new Date(Date.now() - 10800000).toISOString(),
-  },
-  {
-    id: 4,
-    username: "Pedro Code",
-    handle: "pedrocode",
-    avatar: "",
-    texto: "Implementei isso no meu projeto e funcionou perfeitamente!",
-    criadoEm: new Date(Date.now() - 14400000).toISOString(),
-  },
-];
+export default function PostComments({
+  postId,
+  isExpanded,
+  comments,
+  onAddComment,
+  usuario,
+}) {
+  const [novoComentario, setNovoComentario] = useState("");
 
-export default function PostComments({ postId, isExpanded }) {
-  const [comments, setComments] = useState(FAKE_COMMENTS.slice(0, 2));
-
-  const handleLoadMore = () => {
-    if (comments.length < FAKE_COMMENTS.length) {
-      setComments(FAKE_COMMENTS);
-    }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const texto = novoComentario.trim();
+    if (!texto) return;
+    onAddComment(postId, texto);
+    setNovoComentario("");
   };
 
   return (
@@ -51,6 +24,10 @@ export default function PostComments({ postId, isExpanded }) {
     >
       {isExpanded && (
         <div className="post-comments-container">
+          {comments.length === 0 && (
+            <p className="post-comments-empty">Sem comentários ainda.</p>
+          )}
+
           {comments.map((comment) => (
             <div key={comment.id} className="post-comment">
               <div className="comment-header">
@@ -64,11 +41,18 @@ export default function PostComments({ postId, isExpanded }) {
             </div>
           ))}
 
-          {comments.length < FAKE_COMMENTS.length && (
-            <button className="load-more-comments" onClick={handleLoadMore}>
-              Carregar mais comentários
+          <form className="comment-form" onSubmit={handleSubmit}>
+            <input
+              type="text"
+              value={novoComentario}
+              onChange={(e) => setNovoComentario(e.target.value)}
+              placeholder="Escreva um comentário"
+              disabled={!usuario}
+            />
+            <button type="submit" disabled={!usuario || !novoComentario.trim()}>
+              Comentar
             </button>
-          )}
+          </form>
         </div>
       )}
     </div>
