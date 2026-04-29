@@ -18,6 +18,20 @@ function App() {
     if (savedLocal || savedSession) {
       setLogado(true);
     }
+
+    // 🧹 Limpar postagens corrompidas ao inicializar
+    try {
+      const posts = JSON.parse(localStorage.getItem("posts")) || [];
+      const postsValidos = posts.filter((post) => {
+        return post && (post.email || post.username || post.handle) && post.criadoEm;
+      });
+
+      if (postsValidos.length !== posts.length) {
+        localStorage.setItem("posts", JSON.stringify(postsValidos));
+      }
+    } catch (error) {
+      console.warn("Erro ao limpar posts:", error);
+    }
   }, []);
 
   useEffect(() => {

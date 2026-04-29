@@ -35,13 +35,24 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
     const novoPost = {
       id: Date.now(),
       username: usuario?.username || "Usuário",
-      handle: usuario?.handle || usuario?.username?.replace(/\s+/g, "").toLowerCase() || "",
+      handle: (usuario?.handle || usuario?.username || "").replace(/\s+/g, "").toLowerCase(),
       email: usuario?.email || "",
       fotoPerfil: usuario?.fotoPerfil || "",
       texto: texto.trim(),
-      imagem: preview,
+      imagem: preview || "",
       criadoEm: new Date().toISOString(),
+      comments: 0,
+      shares: 0,
+      likes: 0,
+      bookmarks: 0,
+      downloads: 0,
     };
+
+    // Validação: garantir que pelo menos um campo de identificação existe
+    if (!novoPost.email && !novoPost.username && !novoPost.handle) {
+      setErro("Erro: Dados do usuário incompletos.");
+      return;
+    }
 
     onPostSaved(novoPost);
   }

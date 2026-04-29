@@ -55,12 +55,33 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
   useEffect(() => {
     if (!usuario) return;
 
-    const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    let savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    
+    // 🧹 Limpar postagens corrompidas (sem autor válido)
+    const postsValidos = savedPosts.filter((post) => {
+      return post && (post.email || post.username || post.handle);
+    });
+
+    // Salvar de volta apenas posts válidos
+    if (postsValidos.length !== savedPosts.length) {
+      localStorage.setItem("posts", JSON.stringify(postsValidos));
+      savedPosts = postsValidos;
+    }
+
+    // Filtrar posts do usuário com melhores critérios
     const filtered = savedPosts.filter((post) => {
+      // Comparar com múltiplos campos, tolerando maiúsculas/minúsculas
+      const postEmail = post.email?.toLowerCase().trim();
+      const usuarioEmail = usuario.email?.toLowerCase().trim();
+      const postUsername = post.username?.toLowerCase().trim();
+      const usuarioUsername = usuario.username?.toLowerCase().trim();
+      const postHandle = post.handle?.toLowerCase().trim();
+      const usuarioHandle = usuario.handle?.toLowerCase().trim();
+
       return (
-        post.email === usuario.email ||
-        post.username === usuario.username ||
-        post.handle === usuario.handle
+        postEmail === usuarioEmail ||
+        postUsername === usuarioUsername ||
+        postHandle === usuarioHandle
       );
     });
 
