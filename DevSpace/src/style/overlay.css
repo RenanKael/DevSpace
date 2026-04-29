@@ -22,14 +22,14 @@
 
 .overlay-close-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 40px;
-  height: 40px;
+  top: 10px;
+  right: 10px;
+  width: 50px;
+  height: 50px;
   background: transparent;
   border: none;
   color: white;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: bold;
   cursor: pointer;
   border-radius: 6px;
