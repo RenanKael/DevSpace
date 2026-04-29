@@ -175,6 +175,28 @@ body {
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
+  position: relative;
+}
+
+.post-delete-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.post-delete-btn:hover {
+  background: rgba(255,255,255,0.16);
 }
 
 .post-card-avatar {

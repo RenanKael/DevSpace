@@ -18,6 +18,16 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
   const [selectedPost, setSelectedPost] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
+  function deletePost(postId) {
+    const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    const updated = savedPosts.filter((post) => post.id !== postId);
+    localStorage.setItem("posts", JSON.stringify(updated));
+    setPosts(updated);
+    if (selectedPost?.id === postId) {
+      setSelectedPost(null);
+    }
+  }
+
   useEffect(() => {
     let saved = [];
     const raw = localStorage.getItem("posts");
@@ -179,6 +189,18 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                   <small className="post-card-handle">@{post.handle || post.username}</small>
                   <strong>{post.username}</strong>
                 </div>
+                {(usuario?.email === post.email || usuario?.username === post.username) && (
+                  <button
+                    className="post-delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deletePost(post.id);
+                    }}
+                    title="Excluir post"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
               <p className="post-card-text">{post.texto}</p>
