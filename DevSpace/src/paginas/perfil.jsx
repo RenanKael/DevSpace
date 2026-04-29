@@ -129,13 +129,21 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
 
   useEffect(() => {
     if (!usuario || !usuarioLogado) return;
-    const followingList = Array.isArray(usuarioLogado.seguindo) ? usuarioLogado.seguindo : [];
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const loggedEmail = (usuarioLogado.email || "").toLowerCase();
+    const loggedHandle = (usuarioLogado.handle || usuarioLogado.username || "").toLowerCase();
+    const currentLogged =
+      usuarios.find((u) => {
+        const uEmail = (u.email || "").toLowerCase();
+        const uHandle = (u.handle || u.username || "").toLowerCase();
+        return (loggedEmail && uEmail === loggedEmail) || (loggedHandle && uHandle === loggedHandle);
+      }) || usuarioLogado;
+    const followingList = Array.isArray(currentLogged.seguindo) ? currentLogged.seguindo : [];
     const targetHandle = (usuario.handle || usuario.username || "").toLowerCase();
-    const targetEmail = (usuario.email || "").toLowerCase();
     setIsFollowing(
       followingList.some((item) => {
         const key = (item || "").toLowerCase();
-        return key === targetHandle || (targetEmail && key === targetEmail);
+        return key === targetHandle;
       })
     );
   }, [usuario, usuarioLogado]);
@@ -373,14 +381,15 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
 
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
     const loggedEmail = (usuarioLogado.email || "").toLowerCase();
-    const targetHandle = (usuario.handle || "").toLowerCase();
+    const loggedHandle = (usuarioLogado.handle || usuarioLogado.username || "").toLowerCase();
+    const targetHandle = (usuario.handle || usuario.username || "").toLowerCase();
     const targetKey = targetHandle;
 
     const updatedUsers = usuarios.map((u) => {
       const userEmail = (u.email || "").toLowerCase();
-      const userHandle = (u.handle || "").toLowerCase();
+      const userHandle = (u.handle || u.username || "").toLowerCase();
 
-      if (userEmail === loggedEmail) {
+      if ((loggedEmail && userEmail === loggedEmail) || (loggedHandle && userHandle === loggedHandle)) {
         const list = Array.isArray(u.seguindo) ? u.seguindo : [];
         const normalized = list.map((item) => (item || "").toLowerCase());
         const already = normalized.includes(targetKey);
@@ -407,7 +416,11 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
 
     localStorage.setItem("usuarios", JSON.stringify(updatedUsers));
 
-    const nextLogged = updatedUsers.find((u) => (u.email || "").toLowerCase() === loggedEmail) || usuarioLogado;
+    const nextLogged = updatedUsers.find((u) => {
+      const userEmail = (u.email || "").toLowerCase();
+      const userHandle = (u.handle || u.username || "").toLowerCase();
+      return (loggedEmail && userEmail === loggedEmail) || (loggedHandle && userHandle === loggedHandle);
+    }) || usuarioLogado;
     const nextTarget = updatedUsers.find((u) => {
       const userHandle = (u.handle || "").toLowerCase();
       return userHandle === targetHandle;
@@ -417,10 +430,10 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
     setUsuario(nextTarget);
     setIsFollowing(!isFollowing);
 
-    const rememberMe = localStorage.getItem("lembrarMe") === "true";
-    if (rememberMe) {
+    if (localStorage.getItem("usuarioLogado")) {
       localStorage.setItem("usuarioLogado", JSON.stringify(nextLogged));
-    } else {
+    }
+    if (sessionStorage.getItem("usuarioLogado")) {
       sessionStorage.setItem("usuarioLogado", JSON.stringify(nextLogged));
     }
   }
