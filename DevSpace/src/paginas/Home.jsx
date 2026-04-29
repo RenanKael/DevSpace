@@ -302,22 +302,26 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
       }
     } else {
       const normalizedPosts = saved.map((post) => {
-        const isSeedFake = !!post.isSeedFake;
+        const isLegacyFake =
+          !!post.isSeedFake ||
+          (post.email || "").toLowerCase().endsWith("@dev.com");
         const rawComments = Array.isArray(post.commentsList) ? post.commentsList : [];
+        const fallbackCount = Number(post.comments || 0) > 0 ? Number(post.comments) : 2;
         const commentsList =
-          isSeedFake && rawComments.length === 0
-            ? buildFakeComments(post.id, post.comments || 2)
+          isLegacyFake && rawComments.length === 0
+            ? buildFakeComments(post.id, fallbackCount)
             : rawComments;
-        const normalizedComments = isSeedFake
-          ? commentsList.length || Number(post.comments || 0)
-          : commentsList.length;
+        const normalizedComments = isLegacyFake
+          ? commentsList.length
+          : rawComments.length;
         return {
           ...post,
           commentsList,
           comments: normalizedComments,
-          isSeedFake,
+          isSeedFake: isLegacyFake,
         };
       });
+      localStorage.setItem("posts", JSON.stringify(normalizedPosts));
       setPosts(normalizedPosts);
     }
   }, [refreshFeed, usuario]);
