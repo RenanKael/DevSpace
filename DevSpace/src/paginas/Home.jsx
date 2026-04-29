@@ -399,11 +399,13 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
   };
 
   const filteredPosts = posts.filter((post) => {
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
+    const queryUser = query.startsWith("@") ? query.slice(1) : query;
 
     return [post.texto, post.username, post.handle, post.email].some((value) =>
-      value?.toLowerCase().includes(query)
+      value?.toLowerCase().includes(query) ||
+      value?.toLowerCase().includes(queryUser)
     );
   });
 
