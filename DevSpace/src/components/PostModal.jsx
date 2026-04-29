@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useOverlayClose } from "../hooks/useOverlayClose";
 import "../style/home.css";
 
 export default function PostModal({ open, onClose, usuario, onPostSaved }) {
   const [texto, setTexto] = useState("");
   const [preview, setPreview] = useState(null);
   const [erro, setErro] = useState("");
+
+  // Fechar modal com ESC
+  useOverlayClose(open, onClose);
 
   useEffect(() => {
     if (!open) {
@@ -61,8 +65,18 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
 
   return createPortal(
     <div className="overlay">
-      <div className="popup post-popup">
-        <button className="close-btn" onClick={onClose}>✕</button>
+      <div className="popup post-popup" onClick={(e) => e.stopPropagation()}>
+        <button 
+          className="close-btn" 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onClose();
+          }}
+          type="button"
+        >
+          ✕
+        </button>
 
         <div className="post-modal-header">
           <div

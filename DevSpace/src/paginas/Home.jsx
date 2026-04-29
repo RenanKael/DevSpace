@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import { useOverlayClose } from "../hooks/useOverlayClose";
 import "../style/home.css";
 
 export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
@@ -17,6 +18,10 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+
+  // Fechar overlay com ESC ou clique fora
+  useOverlayClose(!!selectedPost, () => setSelectedPost(null));
+  useOverlayClose(!!imagePreview, () => setImagePreview(null));
 
   function deletePost(postId) {
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
@@ -256,7 +261,15 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
       {selectedPost && (
         <div className="post-preview-overlay" onClick={() => setSelectedPost(null)}>
           <div className="post-expanded-popup" onClick={(e) => e.stopPropagation()}>
-            <button className="post-expanded-close" onClick={() => setSelectedPost(null)}>
+            <button 
+              className="post-expanded-close" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectedPost(null);
+              }}
+              type="button"
+            >
               ✕
             </button>
             <div className="post-card-header">
