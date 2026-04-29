@@ -18,6 +18,16 @@ function isFakeCommunityUser(user) {
   return email.endsWith("@dev.com") || email.endsWith("@devspace.fake");
 }
 
+function scoreUser(user) {
+  return (
+    (user?.bio ? 3 : 0) +
+    (user?.fotoPerfil ? 3 : 0) +
+    (user?.fotoCapa ? 2 : 0) +
+    (user?.email ? 1 : 0) +
+    (user?.username ? 1 : 0)
+  );
+}
+
 function App() {
   const [logado, setLogado] = useState(false);
   const [pagina, setPagina] = useState("home");
@@ -160,7 +170,24 @@ function App() {
           seguindo,
         };
       });
-      localStorage.setItem("usuarios", JSON.stringify(migratedUsers));
+
+      const dedupedMap = new Map();
+      migratedUsers.forEach((u) => {
+        const handle = String(u.handle || u.username || "").toLowerCase();
+        const email = String(u.email || "").toLowerCase();
+        const key = handle || email;
+        if (!key) return;
+        const prev = dedupedMap.get(key);
+        if (!prev) {
+          dedupedMap.set(key, u);
+          return;
+        }
+        const keepCurrent = scoreUser(u) > scoreUser(prev);
+        dedupedMap.set(key, keepCurrent ? u : prev);
+      });
+
+      const dedupedUsers = [...dedupedMap.values()];
+      localStorage.setItem("usuarios", JSON.stringify(dedupedUsers));
     } catch (error) {
       console.warn("Erro ao limpar posts:", error);
     }

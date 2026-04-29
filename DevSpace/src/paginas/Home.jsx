@@ -424,11 +424,27 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     const queryUser = query.slice(1);
     if (!queryUser) return [];
 
-    const matchedUsers = usuarios.filter((u) => {
+    const matchedUsersRaw = usuarios.filter((u) => {
       const handle = (u.handle || u.username || "").toLowerCase();
       const username = (u.username || "").toLowerCase();
       return handle.includes(queryUser) || username.includes(queryUser);
     });
+
+    const dedupedMap = new Map();
+    matchedUsersRaw.forEach((u) => {
+      const key = ((u.handle || u.username || "").toLowerCase() || (u.email || "").toLowerCase());
+      if (!key) return;
+      const prev = dedupedMap.get(key);
+      if (!prev) {
+        dedupedMap.set(key, u);
+        return;
+      }
+      const prevScore = (prev.bio ? 1 : 0) + (prev.fotoPerfil ? 1 : 0) + (prev.fotoCapa ? 1 : 0);
+      const nextScore = (u.bio ? 1 : 0) + (u.fotoPerfil ? 1 : 0) + (u.fotoCapa ? 1 : 0);
+      dedupedMap.set(key, nextScore > prevScore ? u : prev);
+    });
+
+    const matchedUsers = [...dedupedMap.values()];
 
     return matchedUsers.filter((u) => {
       const userHandle = (u.handle || u.username || "").toLowerCase();
