@@ -16,7 +16,11 @@ export default function Topbar({ visible, usuario }) {
           </span>
         </div>
 
-        <div className="avatar"></div>
+        <div className="avatar" style={{
+          backgroundImage: usuario?.fotoPerfil ? `url(${usuario.fotoPerfil})` : 'none',
+          backgroundPosition: usuario?.posPerfil ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%` : 'center',
+          backgroundSize: 'cover'
+        }}></div>
       </div>
     </div>
   );
