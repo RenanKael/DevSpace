@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 
 export default function Perfil({ onLogout, irHome, onOpenPost }) {
   const [usuario, setUsuario] = useState(null);
+  const [posts, setPosts] = useState([]);
   const [editando, setEditando] = useState(false);
 
   const [editandoImagem, setEditandoImagem] = useState(null);
@@ -41,6 +42,20 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
       setPosCapa(user.posCapa || { x: 50, y: 50 });
     }
   }, []);
+
+  useEffect(() => {
+    if (!usuario) return;
+
+    const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    const filtered = savedPosts.filter((post) => {
+      return post.email === usuario.email || post.username === usuario.username;
+    });
+
+    const ordered = filtered.sort(
+      (a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()
+    );
+    setPosts(ordered);
+  }, [usuario]);
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -174,6 +189,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
   const isRenan = usuario.email === "renan.kael@gmail.com";
   const starCount = isRenan ? 6 : 5;
   const activeStars = isRenan ? 6 : avaliacao;
+  const criadoEm = isRenan ? "26/06/206" : new Date(usuario.criadoEm).toLocaleDateString();
 
   return (
     <div className="home">
@@ -220,9 +236,14 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
             <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
           </div>
 
-          <button className="btn-editar" onClick={() => setEditando(true)}>
-            Editar Perfil
-          </button>
+          <div className="topo-actions">
+            <button className="btn-editar" onClick={() => setEditando(true)}>
+              Editar Perfil
+            </button>
+            <button className="logout-top" onClick={logout}>
+              Sair da conta
+            </button>
+          </div>
         </div>
 
         <div className="info">
@@ -232,13 +253,25 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
 
           <p className="data">
-            Criado em: {new Date(usuario.criadoEm).toLocaleDateString()}
+            📅 Criado em: {criadoEm}
           </p>
         </div>
 
-        <button className="logout" onClick={logout}>
-          Sair da conta
-        </button>
+        <div className="posts-container">
+          <h3>Posts</h3>
+          <div className="posts-list">
+            {posts.length === 0 ? (
+              <div className="perfil-post-empty">Sem posts ainda.</div>
+            ) : (
+              posts.map((post) => (
+                <div key={post.id} className="perfil-post-card">
+                  <div className="perfil-post-line" />
+                  <div className="perfil-post-text">{post.texto || "Post sem texto"}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
         {editando && createPortal(
           <div className="overlay">
