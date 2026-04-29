@@ -10,6 +10,7 @@ const GROUPS = [
     posts: [
       { user: "Lia Gomes", handle: "liagomes", text: "Usei LLM para gerar testes unitários e reduzi 40% do tempo de revisão." },
       { user: "Carlos Devs", handle: "carlosdevs", text: "Prompt + lint + testes locais virou meu fluxo padrão no backend." },
+      { user: "Ana Tech", handle: "anatech", text: "Montei snippets com IA para tarefas repetitivas e ficou muito mais rápido." },
     ],
   },
   {
@@ -29,6 +30,7 @@ const GROUPS = [
     posts: [
       { user: "Pedro Code", handle: "pedrocode", text: "Cache por camada + índices certos resolveu gargalo de consulta." },
       { user: "Caio Stack", handle: "caiostack", text: "Fila assíncrona para tarefas pesadas deixou API estável no pico." },
+      { user: "Arthur Silva", handle: "arthursilva", text: "Ajustei pool de conexões e derrubei latência média em produção." },
     ],
   },
   {
@@ -38,6 +40,7 @@ const GROUPS = [
     posts: [
       { user: "Arthur Silva", handle: "arthursilva", text: "Pipeline com preview por PR acelerou validação de layout." },
       { user: "Duda Product", handle: "dudaproduct", text: "Observabilidade no começo evitou retrabalho no suporte." },
+      { user: "Felipe Rocha", handle: "feliperocha", text: "Infra como código deixou onboarding do time muito mais simples." },
     ],
   },
   {
@@ -47,15 +50,21 @@ const GROUPS = [
     posts: [
       { user: "Ana Tech", handle: "anatech", text: "Offline-first melhorou muito experiência em conexões instáveis." },
       { user: "Felipe Rocha", handle: "feliperocha", text: "Otimizei imagens e o app ficou bem mais leve no Android." },
+      { user: "Maria Silva", handle: "mariasilva", text: "Troca para componentes nativos reduziu o consumo de bateria." },
     ],
   },
 ];
 
 const HOT_LANGS = ["TypeScript", "Python", "Go", "Rust", "JavaScript"];
 
+function userAvatar(handle) {
+  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle)}`;
+}
+
 export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfile }) {
   const [tab, setTab] = useState("momento");
   const [search, setSearch] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
 
   const filteredGroups = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -70,6 +79,8 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
       );
     });
   }, [search]);
+
+  const selectedGroup = GROUPS.find((g) => g.id === selectedGroupId) || null;
 
   return (
     <div className="home">
@@ -91,30 +102,47 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
             <button className={tab === "foryou" ? "active" : ""} onClick={() => setTab("foryou")}>Para Você</button>
           </div>
 
-          <div className="explore-groups">
-            {filteredGroups.map((group) => (
-              <section key={group.id} className="group-card">
-                <h3>{group.title}</h3>
-                <p className="group-subtitle">{group.subtitle}</p>
+          {!selectedGroup && (
+            <div className="explore-groups">
+              {filteredGroups.map((group) => (
+                <button key={group.id} className="group-card group-clickable" onClick={() => setSelectedGroupId(group.id)}>
+                  <h3>{group.title}</h3>
+                  <p className="group-subtitle">{group.subtitle}</p>
+                  <span className="group-count">{group.posts.length} postagens no grupo</span>
+                </button>
+              ))}
 
-                <div className="group-posts">
-                  {group.posts.map((post, idx) => (
-                    <article key={`${group.id}-${idx}`} className="group-post">
+              {filteredGroups.length === 0 && <p className="explore-empty">Nenhum assunto encontrado.</p>}
+            </div>
+          )}
+
+          {selectedGroup && (
+            <div className="group-detail">
+              <button className="group-back" onClick={() => setSelectedGroupId(null)}>← Voltar para grupos</button>
+              <h2>{selectedGroup.title}</h2>
+              <p className="group-subtitle">{selectedGroup.subtitle}</p>
+
+              <div className="group-feed">
+                {selectedGroup.posts.map((post, idx) => (
+                  <article key={`${selectedGroup.id}-${idx}`} className="group-feed-post">
+                    <div className="group-feed-head">
+                      <div
+                        className="group-feed-avatar"
+                        style={{ backgroundImage: `url(${userAvatar(post.handle)})` }}
+                      />
                       <button
                         className="group-post-user"
                         onClick={() => onOpenUserProfile?.({ username: post.user, handle: post.handle })}
                       >
                         {post.user} <span>@{post.handle}</span>
                       </button>
-                      <p>{post.text}</p>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ))}
-
-            {filteredGroups.length === 0 && <p className="explore-empty">Nenhum assunto encontrado.</p>}
-          </div>
+                    </div>
+                    <p>{post.text}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <aside className="explore-right">
