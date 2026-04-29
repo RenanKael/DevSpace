@@ -583,3 +583,27 @@ input[type="range"] {
   border-radius: 50%;
   aspect-ratio: 1 / 1;
 }
+
+/* Regra final do modal: mantém preview de perfil perfeitamente circular */
+.popup .preview-box.perfil {
+  width: 140px !important;
+  height: 140px !important;
+  min-width: 140px !important;
+  min-height: 140px !important;
+  max-width: 140px !important;
+  max-height: 140px !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+}
+
+.popup .preview-box.perfil .preview-img.perfil {
+  width: 140px !important;
+  height: 140px !important;
+  min-width: 140px !important;
+  min-height: 140px !important;
+  max-width: 140px !important;
+  max-height: 140px !important;
+  border-radius: 999px !important;
+  object-fit: cover !important;
+  display: block !important;
+}
