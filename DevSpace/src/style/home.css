@@ -198,15 +198,99 @@ body {
 }
 
 .post-card-text {
-  margin: 0 0 12px;
-  line-height: 1.5;
+  margin: 0 0 16px;
+  line-height: 1.6;
   color: #ddd;
 }
 
-.post-card-image img {
+.post-card-handle {
+  color: #8d99ae;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.post-card-window {
+  background: #101214;
+  border: 1px solid #2b2e33;
+  border-radius: 24px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.post-card-window-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #16181c;
+}
+
+.window-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.window-dot.red {
+  background: #ff4c4c;
+}
+
+.window-dot.yellow {
+  background: #ffd24d;
+}
+
+.window-dot.green {
+  background: #4cd964;
+}
+
+.post-card-window-body {
+  background: white;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.post-card-window-body img {
   width: 100%;
-  border-radius: 14px;
+  max-height: 320px;
+  object-fit: cover;
   display: block;
+}
+
+.post-card-actions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.post-card-actions button {
+  border: 1px solid #2b2e33;
+  background: rgba(255,255,255,0.04);
+  color: #eee;
+  border-radius: 14px;
+  padding: 10px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.post-card-actions button:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+}
+
+.post-card-actions button span {
+  display: inline-flex;
+}
+
+.post-card-actions button strong {
+  font-size: 0.95rem;
 }
 
 .post-modal-header {

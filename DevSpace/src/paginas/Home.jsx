@@ -88,18 +88,48 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                   }}
                 />
                 <div className="post-card-user">
+                  <small className="post-card-handle">@{post.handle || post.username}</small>
                   <strong>{post.username}</strong>
-                  <span>@{post.username}</span>
                 </div>
               </div>
 
               <p className="post-card-text">{post.texto}</p>
 
               {post.imagem && (
-                <div className="post-card-image">
-                  <img src={post.imagem} alt="Post" />
+                <div className="post-card-window">
+                  <div className="post-card-window-top">
+                    <span className="window-dot red" />
+                    <span className="window-dot yellow" />
+                    <span className="window-dot green" />
+                  </div>
+                  <div className="post-card-window-body">
+                    <img src={post.imagem} alt="Post" />
+                  </div>
                 </div>
               )}
+
+              <div className="post-card-actions">
+                <button type="button" aria-label="Comentários">
+                  <span>💬</span>
+                  <strong>{post.comments ?? 1}</strong>
+                </button>
+                <button type="button" aria-label="Compartilhar">
+                  <span>🔁</span>
+                  <strong>{post.shares ?? 1}</strong>
+                </button>
+                <button type="button" aria-label="Curtir">
+                  <span>❤️</span>
+                  <strong>{post.likes ?? 1}</strong>
+                </button>
+                <button type="button" aria-label="Salvar">
+                  <span>🔖</span>
+                  <strong>{post.bookmarks ?? 1}</strong>
+                </button>
+                <button type="button" aria-label="Baixar">
+                  <span>⬇️</span>
+                  <strong>{post.downloads ?? 1}</strong>
+                </button>
+              </div>
             </div>
           ))}
         </div>
