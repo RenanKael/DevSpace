@@ -410,11 +410,10 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   const filteredPosts = posts.filter((post) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
-    const queryUser = query.startsWith("@") ? query.slice(1) : query;
+    if (query.startsWith("@")) return false;
 
     return [post.texto, post.username, post.handle, post.email].some((value) =>
-      value?.toLowerCase().includes(query) ||
-      value?.toLowerCase().includes(queryUser)
+      value?.toLowerCase().includes(query)
     );
   });
 
@@ -424,7 +423,15 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     const queryUser = query.slice(1);
     if (!queryUser) return [];
 
-    const matchedUsersRaw = usuarios.filter((u) => {
+    const postAuthors = posts.map((post) => ({
+      username: post.username,
+      handle: post.handle || normalizeHandle(post.username),
+      email: post.email,
+      fotoPerfil: post.fotoPerfil,
+      bio: post.bio,
+    }));
+
+    const matchedUsersRaw = [...usuarios, ...postAuthors].filter((u) => {
       const handle = (u.handle || u.username || "").toLowerCase();
       const username = (u.username || "").toLowerCase();
       return handle.includes(queryUser) || username.includes(queryUser);
@@ -444,18 +451,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       dedupedMap.set(key, nextScore > prevScore ? u : prev);
     });
 
-    const matchedUsers = [...dedupedMap.values()];
-
-    return matchedUsers.filter((u) => {
-      const userHandle = (u.handle || u.username || "").toLowerCase();
-      const userEmail = (u.email || "").toLowerCase();
-      const hasPost = posts.some((p) => {
-        const pHandle = (p.handle || p.username || "").toLowerCase();
-        const pEmail = (p.email || "").toLowerCase();
-        return pHandle === userHandle || (userEmail && pEmail === userEmail);
-      });
-      return !hasPost;
-    });
+    return [...dedupedMap.values()];
   })();
 
   const selectedPostData = selectedPost
@@ -472,10 +468,10 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         <div className="feed">
           {loading && <p>Carregando...</p>}
           {!loading && filteredPosts.length === 0 && profileOnlyResults.length === 0 && (
-            <p>Sem posts correspondentes a busca.</p>
+            <p>{searchQuery.trim().startsWith("@") ? "Nenhum perfil encontrado." : "Sem posts correspondentes a busca."}</p>
           )}
 
-          {!loading && filteredPosts.length === 0 && profileOnlyResults.length > 0 && (
+          {!loading && profileOnlyResults.length > 0 && (
             <div className="profile-search-list">
               {profileOnlyResults.map((u) => (
                 <div
