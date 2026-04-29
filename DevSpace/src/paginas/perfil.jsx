@@ -3,10 +3,13 @@ import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import { createPortal } from "react-dom";
 
-export default function Perfil({ onLogout, irHome, onOpenPost }) {
+export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
   const [usuario, setUsuario] = useState(null);
   const [posts, setPosts] = useState([]);
   const [editando, setEditando] = useState(false);
+  const [activeMenuPostId, setActiveMenuPostId] = useState(null);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editingText, setEditingText] = useState("");
 
   const [editandoImagem, setEditandoImagem] = useState(null);
 
@@ -61,7 +64,8 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
       (a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()
     );
     setPosts(ordered);
-  }, [usuario]);
+    setActiveMenuPostId(null);
+  }, [usuario, refreshFeed]);
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -185,6 +189,45 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
     setSucesso("Perfil atualizado!");
   }
 
+  function savePostEdit() {
+    if (!editingPost) return;
+
+    const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    const updatedPosts = savedPosts.map((post) =>
+      post.id === editingPost.id ? { ...post, texto: editingText } : post
+    );
+
+    localStorage.setItem("posts", JSON.stringify(updatedPosts));
+    setPosts(updatedPosts.filter((post) => post.email === usuario.email || post.username === usuario.username));
+    setEditingPost(null);
+    setEditingText("");
+  }
+
+  function toggleSavePost(post) {
+    const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    const updatedPosts = savedPosts.map((item) =>
+      item.id === post.id ? { ...item, salvo: !item.salvo } : item
+    );
+
+    localStorage.setItem("posts", JSON.stringify(updatedPosts));
+    setPosts(updatedPosts.filter((p) => p.email === usuario.email || p.username === usuario.username));
+    setActiveMenuPostId(null);
+  }
+
+  function deletePost(postId) {
+    const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    const updatedPosts = savedPosts.filter((post) => post.id !== postId);
+    localStorage.setItem("posts", JSON.stringify(updatedPosts));
+    setPosts(updatedPosts.filter((post) => post.email === usuario.email || post.username === usuario.username));
+    setActiveMenuPostId(null);
+  }
+
+  function editPost(post) {
+    setEditingPost(post);
+    setEditingText(post.texto || "");
+    setActiveMenuPostId(null);
+  }
+
   function logout() {
     localStorage.removeItem("usuarioLogado");
     localStorage.removeItem("lembrarMe");
@@ -274,8 +317,37 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
                     backgroundPosition: "center"
                   }} />
                   <div className="perfil-post-body">
-                    <div className="perfil-post-title">{post.username}</div>
+                    <div className="perfil-post-header-row">
+                      <div>
+                        <div className="perfil-post-title">{post.username}</div>
+                        <div className="perfil-post-handle">@{post.handle || post.username}</div>
+                      </div>
+                      <button
+                        className="perfil-post-options-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenuPostId(activeMenuPostId === post.id ? null : post.id);
+                        }}
+                      >
+                        ⋮
+                      </button>
+                    </div>
                     <div className="perfil-post-text">{post.texto || "Post sem texto"}</div>
+                    {post.salvo && <div className="perfil-post-saved">Salvo</div>}
+
+                    {activeMenuPostId === post.id && (
+                      <div className="perfil-post-menu">
+                        <button type="button" onClick={() => toggleSavePost(post)}>
+                          {post.salvo ? "Desfazer salvar" : "Salvar post"}
+                        </button>
+                        <button type="button" onClick={() => editPost(post)}>
+                          Editar post
+                        </button>
+                        <button type="button" onClick={() => deletePost(post.id)}>
+                          Excluir post
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -315,6 +387,27 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
               <div className="popup-btns">
                 <button onClick={salvarPerfil}>Salvar</button>
                 <button onClick={() => setEditando(false)}>Cancelar</button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {editingPost && createPortal(
+          <div className="overlay">
+            <div className="popup">
+              <button className="close-btn" onClick={() => setEditingPost(null)}>✕</button>
+              <h2>Editar Post</h2>
+              <textarea
+                value={editingText}
+                onChange={(e) => setEditingText(e.target.value)}
+                placeholder="Atualize o texto do post"
+                rows={6}
+                style={{ background: '#222', color: '#fff', borderRadius: '10px', padding: '12px', border: '1px solid #333' }}
+              />
+              <div className="popup-btns">
+                <button onClick={savePostEdit}>Salvar</button>
+                <button onClick={() => setEditingPost(null)}>Cancelar</button>
               </div>
             </div>
           </div>,

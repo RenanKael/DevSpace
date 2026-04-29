@@ -128,6 +128,7 @@ function App() {
           onLogout={() => setLogado(false)}
           irHome={() => setPagina("home")}
           onOpenPost={handleOpenPost}
+          refreshFeed={postRefresh}
         />
 
         <PostModal
