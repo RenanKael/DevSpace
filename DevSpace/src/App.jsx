@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Login from "./paginas/Login";
 import Home from "./paginas/Home";
 import Perfil from "./paginas/Perfil";
+import Explorar from "./paginas/explorar";
 import PostModal from "./components/PostModal";
 
 function fakeAvatar(handle) {
@@ -228,9 +229,36 @@ function App() {
             setPerfilAlvo(null);
             setPagina("perfil");
           }}
+          irExplorar={() => {
+            setPerfilAlvo(null);
+            setPagina("explorar");
+          }}
           onOpenPost={handleOpenPost}
           refreshFeed={postRefresh}
           viewedUser={perfilAlvo}
+        />
+
+        <PostModal
+          open={isPostModalOpen}
+          onClose={handleClosePost}
+          usuario={usuario}
+          onPostSaved={handlePostCreated}
+        />
+      </>
+    );
+  }
+
+  if (pagina === "explorar") {
+    return (
+      <>
+        <Explorar
+          irHome={() => setPagina("home")}
+          irPerfil={() => {
+            setPerfilAlvo(null);
+            setPagina("perfil");
+          }}
+          onOpenPost={handleOpenPost}
+          onOpenUserProfile={abrirPerfilAlvo}
         />
 
         <PostModal
@@ -250,6 +278,7 @@ function App() {
           setPerfilAlvo(null);
           setPagina("perfil");
         }}
+        irExplorar={() => setPagina("explorar")}
         onOpenPost={handleOpenPost}
         refreshFeed={postRefresh}
         onOpenUserProfile={abrirPerfilAlvo}

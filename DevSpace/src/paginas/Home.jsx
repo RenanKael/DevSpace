@@ -45,7 +45,7 @@ function normalizeHandle(value) {
   return (value || "usuario").replace(/\s+/g, "").toLowerCase();
 }
 
-export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProfile }) {
+export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
@@ -448,7 +448,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
 
   return (
     <div className="home">
-      <Sidebar onReload={reloadFeed} irPerfil={irPerfil} onOpenPost={onOpenPost} />
+      <Sidebar onReload={reloadFeed} irPerfil={irPerfil} irExplorar={irExplorar} onOpenPost={onOpenPost} />
 
       <div className="main">
         <Topbar visible={showTopbar} usuario={usuario} onSearch={setSearchQuery} />

@@ -1,10 +1,10 @@
-import "../style/home.css";
+﻿import "../style/home.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import paginaInicial from "../assets/IMGS/Home.png";
 import explorar from "../assets/IMGS/Explorar.png";
 import perfil from "../assets/IMGS/NoPerfil.png";
 
-export default function Sidebar({ onReload, irPerfil, onOpenPost }) {
+export default function Sidebar({ onReload, irPerfil, irExplorar, onOpenPost }) {
   return (
     <div className="sidebar">
       <div className="logo" onClick={onReload}>
@@ -17,7 +17,7 @@ export default function Sidebar({ onReload, irPerfil, onOpenPost }) {
           <span>Página Inicial</span>
         </div>
 
-        <div className="nav-item">
+        <div className="nav-item" onClick={irExplorar}>
           <img src={explorar} />
           <span>Explorar</span>
         </div>

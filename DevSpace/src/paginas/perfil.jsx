@@ -4,7 +4,7 @@ import "../style/perfil.css";
 import { createPortal } from "react-dom";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
 
-export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refreshFeed, viewedUser }) {
+export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenPost, refreshFeed, viewedUser }) {
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -494,7 +494,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
 
   return (
     <div className="home">
-      <Sidebar onReload={irHome} irPerfil={irPerfil} onOpenPost={onOpenPost} />
+      <Sidebar onReload={irHome} irPerfil={irPerfil} irExplorar={irExplorar} onOpenPost={onOpenPost} />
 
       <div className="profile-page">
 
