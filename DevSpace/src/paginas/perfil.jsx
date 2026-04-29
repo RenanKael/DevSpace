@@ -29,7 +29,9 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
   const [reloadImg, setReloadImg] = useState(0);
 
   useEffect(() => {
-    let user = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+    const user = localUser || sessionUser;
 
     if (user) {
       if (!user.criadoEm) user.criadoEm = new Date().toISOString();

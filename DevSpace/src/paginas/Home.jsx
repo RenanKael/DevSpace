@@ -8,8 +8,9 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
   const [usuario, setUsuario] = useState(null);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("usuarioLogado"));
-    setUsuario(user);
+    const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+    setUsuario(localUser || sessionUser);
   }, []);
 
   const [posts, setPosts] = useState([]);
