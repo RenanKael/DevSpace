@@ -22,7 +22,6 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
   const [openedComments, setOpenedComments] = useState({});
   const [activeActions, setActiveActions] = useState({});
 
-  // Fechar overlay com ESC ou clique fora
   useOverlayClose(!!selectedPost, () => setSelectedPost(null));
   useOverlayClose(!!imagePreview, () => setImagePreview(null));
 
@@ -31,9 +30,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
     const updated = savedPosts.filter((post) => post.id !== postId);
     localStorage.setItem("posts", JSON.stringify(updated));
     setPosts(updated);
-    if (selectedPost?.id === postId) {
-      setSelectedPost(null);
-    }
+    if (selectedPost?.id === postId) setSelectedPost(null);
   }
 
   function toggleComments(postId) {
@@ -49,19 +46,18 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
       const isActive = !!postActions[action];
       const nextValue = !isActive;
 
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
+      setPosts((prevPosts) => {
+        const updatedPosts = prevPosts.map((post) => {
           if (post.id !== postId) return post;
-
           const currentValue = Number(post[action] || 0);
           return {
             ...post,
-            [action]: nextValue
-              ? currentValue + 1
-              : Math.max(0, currentValue - 1),
+            [action]: nextValue ? currentValue + 1 : Math.max(0, currentValue - 1),
           };
-        })
-      );
+        });
+        localStorage.setItem("posts", JSON.stringify(updatedPosts));
+        return updatedPosts;
+      });
 
       return {
         ...prev,
@@ -79,7 +75,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
 
     try {
       saved = JSON.parse(raw) || [];
-    } catch (error) {
+    } catch {
       saved = [];
     }
 
@@ -95,7 +91,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
             handle: "liagomes",
             email: "lia.gomes@dev.com",
             fotoPerfil: "",
-            texto: "Começando a semana com foco e café na mesa. Vamos fazer acontecer!",
+            texto: "Comecando a semana com foco e cafe na mesa. Vamos fazer acontecer!",
             imagem: "",
             comments: 2,
             shares: 1,
@@ -110,7 +106,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
             handle: "feliperocha",
             email: "felipe.rocha@dev.com",
             fotoPerfil: "",
-            texto: "Adorei o novo projeto, já estou testando as ideias no protótipo.",
+            texto: "Adorei o novo projeto, ja estou testando as ideias no prototipo.",
             imagem: "",
             comments: 3,
             shares: 2,
@@ -125,7 +121,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
             handle: "ninacorrea",
             email: "nina.correa@dev.com",
             fotoPerfil: "",
-            texto: "Hora de aprender algo novo: hoje vou estudar animações CSS para fazer cards mais fluidos.",
+            texto: "Hora de aprender algo novo: hoje vou estudar animacoes CSS para fazer cards mais fluidos.",
             imagem: "",
             comments: 4,
             shares: 1,
@@ -140,7 +136,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
             handle: "arthursilva",
             email: "arthur.silva@dev.com",
             fotoPerfil: "",
-            texto: "Todo dia é dia de melhorar o design e deixar o app mais agradável para as pessoas.",
+            texto: "Todo dia e dia de melhorar o design e deixar o app mais agradavel para as pessoas.",
             imagem: "",
             comments: 1,
             shares: 0,
@@ -164,9 +160,9 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
 
   const [loading, setLoading] = useState(false);
 
-  let lastScroll = 0;
-
   useEffect(() => {
+    let lastScroll = 0;
+
     const handleScroll = () => {
       const currentScroll = window.scrollY;
       setShowTopbar(currentScroll < lastScroll);
@@ -181,7 +177,6 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
     if (loading) return;
 
     setLoading(true);
-
     setTimeout(() => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
       setPosts(saved);
@@ -193,44 +188,32 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
     const query = searchQuery.toLowerCase();
     if (!query) return true;
 
-    return [
-      post.texto,
-      post.username,
-      post.handle,
-      post.email
-    ].some((value) => value?.toLowerCase().includes(query));
+    return [post.texto, post.username, post.handle, post.email].some((value) =>
+      value?.toLowerCase().includes(query)
+    );
   });
+
+  const selectedPostData = selectedPost
+    ? posts.find((post) => post.id === selectedPost.id) || selectedPost
+    : null;
 
   return (
     <div className="home">
-      <Sidebar
-        onReload={reloadFeed}
-        irPerfil={irPerfil}
-        onOpenPost={onOpenPost}
-      />
+      <Sidebar onReload={reloadFeed} irPerfil={irPerfil} onOpenPost={onOpenPost} />
 
       <div className="main">
         <Topbar visible={showTopbar} usuario={usuario} onSearch={setSearchQuery} />
 
         <div className="feed">
           {loading && <p>Carregando...</p>}
-
-          {!loading && filteredPosts.length === 0 && (
-            <p>Sem posts correspondentes à busca.</p>
-          )}
+          {!loading && filteredPosts.length === 0 && <p>Sem posts correspondentes a busca.</p>}
 
           {filteredPosts.map((post) => (
-            <div
-              key={post.id}
-              className="post-card"
-              onClick={() => setSelectedPost(post)}
-            >
+            <div key={post.id} className="post-card" onClick={() => setSelectedPost(post)}>
               <div className="post-card-header">
                 <div
                   className="post-card-avatar"
-                  style={{
-                    backgroundImage: post.fotoPerfil ? `url(${post.fotoPerfil})` : "none",
-                  }}
+                  style={{ backgroundImage: post.fotoPerfil ? `url(${post.fotoPerfil})` : "none" }}
                 />
                 <div className="post-card-user">
                   <small className="post-card-handle">@{post.handle || post.username}</small>
@@ -245,7 +228,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                     }}
                     title="Excluir post"
                   >
-                    ✕
+                    x
                   </button>
                 )}
               </div>
@@ -274,97 +257,88 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
               <div className="post-card-actions" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
-                  aria-label="Comentários"
-                  className={activeActions[post.id]?.comments ? "active" : ""}
-                  onClick={() => {
-                    toggleComments(post.id);
-                    togglePostAction(post.id, "comments");
-                  }}
+                  aria-label="Comentarios"
+                  className={openedComments[post.id] ? "active pulse" : ""}
+                  onClick={() => toggleComments(post.id)}
                 >
-                  <span>💬</span>
+                  <span>??</span>
                   <strong>{post.comments ?? 1}</strong>
                 </button>
                 <button
                   type="button"
-                  aria-label="Compartilhar"
-                  className={activeActions[post.id]?.shares ? "active" : ""}
+                  aria-label="Repost"
+                  className={activeActions[post.id]?.shares ? "active pulse" : ""}
                   onClick={() => togglePostAction(post.id, "shares")}
                 >
-                  <span>🔁</span>
+                  <span>??</span>
                   <strong>{post.shares ?? 1}</strong>
                 </button>
                 <button
                   type="button"
                   aria-label="Curtir"
-                  className={activeActions[post.id]?.likes ? "active" : ""}
+                  className={activeActions[post.id]?.likes ? "active pulse" : ""}
                   onClick={() => togglePostAction(post.id, "likes")}
                 >
-                  <span>❤️</span>
+                  <span>??</span>
                   <strong>{post.likes ?? 1}</strong>
                 </button>
                 <button
                   type="button"
                   aria-label="Salvar"
-                  className={activeActions[post.id]?.bookmarks ? "active" : ""}
+                  className={activeActions[post.id]?.bookmarks ? "active pulse" : ""}
                   onClick={() => togglePostAction(post.id, "bookmarks")}
                 >
-                  <span>🔖</span>
+                  <span>??</span>
                   <strong>{post.bookmarks ?? 1}</strong>
                 </button>
                 <button
                   type="button"
                   aria-label="Baixar"
-                  className={activeActions[post.id]?.downloads ? "active" : ""}
+                  className={activeActions[post.id]?.downloads ? "active pulse" : ""}
                   onClick={() => togglePostAction(post.id, "downloads")}
                 >
-                  <span>⬇️</span>
+                  <span>??</span>
                   <strong>{post.downloads ?? 1}</strong>
                 </button>
               </div>
 
-              <PostComments
-                postId={post.id}
-                isExpanded={!!openedComments[post.id]}
-                onToggle={() => toggleComments(post.id)}
-              />
+              <PostComments postId={post.id} isExpanded={!!openedComments[post.id]} />
             </div>
           ))}
         </div>
       </div>
 
-      {selectedPost && (
+      {selectedPostData && (
         <div className="post-preview-overlay" onClick={() => setSelectedPost(null)}>
           <div className="post-expanded-popup" onClick={(e) => e.stopPropagation()}>
-            <button 
-              className="post-expanded-close" 
-              onClick={() => setSelectedPost(null)}
-              type="button"
-              title="Fechar"
-            >
-              ✕
+            <button className="post-expanded-close" onClick={() => setSelectedPost(null)} type="button" title="Fechar">
+              x
             </button>
             <div className="post-card-header">
               <div
                 className="post-card-avatar"
                 style={{
-                  backgroundImage: selectedPost.fotoPerfil ? `url(${selectedPost.fotoPerfil})` : "none",
+                  backgroundImage: selectedPostData.fotoPerfil ? `url(${selectedPostData.fotoPerfil})` : "none",
                 }}
               />
               <div className="post-card-user">
-                <small className="post-card-handle">@{selectedPost.handle || selectedPost.username}</small>
-                <strong>{selectedPost.username}</strong>
+                <small className="post-card-handle">@{selectedPostData.handle || selectedPostData.username}</small>
+                <strong>{selectedPostData.username}</strong>
               </div>
             </div>
-            <p className="post-card-text post-expanded-text">{selectedPost.texto}</p>
-            {selectedPost.imagem && (
-              <div className="post-card-window post-expanded-window" onClick={() => setImagePreview(selectedPost.imagem)}>
+            <p className="post-card-text post-expanded-text">{selectedPostData.texto}</p>
+            {selectedPostData.imagem && (
+              <div
+                className="post-card-window post-expanded-window"
+                onClick={() => setImagePreview(selectedPostData.imagem)}
+              >
                 <div className="post-card-window-top">
                   <span className="window-dot red" />
                   <span className="window-dot yellow" />
                   <span className="window-dot green" />
                 </div>
                 <div className="post-card-window-body">
-                  <img src={selectedPost.imagem} alt="Post ampliado" />
+                  <img src={selectedPostData.imagem} alt="Post ampliado" />
                 </div>
               </div>
             )}
@@ -372,56 +346,52 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
             <div className="post-card-actions post-expanded-actions" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
-                aria-label="Comentários"
-                className={openedComments[selectedPost.id] ? "active" : ""}
-                onClick={() => toggleComments(selectedPost.id)}
+                aria-label="Comentarios"
+                className={openedComments[selectedPostData.id] ? "active pulse" : ""}
+                onClick={() => toggleComments(selectedPostData.id)}
               >
-                <span>💬</span>
-                <strong>{selectedPost.comments ?? 1}</strong>
+                <span>??</span>
+                <strong>{selectedPostData.comments ?? 1}</strong>
               </button>
               <button
                 type="button"
-                aria-label="Compartilhar"
-                className={activeActions[selectedPost.id]?.shares ? "active" : ""}
-                onClick={() => togglePostAction(selectedPost.id, "shares")}
+                aria-label="Repost"
+                className={activeActions[selectedPostData.id]?.shares ? "active pulse" : ""}
+                onClick={() => togglePostAction(selectedPostData.id, "shares")}
               >
-                <span>🔁</span>
-                <strong>{selectedPost.shares ?? 1}</strong>
+                <span>??</span>
+                <strong>{selectedPostData.shares ?? 1}</strong>
               </button>
               <button
                 type="button"
                 aria-label="Curtir"
-                className={activeActions[selectedPost.id]?.likes ? "active" : ""}
-                onClick={() => togglePostAction(selectedPost.id, "likes")}
+                className={activeActions[selectedPostData.id]?.likes ? "active pulse" : ""}
+                onClick={() => togglePostAction(selectedPostData.id, "likes")}
               >
-                <span>❤️</span>
-                <strong>{selectedPost.likes ?? 1}</strong>
+                <span>??</span>
+                <strong>{selectedPostData.likes ?? 1}</strong>
               </button>
               <button
                 type="button"
                 aria-label="Salvar"
-                className={activeActions[selectedPost.id]?.bookmarks ? "active" : ""}
-                onClick={() => togglePostAction(selectedPost.id, "bookmarks")}
+                className={activeActions[selectedPostData.id]?.bookmarks ? "active pulse" : ""}
+                onClick={() => togglePostAction(selectedPostData.id, "bookmarks")}
               >
-                <span>🔖</span>
-                <strong>{selectedPost.bookmarks ?? 1}</strong>
+                <span>??</span>
+                <strong>{selectedPostData.bookmarks ?? 1}</strong>
               </button>
               <button
                 type="button"
                 aria-label="Baixar"
-                className={activeActions[selectedPost.id]?.downloads ? "active" : ""}
-                onClick={() => togglePostAction(selectedPost.id, "downloads")}
+                className={activeActions[selectedPostData.id]?.downloads ? "active pulse" : ""}
+                onClick={() => togglePostAction(selectedPostData.id, "downloads")}
               >
-                <span>⬇️</span>
-                <strong>{selectedPost.downloads ?? 1}</strong>
+                <span>??</span>
+                <strong>{selectedPostData.downloads ?? 1}</strong>
               </button>
             </div>
 
-            <PostComments
-              postId={selectedPost.id}
-              isExpanded={!!openedComments[selectedPost.id]}
-              onToggle={() => toggleComments(selectedPost.id)}
-            />
+            <PostComments postId={selectedPostData.id} isExpanded={!!openedComments[selectedPostData.id]} />
           </div>
         </div>
       )}
@@ -430,7 +400,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
         <div className="post-preview-overlay" onClick={() => setImagePreview(null)}>
           <div className="image-only-popup" onClick={(e) => e.stopPropagation()}>
             <button className="post-expanded-close" onClick={() => setImagePreview(null)}>
-              ✕
+              x
             </button>
             <img src={imagePreview} alt="Imagem ampliada do post" />
           </div>
