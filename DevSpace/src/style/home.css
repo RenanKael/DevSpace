@@ -375,6 +375,27 @@ body {
   gap: 8px;
 }
 
+.comment-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.comment-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #2a2d33;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.comment-content {
+  flex: 1;
+}
+
 .comment-header small,
 .comment-time {
   color: #9aa0a6;

@@ -5,7 +5,7 @@ import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import "../style/home.css";
 
-export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
+export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProfile }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
 
@@ -81,6 +81,8 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
           id: Date.now() + Math.floor(Math.random() * 1000),
           username: usuario.username || "Usuario",
           handle: (usuario.handle || usuario.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+          email: usuario.email || "",
+          fotoPerfil: usuario.fotoPerfil || "",
           texto,
           criadoEm: new Date().toISOString(),
         };
@@ -338,10 +340,22 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                 <div
                   className="post-card-avatar"
                   style={{ backgroundImage: post.fotoPerfil ? `url(${post.fotoPerfil})` : "none" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenUserProfile?.(post);
+                  }}
                 />
                 <div className="post-card-user">
                   <small className="post-card-handle">@{post.handle || post.username}</small>
-                  <strong>{post.username}</strong>
+                  <strong
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenUserProfile?.(post);
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {post.username}
+                  </strong>
                 </div>
                 {(usuario?.email === post.email || usuario?.username === post.username) && (
                   <button
@@ -432,6 +446,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                 comments={post.commentsList || []}
                 onAddComment={addCommentToPost}
                 usuario={usuario}
+                onOpenUserProfile={onOpenUserProfile}
               />
             </div>
           ))}
@@ -450,10 +465,22 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                 style={{
                   backgroundImage: selectedPostData.fotoPerfil ? `url(${selectedPostData.fotoPerfil})` : "none",
                 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenUserProfile?.(selectedPostData);
+                }}
               />
               <div className="post-card-user">
                 <small className="post-card-handle">@{selectedPostData.handle || selectedPostData.username}</small>
-                <strong>{selectedPostData.username}</strong>
+                <strong
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenUserProfile?.(selectedPostData);
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  {selectedPostData.username}
+                </strong>
               </div>
             </div>
             <p className="post-card-text post-expanded-text">{selectedPostData.texto}</p>
@@ -527,6 +554,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
               comments={selectedPostData.commentsList || []}
               onAddComment={addCommentToPost}
               usuario={usuario}
+              onOpenUserProfile={onOpenUserProfile}
             />
           </div>
         </div>

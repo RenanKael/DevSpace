@@ -10,6 +10,7 @@ function App() {
   const [usuario, setUsuario] = useState(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postRefresh, setPostRefresh] = useState(0);
+  const [perfilAlvo, setPerfilAlvo] = useState(null);
 
   useEffect(() => {
     const savedLocal = JSON.parse(localStorage.getItem("usuarioLogado"));
@@ -22,6 +23,7 @@ function App() {
     // Limpa e migra posts antigos
     try {
       const posts = JSON.parse(localStorage.getItem("posts")) || [];
+      const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
       const postsValidos = posts.filter((post) => {
         return post && (post.email || post.username || post.handle) && post.criadoEm;
       });
@@ -51,6 +53,55 @@ function App() {
       ) {
         localStorage.setItem("posts", JSON.stringify(postsMigrados));
       }
+
+      const byEmail = new Set(usuarios.map((u) => (u.email || "").toLowerCase()));
+      const novosUsuarios = [...usuarios];
+      postsMigrados.forEach((post) => {
+        const email = (post.email || `${post.handle || post.username}@devspace.fake`).toLowerCase();
+        if (!byEmail.has(email)) {
+          byEmail.add(email);
+          novosUsuarios.push({
+            username: post.username || "Usuario",
+            handle: (post.handle || post.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+            email,
+            senha: "123456",
+            criadoEm: post.criadoEm || new Date().toISOString(),
+            bio: "Perfil da comunidade DevSpace.",
+            fotoPerfil: post.fotoPerfil || "",
+            fotoCapa: "",
+            estrelas: 1,
+            projetos: [],
+            seguidores: 0,
+            seguindo: [],
+            comments: 0,
+            isAdmin: false,
+          });
+        }
+        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+        commentsList.forEach((comment) => {
+          const cEmail = (comment.email || `${comment.handle || comment.username}@devspace.fake`).toLowerCase();
+          if (!byEmail.has(cEmail)) {
+            byEmail.add(cEmail);
+            novosUsuarios.push({
+              username: comment.username || "Usuario",
+              handle: (comment.handle || comment.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+              email: cEmail,
+              senha: "123456",
+              criadoEm: comment.criadoEm || new Date().toISOString(),
+              bio: "Pessoa da comunidade DevSpace.",
+              fotoPerfil: comment.fotoPerfil || "",
+              fotoCapa: "",
+              estrelas: 1,
+              projetos: [],
+              seguidores: 0,
+              seguindo: [],
+              comments: 0,
+              isAdmin: false,
+            });
+          }
+        });
+      });
+      localStorage.setItem("usuarios", JSON.stringify(novosUsuarios));
     } catch (error) {
       console.warn("Erro ao limpar posts:", error);
     }
@@ -72,6 +123,20 @@ function App() {
 
   function handleClosePost() {
     setIsPostModalOpen(false);
+  }
+
+  function abrirPerfilAlvo(userRef) {
+    if (!userRef) return;
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const byEmail = userRef.email
+      ? usuarios.find((u) => (u.email || "").toLowerCase() === userRef.email.toLowerCase())
+      : null;
+    const byHandle = !byEmail
+      ? usuarios.find((u) => (u.handle || "").toLowerCase() === (userRef.handle || "").toLowerCase())
+      : null;
+    const alvo = byEmail || byHandle || userRef;
+    setPerfilAlvo(alvo);
+    setPagina("perfil");
   }
 
   function handlePostCreated(post) {
@@ -97,9 +162,13 @@ function App() {
       <>
         <Perfil
           onLogout={() => setLogado(false)}
-          irHome={() => setPagina("home")}
+          irHome={() => {
+            setPerfilAlvo(null);
+            setPagina("home");
+          }}
           onOpenPost={handleOpenPost}
           refreshFeed={postRefresh}
+          viewedUser={perfilAlvo}
         />
 
         <PostModal
@@ -115,9 +184,13 @@ function App() {
   return (
     <>
       <Home
-        irPerfil={() => setPagina("perfil")}
+        irPerfil={() => {
+          setPerfilAlvo(null);
+          setPagina("perfil");
+        }}
         onOpenPost={handleOpenPost}
         refreshFeed={postRefresh}
+        onOpenUserProfile={abrirPerfilAlvo}
       />
 
       <PostModal

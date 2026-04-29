@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import { createPortal } from "react-dom";
 
-export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
+export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, viewedUser }) {
   const [usuario, setUsuario] = useState(null);
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [posts, setPosts] = useState([]);
   const [editando, setEditando] = useState(false);
   const [activeMenuPostId, setActiveMenuPostId] = useState(null);
@@ -23,54 +24,79 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
 
   const [posPerfil, setPosPerfil] = useState({ x: 50, y: 50 });
   const [posCapa, setPosCapa] = useState({ x: 50, y: 50 });
+  const [zoomPerfil, setZoomPerfil] = useState(100);
+  const [zoomCapa, setZoomCapa] = useState(100);
 
   const [editPosPerfil, setEditPosPerfil] = useState({ x: 50, y: 50 });
   const [editPosCapa, setEditPosCapa] = useState({ x: 50, y: 50 });
+  const [editZoomPerfil, setEditZoomPerfil] = useState(100);
+  const [editZoomCapa, setEditZoomCapa] = useState(100);
 
   const [avaliacao, setAvaliacao] = useState(0);
 
   const [reloadImg, setReloadImg] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef({
+    startX: 0,
+    startY: 0,
+    baseX: 50,
+    baseY: 50,
+  });
 
   useEffect(() => {
     const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
     const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
-    const user = localUser || sessionUser;
+    const logado = localUser || sessionUser;
+    const user = viewedUser || logado;
 
     if (user) {
-      if (!user.criadoEm) user.criadoEm = new Date().toISOString();
-      if (!user.handle) user.handle = user.username.replace(/\s+/g, "").toLowerCase();
-      if (!user.seguidores) user.seguidores = 0;
-      if (!user.seguindo) user.seguindo = [];
-      if (!user.comments) user.comments = 0;
+      const normalized = {
+        ...user,
+        criadoEm: user.criadoEm || new Date().toISOString(),
+        handle: (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+        seguidores: user.seguidores || 0,
+        seguindo: Array.isArray(user.seguindo) ? user.seguindo : [],
+        comments: user.comments || 0,
+      };
 
-      setUsuario(user);
-      setForm(user);
-      setAvaliacao(user.avaliacao || 0);
+      setUsuarioLogado(logado || null);
+      setUsuario(normalized);
+      setForm(normalized);
+      setAvaliacao(normalized.avaliacao || 0);
 
-      setPosPerfil(user.posPerfil || { x: 50, y: 50 });
-      setPosCapa(user.posCapa || { x: 50, y: 50 });
+      setPosPerfil(normalized.posPerfil || { x: 50, y: 50 });
+      setPosCapa(normalized.posCapa || { x: 50, y: 50 });
+      setZoomPerfil(Number(normalized.zoomPerfil || 100));
+      setZoomCapa(Number(normalized.zoomCapa || 100));
     }
-  }, []);
+  }, [viewedUser]);
+
+  const isOwnProfile = useMemo(() => {
+    if (!usuario || !usuarioLogado) return false;
+    const emailMatch =
+      usuarioLogado.email && usuario.email &&
+      usuarioLogado.email.toLowerCase() === usuario.email.toLowerCase();
+    const handleMatch =
+      usuarioLogado.handle && usuario.handle &&
+      usuarioLogado.handle.toLowerCase() === usuario.handle.toLowerCase();
+    return !!(emailMatch || handleMatch);
+  }, [usuario, usuarioLogado]);
 
   useEffect(() => {
     if (!usuario) return;
 
     let savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-    
-    // 🧹 Limpar postagens corrompidas (sem autor válido)
+
     const postsValidos = savedPosts.filter((post) => {
       return post && (post.email || post.username || post.handle);
     });
 
-    // Salvar de volta apenas posts válidos
     if (postsValidos.length !== savedPosts.length) {
       localStorage.setItem("posts", JSON.stringify(postsValidos));
       savedPosts = postsValidos;
     }
 
-    // Filtrar posts do usuário com melhores critérios
     const filtered = savedPosts.filter((post) => {
-      // Comparar com múltiplos campos, tolerando maiúsculas/minúsculas
       const postEmail = post.email?.toLowerCase().trim();
       const usuarioEmail = usuario.email?.toLowerCase().trim();
       const postUsername = post.username?.toLowerCase().trim();
@@ -105,6 +131,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
   }, []);
 
   function handleImagem(e, tipo) {
+    if (!isOwnProfile) return;
     const file = e.target.files[0];
     if (!file) return;
 
@@ -116,27 +143,33 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
 
       if (tipo === "perfil") setEditPosPerfil(posPerfil);
       if (tipo === "capa") setEditPosCapa(posCapa);
+      if (tipo === "perfil") setEditZoomPerfil(zoomPerfil);
+      if (tipo === "capa") setEditZoomCapa(zoomCapa);
     };
 
     reader.readAsDataURL(file);
   }
 
   function salvarImagem() {
+    if (!isOwnProfile) return;
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
     let atualizado = { ...usuario };
 
-    // 🔥 FORÇA SUBSTITUIÇÃO TOTAL (não deixa imagem antiga persistir)
     if (editandoImagem === "perfil") {
       atualizado.fotoPerfil = previewImg;
       atualizado.posPerfil = editPosPerfil;
+      atualizado.zoomPerfil = Number(editZoomPerfil || 100);
       setPosPerfil(editPosPerfil);
+      setZoomPerfil(Number(editZoomPerfil || 100));
     }
 
     if (editandoImagem === "capa") {
       atualizado.fotoCapa = previewImg;
       atualizado.posCapa = editPosCapa;
+      atualizado.zoomCapa = Number(editZoomCapa || 100);
       setPosCapa(editPosCapa);
+      setZoomCapa(Number(editZoomCapa || 100));
     }
 
     const novosUsuarios = usuarios.map((u) =>
@@ -146,6 +179,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
     localStorage.setItem("usuarios", JSON.stringify(novosUsuarios));
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
+    setUsuarioLogado(atualizado);
     setUsuario(atualizado);
 
     setReloadImg(Date.now());
@@ -155,9 +189,9 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
   }
 
   function salvarPerfil() {
+    if (!isOwnProfile) return;
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
-    // 🔥 SEMPRE base no estado atual (evita voltar imagem antiga)
     let atualizado = { ...usuario, ...form };
 
     const emailExiste = usuarios.find(
@@ -165,7 +199,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
     );
 
     if (emailExiste) {
-      setErro("Email já está em uso!");
+      setErro("Email ja esta em uso!");
       return;
     }
 
@@ -181,7 +215,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
       }
 
       if (form.novaSenha !== form.confirmarSenha) {
-        setErro("Senhas não coincidem!");
+        setErro("Senhas nao coincidem!");
         return;
       }
     }
@@ -202,6 +236,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
 
+    setUsuarioLogado(atualizado);
     setUsuario(atualizado);
 
     setReloadImg(Date.now());
@@ -215,7 +250,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
   }
 
   function savePostEdit() {
-    if (!editingPost) return;
+    if (!isOwnProfile || !editingPost) return;
 
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const updatedPosts = savedPosts.map((post) =>
@@ -229,6 +264,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
   }
 
   function toggleSavePost(post) {
+    if (!isOwnProfile) return;
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const updatedPosts = savedPosts.map((item) =>
       item.id === post.id ? { ...item, salvo: !item.salvo } : item
@@ -240,6 +276,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
   }
 
   function deletePost(postId) {
+    if (!isOwnProfile) return;
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const updatedPosts = savedPosts.filter((post) => post.id !== postId);
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
@@ -248,16 +285,51 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
   }
 
   function editPost(post) {
+    if (!isOwnProfile) return;
     setEditingPost(post);
     setEditingText(post.texto || "");
     setActiveMenuPostId(null);
   }
 
   function logout() {
+    if (!isOwnProfile) return;
     localStorage.removeItem("usuarioLogado");
     localStorage.removeItem("lembrarMe");
     sessionStorage.removeItem("usuarioLogado");
     onLogout();
+  }
+  function beginImageDrag(e) {
+    if (!isOwnProfile || !editandoImagem) return;
+    const point = e.touches?.[0] || e;
+    const base = editandoImagem === "perfil" ? editPosPerfil : editPosCapa;
+    dragRef.current = {
+      startX: point.clientX,
+      startY: point.clientY,
+      baseX: Number(base.x),
+      baseY: Number(base.y),
+    };
+    setDragging(true);
+  }
+
+  function moveImageDrag(e) {
+    if (!dragging || !editandoImagem) return;
+    const point = e.touches?.[0] || e;
+    const dx = point.clientX - dragRef.current.startX;
+    const dy = point.clientY - dragRef.current.startY;
+    const factor = 0.18;
+    const nextX = Math.max(0, Math.min(100, dragRef.current.baseX + dx * factor));
+    const nextY = Math.max(0, Math.min(100, dragRef.current.baseY + dy * factor));
+
+    if (editandoImagem === "perfil") {
+      setEditPosPerfil({ x: nextX, y: nextY });
+    } else {
+      setEditPosCapa({ x: nextX, y: nextY });
+    }
+  }
+
+  function endImageDrag() {
+    if (!dragging) return;
+    setDragging(false);
   }
 
   if (!usuario) return <h1>Carregando...</h1>;
@@ -292,7 +364,8 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
           key={reloadImg}
           style={{
             backgroundImage: usuario.fotoCapa ? `url(${usuario.fotoCapa})` : "none",
-            backgroundPosition: `${posCapa.x}% ${posCapa.y}%`
+            backgroundPosition: `${posCapa.x}% ${posCapa.y}%`,
+            backgroundSize: `${zoomCapa}%`
           }}
         />
 
@@ -302,7 +375,8 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
             key={reloadImg + "perfil"}
             style={{
               backgroundImage: usuario.fotoPerfil ? `url(${usuario.fotoPerfil})` : "none",
-              backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`
+              backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`,
+              backgroundSize: `${zoomPerfil}%`
             }}
           />
 
@@ -313,9 +387,11 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
             <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
           </div>
 
-          <button className="btn-editar" onClick={() => setEditando(true)}>
-            Editar Perfil
-          </button>
+          {isOwnProfile && (
+            <button className="btn-editar" onClick={() => setEditando(true)}>
+              Editar Perfil
+            </button>
+          )}
         </div>
 
         <div className="info">
@@ -325,7 +401,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
 
           <p className="data">
-            📅 Criado em: {criadoEm}
+            Criado em: {criadoEm}
           </p>
         </div>
 
@@ -348,20 +424,22 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
                         <div className="perfil-post-title">{post.username}</div>
                         <div className="perfil-post-handle">@{post.handle || post.username}</div>
                       </div>
-                      <button
-                        className="perfil-post-options-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveMenuPostId(activeMenuPostId === post.id ? null : post.id);
-                        }}
-                      >
-                        ⋮
-                      </button>
+                      {isOwnProfile && (
+                        <button
+                          className="perfil-post-options-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuPostId(activeMenuPostId === post.id ? null : post.id);
+                          }}
+                        >
+                          ⋮
+                        </button>
+                      )}
                     </div>
                     <div className="perfil-post-text">{post.texto || "Post sem texto"}</div>
                     {post.salvo && <div className="perfil-post-saved">Salvo</div>}
 
-                    {activeMenuPostId === post.id && (
+                    {isOwnProfile && activeMenuPostId === post.id && (
                       <div className="perfil-post-menu">
                         <button type="button" onClick={() => toggleSavePost(post)}>
                           {post.salvo ? "Desfazer salvar" : "Salvar post"}
@@ -381,14 +459,16 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
           </div>
         </div>
 
-        <button className="logout-bottom" onClick={logout}>
-          Sair da conta
-        </button>
+        {isOwnProfile && (
+          <button className="logout-bottom" onClick={logout}>
+            Sair da conta
+          </button>
+        )}
 
-        {editando && createPortal(
+        {isOwnProfile && editando && createPortal(
           <div className="overlay">
             <div className="popup">
-              <button className="close-btn" onClick={() => setEditando(false)}>✕</button>
+              <button className="close-btn" onClick={() => setEditando(false)}>x</button>
 
               <h2>Editar Perfil</h2>
 
@@ -419,10 +499,10 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
           document.body
         )}
 
-        {editingPost && createPortal(
+        {isOwnProfile && editingPost && createPortal(
           <div className="overlay">
             <div className="popup">
-              <button className="close-btn" onClick={() => setEditingPost(null)}>✕</button>
+              <button className="close-btn" onClick={() => setEditingPost(null)}>x</button>
               <h2>Editar Post</h2>
               <textarea
                 value={editingText}
@@ -440,8 +520,15 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
           document.body
         )}
 
-        {editandoImagem && createPortal(
-          <div className="overlay">
+        {isOwnProfile && editandoImagem && createPortal(
+          <div
+            className="overlay"
+            onMouseMove={moveImageDrag}
+            onMouseUp={endImageDrag}
+            onMouseLeave={endImageDrag}
+            onTouchMove={moveImageDrag}
+            onTouchEnd={endImageDrag}
+          >
             <div className="popup">
 
               <h2>Editar Imagem</h2>
@@ -450,7 +537,15 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
                 <img
                   src={previewImg}
                   className={editandoImagem === "perfil" ? "preview-img perfil" : "preview-img capa"}
+                  onMouseDown={beginImageDrag}
+                  onTouchStart={beginImageDrag}
+                  draggable={false}
                   style={{
+                    cursor: dragging ? "grabbing" : "grab",
+                    transform:
+                      editandoImagem === "perfil"
+                        ? `scale(${Number(editZoomPerfil || 100) / 100})`
+                        : `scale(${Number(editZoomCapa || 100) / 100})`,
                     objectPosition:
                       editandoImagem === "perfil"
                         ? `${editPosPerfil.x}% ${editPosPerfil.y}%`
@@ -485,6 +580,22 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
                 }}
               />
 
+              <label>Zoom</label>
+              <input
+                type="range"
+                min="80"
+                max="220"
+                value={editandoImagem === "perfil" ? editZoomPerfil : editZoomCapa}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (editandoImagem === "perfil") {
+                    setEditZoomPerfil(v);
+                  } else {
+                    setEditZoomCapa(v);
+                  }
+                }}
+              />
+
               <div className="popup-btns">
                 <button onClick={salvarImagem}>Salvar Imagem</button>
                 <button onClick={() => setEditandoImagem(null)}>Cancelar</button>
@@ -499,3 +610,10 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
     </div>
   );
 }
+
+
+
+
+
+
+
