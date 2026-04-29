@@ -36,6 +36,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
 
   const [reloadImg, setReloadImg] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [syncToast, setSyncToast] = useState(false);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({
     startX: 0,
@@ -48,7 +49,17 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
     const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
     const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
     const logado = localUser || sessionUser;
-    const user = viewedUser || logado;
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const baseUser = viewedUser || logado;
+    const user = baseUser
+      ? usuarios.find((u) => {
+          const byEmail = baseUser.email && u.email &&
+            u.email.toLowerCase() === baseUser.email.toLowerCase();
+          const byHandle = baseUser.handle && u.handle &&
+            u.handle.toLowerCase() === baseUser.handle.toLowerCase();
+          return byEmail || byHandle;
+        }) || baseUser
+      : null;
 
     if (user) {
       const normalized = {
@@ -70,7 +81,51 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
       setZoomPerfil(Number(normalized.zoomPerfil || 100));
       setZoomCapa(Number(normalized.zoomCapa || 100));
     }
+  }, [viewedUser, refreshFeed]);
+
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key !== "usuarios" && event.key !== "usuarioLogado" && event.key !== "posts") return;
+
+      const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+      const logado = localUser || sessionUser;
+      const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+      const baseUser = viewedUser || logado;
+      const user = baseUser
+        ? usuarios.find((u) => {
+            const byEmail = baseUser.email && u.email &&
+              u.email.toLowerCase() === baseUser.email.toLowerCase();
+            const byHandle = baseUser.handle && u.handle &&
+              u.handle.toLowerCase() === baseUser.handle.toLowerCase();
+            return byEmail || byHandle;
+          }) || baseUser
+        : null;
+
+      if (user) {
+        const normalized = {
+          ...user,
+          criadoEm: user.criadoEm || new Date().toISOString(),
+          handle: (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+          seguidores: user.seguidores || 0,
+          seguindo: Array.isArray(user.seguindo) ? user.seguindo : [],
+          comments: user.comments || 0,
+        };
+        setUsuario(normalized);
+      }
+      setUsuarioLogado(logado || null);
+      setSyncToast(true);
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, [viewedUser]);
+
+  useEffect(() => {
+    if (!syncToast) return;
+    const timer = setTimeout(() => setSyncToast(false), 2200);
+    return () => clearTimeout(timer);
+  }, [syncToast]);
 
   useEffect(() => {
     if (!usuario || !usuarioLogado) return;
@@ -678,6 +733,10 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
         )}
 
       </div>
+
+      {syncToast && (
+        <div className="sync-toast">Dados atualizados em outra aba.</div>
+      )}
     </div>
   );
 }

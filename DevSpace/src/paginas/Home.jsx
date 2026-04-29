@@ -21,6 +21,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
   const [imagePreview, setImagePreview] = useState(null);
   const [openedComments, setOpenedComments] = useState({});
   const [activeActions, setActiveActions] = useState({});
+  const [syncToast, setSyncToast] = useState(false);
 
   useOverlayClose(!!selectedPost, () => setSelectedPost(null));
   useOverlayClose(!!imagePreview, () => setImagePreview(null));
@@ -41,31 +42,28 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
   }
 
   function togglePostAction(postId, action) {
-    setActiveActions((prev) => {
-      const postActions = prev[postId] || {};
-      const isActive = !!postActions[action];
-      const nextValue = !isActive;
+    const isActive = !!activeActions[postId]?.[action];
+    const nextValue = !isActive;
 
-      setPosts((prevPosts) => {
-        const updatedPosts = prevPosts.map((post) => {
-          if (post.id !== postId) return post;
-          const currentValue = Number(post[action] || 0);
-          return {
-            ...post,
-            [action]: nextValue ? currentValue + 1 : Math.max(0, currentValue - 1),
-          };
-        });
-        localStorage.setItem("posts", JSON.stringify(updatedPosts));
-        return updatedPosts;
+    setActiveActions((prev) => ({
+      ...prev,
+      [postId]: {
+        ...(prev[postId] || {}),
+        [action]: nextValue,
+      },
+    }));
+
+    setPosts((prevPosts) => {
+      const updatedPosts = prevPosts.map((post) => {
+        if (post.id !== postId) return post;
+        const currentValue = Number(post[action] || 0);
+        return {
+          ...post,
+          [action]: nextValue ? currentValue + 1 : Math.max(0, currentValue - 1),
+        };
       });
-
-      return {
-        ...prev,
-        [postId]: {
-          ...postActions,
-          [action]: nextValue,
-        },
-      };
+      localStorage.setItem("posts", JSON.stringify(updatedPosts));
+      return updatedPosts;
     });
   }
 
@@ -299,6 +297,38 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key !== "posts" && event.key !== "usuarioLogado") return;
+
+      if (event.key === "posts") {
+        try {
+          const saved = JSON.parse(localStorage.getItem("posts")) || [];
+          setPosts(Array.isArray(saved) ? saved : []);
+          setSyncToast(true);
+        } catch {
+          setPosts([]);
+        }
+      }
+
+      if (event.key === "usuarioLogado") {
+        const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+        const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+        setUsuario(localUser || sessionUser || null);
+        setSyncToast(true);
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  useEffect(() => {
+    if (!syncToast) return;
+    const timer = setTimeout(() => setSyncToast(false), 2200);
+    return () => clearTimeout(timer);
+  }, [syncToast]);
+
   const reloadFeed = () => {
     if (loading) return;
 
@@ -409,7 +439,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                   onClick={() => togglePostAction(post.id, "shares")}
                 >
                   <span>??</span>
-                  <strong>{post.shares ?? 1}</strong>
+                  <strong>{post.shares ?? 0}</strong>
                 </button>
                 <button
                   type="button"
@@ -418,7 +448,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                   onClick={() => togglePostAction(post.id, "likes")}
                 >
                   <span>??</span>
-                  <strong>{post.likes ?? 1}</strong>
+                  <strong>{post.likes ?? 0}</strong>
                 </button>
                 <button
                   type="button"
@@ -427,7 +457,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                   onClick={() => togglePostAction(post.id, "bookmarks")}
                 >
                   <span>??</span>
-                  <strong>{post.bookmarks ?? 1}</strong>
+                  <strong>{post.bookmarks ?? 0}</strong>
                 </button>
                 <button
                   type="button"
@@ -436,7 +466,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                   onClick={() => togglePostAction(post.id, "downloads")}
                 >
                   <span>??</span>
-                  <strong>{post.downloads ?? 1}</strong>
+                  <strong>{post.downloads ?? 0}</strong>
                 </button>
               </div>
 
@@ -517,7 +547,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                 onClick={() => togglePostAction(selectedPostData.id, "shares")}
               >
                 <span>??</span>
-                <strong>{selectedPostData.shares ?? 1}</strong>
+                <strong>{selectedPostData.shares ?? 0}</strong>
               </button>
               <button
                 type="button"
@@ -526,7 +556,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                 onClick={() => togglePostAction(selectedPostData.id, "likes")}
               >
                 <span>??</span>
-                <strong>{selectedPostData.likes ?? 1}</strong>
+                <strong>{selectedPostData.likes ?? 0}</strong>
               </button>
               <button
                 type="button"
@@ -535,7 +565,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                 onClick={() => togglePostAction(selectedPostData.id, "bookmarks")}
               >
                 <span>??</span>
-                <strong>{selectedPostData.bookmarks ?? 1}</strong>
+                <strong>{selectedPostData.bookmarks ?? 0}</strong>
               </button>
               <button
                 type="button"
@@ -544,7 +574,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                 onClick={() => togglePostAction(selectedPostData.id, "downloads")}
               >
                 <span>??</span>
-                <strong>{selectedPostData.downloads ?? 1}</strong>
+                <strong>{selectedPostData.downloads ?? 0}</strong>
               </button>
             </div>
 
@@ -569,6 +599,10 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
             <img src={imagePreview} alt="Imagem ampliada do post" />
           </div>
         </div>
+      )}
+
+      {syncToast && (
+        <div className="sync-toast">Dados atualizados em outra aba.</div>
       )}
     </div>
   );

@@ -718,3 +718,29 @@ body {
   min-height: 100vh;
   color: white;
 }
+
+.sync-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 12000;
+  background: #13261a;
+  border: 1px solid #2e7d4c;
+  color: #d8ffe8;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.92rem;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+  animation: syncToastIn 0.2s ease;
+}
+
+@keyframes syncToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
