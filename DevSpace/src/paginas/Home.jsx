@@ -146,6 +146,52 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
           ))}
         </div>
       </div>
+
+      {selectedPost && (
+        <div className="post-preview-overlay" onClick={() => setSelectedPost(null)}>
+          <div className="post-expanded-popup" onClick={(e) => e.stopPropagation()}>
+            <button className="post-expanded-close" onClick={() => setSelectedPost(null)}>
+              ✕
+            </button>
+            <div className="post-card-header">
+              <div
+                className="post-card-avatar"
+                style={{
+                  backgroundImage: selectedPost.fotoPerfil ? `url(${selectedPost.fotoPerfil})` : "none",
+                }}
+              />
+              <div className="post-card-user">
+                <small className="post-card-handle">@{selectedPost.handle || selectedPost.username}</small>
+                <strong>{selectedPost.username}</strong>
+              </div>
+            </div>
+            <p className="post-card-text post-expanded-text">{selectedPost.texto}</p>
+            {selectedPost.imagem && (
+              <div className="post-card-window post-expanded-window" onClick={() => setImagePreview(selectedPost.imagem)}>
+                <div className="post-card-window-top">
+                  <span className="window-dot red" />
+                  <span className="window-dot yellow" />
+                  <span className="window-dot green" />
+                </div>
+                <div className="post-card-window-body">
+                  <img src={selectedPost.imagem} alt="Post ampliado" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {imagePreview && (
+        <div className="post-preview-overlay" onClick={() => setImagePreview(null)}>
+          <div className="image-only-popup" onClick={(e) => e.stopPropagation()}>
+            <button className="post-expanded-close" onClick={() => setImagePreview(null)}>
+              ✕
+            </button>
+            <img src={imagePreview} alt="Imagem ampliada do post" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
