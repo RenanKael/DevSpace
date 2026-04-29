@@ -155,6 +155,21 @@ html, body {
   background: #bfbfbf;
 }
 
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  color: white;
+  font-size: 14px;
+}
+
+.remember-me input {
+  width: auto;
+  height: auto;
+  accent-color: #d9d9d9;
+}
+
 .btn-secundario {
   width: 100%;
   padding: 14px;
