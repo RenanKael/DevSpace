@@ -15,6 +15,8 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
 
   const [posts, setPosts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("posts")) || [];
@@ -79,7 +81,11 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
           )}
 
           {filteredPosts.map((post) => (
-            <div key={post.id} className="post-card">
+            <div
+              key={post.id}
+              className="post-card"
+              onClick={() => setSelectedPost(post)}
+            >
               <div className="post-card-header">
                 <div
                   className="post-card-avatar"
@@ -96,19 +102,25 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
               <p className="post-card-text">{post.texto}</p>
 
               {post.imagem && (
-                <div className="post-card-window">
+                <div className="post-card-window" onClick={(e) => e.stopPropagation()}>
                   <div className="post-card-window-top">
                     <span className="window-dot red" />
                     <span className="window-dot yellow" />
                     <span className="window-dot green" />
                   </div>
-                  <div className="post-card-window-body">
+                  <div
+                    className="post-card-window-body"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImagePreview(post.imagem);
+                    }}
+                  >
                     <img src={post.imagem} alt="Post" />
                   </div>
                 </div>
               )}
 
-              <div className="post-card-actions">
+              <div className="post-card-actions" onClick={(e) => e.stopPropagation()}>
                 <button type="button" aria-label="Comentários">
                   <span>💬</span>
                   <strong>{post.comments ?? 1}</strong>
