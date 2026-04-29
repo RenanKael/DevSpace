@@ -551,6 +551,7 @@ input[type="range"] {
 .preview-box.perfil {
   width: 140px;
   height: 140px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 3px solid #fff;
   overflow: hidden;
@@ -576,4 +577,9 @@ input[type="range"] {
   border: none;
   border-radius: 0;
   transform-origin: center center;
+}
+
+.preview-box.perfil .preview-img {
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
 }
