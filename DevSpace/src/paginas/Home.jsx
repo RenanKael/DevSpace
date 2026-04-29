@@ -19,9 +19,16 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
   const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("posts")) || [];
+    let saved = [];
+    const raw = localStorage.getItem("posts");
 
-    if (saved.length === 0) {
+    try {
+      saved = JSON.parse(raw) || [];
+    } catch (error) {
+      saved = [];
+    }
+
+    if (!Array.isArray(saved) || saved.length === 0) {
       const fakeSeed = [
         {
           id: 1,
