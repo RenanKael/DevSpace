@@ -14,13 +14,9 @@ export default function Overlay({ open, onClose, children, className = "" }) {
       <div className="overlay-content" onClick={(e) => e.stopPropagation()}>
         <button
           className="overlay-close-btn"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onClose();
-          }}
+          onClick={onClose}
           type="button"
-          aria-label="Fechar"
+          title="Fechar"
         >
           ✕
         </button>

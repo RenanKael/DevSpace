@@ -68,12 +68,9 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       <div className="popup post-popup" onClick={(e) => e.stopPropagation()}>
         <button 
           className="close-btn" 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onClose();
-          }}
+          onClick={onClose}
           type="button"
+          title="Fechar"
         >
           ✕
         </button>

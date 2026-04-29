@@ -263,12 +263,9 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
           <div className="post-expanded-popup" onClick={(e) => e.stopPropagation()}>
             <button 
               className="post-expanded-close" 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSelectedPost(null);
-              }}
+              onClick={() => setSelectedPost(null)}
               type="button"
+              title="Fechar"
             >
               ✕
             </button>
