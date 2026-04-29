@@ -477,6 +477,12 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
   const zoomScale = currentEditZoom / 100;
   const translateX = (50 - currentEditX) * (zoomScale - 1);
   const translateY = (50 - currentEditY) * (zoomScale - 1);
+  const perfilScale = Number(zoomPerfil || 100) / 100;
+  const perfilTx = (50 - Number(posPerfil.x || 50)) * (perfilScale - 1);
+  const perfilTy = (50 - Number(posPerfil.y || 50)) * (perfilScale - 1);
+  const capaScale = Number(zoomCapa || 100) / 100;
+  const capaTx = (50 - Number(posCapa.x || 50)) * (capaScale - 1);
+  const capaTy = (50 - Number(posCapa.y || 50)) * (capaScale - 1);
 
   if (!usuario) return <h1>Carregando...</h1>;
 
@@ -508,23 +514,33 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
         <div
           className="capa"
           key={reloadImg}
-          style={{
-            backgroundImage: usuario.fotoCapa ? `url(${usuario.fotoCapa})` : "none",
-            backgroundPosition: `${posCapa.x}% ${posCapa.y}%`,
-            backgroundSize: `${zoomCapa}%`
-          }}
-        />
+        >
+          {usuario.fotoCapa && (
+            <img
+              src={usuario.fotoCapa}
+              alt="Capa do perfil"
+              style={{
+                transform: `translate(${capaTx}%, ${capaTy}%) scale(${capaScale})`,
+              }}
+            />
+          )}
+        </div>
 
         <div className="perfil-header">
           <div
             className="foto"
             key={reloadImg + "perfil"}
-            style={{
-              backgroundImage: usuario.fotoPerfil ? `url(${usuario.fotoPerfil})` : "none",
-              backgroundPosition: `${posPerfil.x}% ${posPerfil.y}%`,
-              backgroundSize: `${zoomPerfil}%`
-            }}
-          />
+          >
+            {usuario.fotoPerfil && (
+              <img
+                src={usuario.fotoPerfil}
+                alt="Foto do perfil"
+                style={{
+                  transform: `translate(${perfilTx}%, ${perfilTy}%) scale(${perfilScale})`,
+                }}
+              />
+            )}
+          </div>
 
           <div className="stats">
             <span><b>{usuario.seguindo?.length || 0}</b> Seguindo</span>
