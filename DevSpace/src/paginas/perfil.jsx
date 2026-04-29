@@ -57,7 +57,11 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
 
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const filtered = savedPosts.filter((post) => {
-      return post.email === usuario.email || post.username === usuario.username;
+      return (
+        post.email === usuario.email ||
+        post.username === usuario.username ||
+        post.handle === usuario.handle
+      );
     });
 
     const ordered = filtered.sort(
@@ -284,6 +288,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed }) {
           <div className="stats">
             <span><b>{usuario.seguindo?.length || 0}</b> Seguindo</span>
             <span><b>{usuario.seguidores || 0}</b> Seguidores</span>
+            <span><b>{posts.length}</b> Posts</span>
             <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
           </div>
 

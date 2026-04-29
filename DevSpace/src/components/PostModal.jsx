@@ -35,6 +35,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
     const novoPost = {
       id: Date.now(),
       username: usuario?.username || "Usuário",
+      handle: usuario?.handle || usuario?.username?.replace(/\s+/g, "").toLowerCase() || "",
       email: usuario?.email || "",
       fotoPerfil: usuario?.fotoPerfil || "",
       texto: texto.trim(),

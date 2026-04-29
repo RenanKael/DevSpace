@@ -39,9 +39,10 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
     }
 
     const isAdmin = usuario?.email === "renan.kael@gmail.com";
+    const adminSeedInitialized = localStorage.getItem("adminSeedInitialized") === "true";
 
     if (!Array.isArray(saved) || saved.length === 0) {
-      if (isAdmin) {
+      if (isAdmin && !adminSeedInitialized) {
         const fakeSeed = [
           {
             id: 1,
@@ -106,9 +107,10 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
         ];
 
         localStorage.setItem("posts", JSON.stringify(fakeSeed));
+        localStorage.setItem("adminSeedInitialized", "true");
         setPosts(fakeSeed);
       } else {
-        setPosts([]);
+        setPosts(saved);
       }
     } else {
       setPosts(saved);
