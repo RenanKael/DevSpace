@@ -546,3 +546,34 @@ input[type="range"] {
   object-fit: cover;
   background: #000;
 }
+
+/* Frame fixo para o preview: evita o zoom quebrar layout */
+.preview-box.perfil {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  overflow: hidden;
+  margin: 10px auto;
+}
+
+.preview-box.capa {
+  width: 100%;
+  max-width: 380px;
+  height: 140px;
+  border-radius: 10px;
+  border: 1px solid #2b2e33;
+  overflow: hidden;
+  margin: 10px auto;
+}
+
+.preview-box.perfil .preview-img,
+.preview-box.capa .preview-img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  transform-origin: center center;
+}

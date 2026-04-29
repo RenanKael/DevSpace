@@ -677,7 +677,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
 
               <h2>Editar Imagem</h2>
 
-              <div className="preview-box">
+              <div className={`preview-box ${editandoImagem === "perfil" ? "perfil" : "capa"}`}>
                 <img
                   src={previewImg}
                   className={editandoImagem === "perfil" ? "preview-img perfil" : "preview-img capa"}
