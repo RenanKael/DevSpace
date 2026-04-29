@@ -34,6 +34,28 @@
   left: 50px;
 }
 
+.back-arrow-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.back-arrow-btn img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.back-arrow-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* ESTRELAS */
 .avaliacao {
   display: flex;

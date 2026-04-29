@@ -487,7 +487,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                   className={openedComments[post.id] ? "active pulse" : ""}
                   onClick={() => toggleComments(post.id)}
                 >
-                  <span>??</span>
+                  <span>💬</span>
                   <strong>{Array.isArray(post.commentsList) ? post.commentsList.length : post.comments ?? 0}</strong>
                 </button>
                 <button
@@ -496,7 +496,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                   className={activeActions[post.id]?.shares ? "active pulse" : ""}
                   onClick={() => togglePostAction(post.id, "shares")}
                 >
-                  <span>??</span>
+                  <span>🔁</span>
                   <strong>{post.shares ?? 0}</strong>
                 </button>
                 <button
@@ -505,7 +505,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                   className={activeActions[post.id]?.likes ? "active pulse" : ""}
                   onClick={() => togglePostAction(post.id, "likes")}
                 >
-                  <span>??</span>
+                  <span>❤️</span>
                   <strong>{post.likes ?? 0}</strong>
                 </button>
                 <button
@@ -514,7 +514,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                   className={activeActions[post.id]?.bookmarks ? "active pulse" : ""}
                   onClick={() => togglePostAction(post.id, "bookmarks")}
                 >
-                  <span>??</span>
+                  <span>🔖</span>
                   <strong>{post.bookmarks ?? 0}</strong>
                 </button>
                 <button
@@ -523,7 +523,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                   className={activeActions[post.id]?.downloads ? "active pulse" : ""}
                   onClick={() => togglePostAction(post.id, "downloads")}
                 >
-                  <span>??</span>
+                  <span>⬇️</span>
                   <strong>{post.downloads ?? 0}</strong>
                 </button>
               </div>
@@ -595,7 +595,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                 className={openedComments[selectedPostData.id] ? "active pulse" : ""}
                 onClick={() => toggleComments(selectedPostData.id)}
               >
-                <span>??</span>
+                <span>💬</span>
                 <strong>{Array.isArray(selectedPostData.commentsList) ? selectedPostData.commentsList.length : selectedPostData.comments ?? 0}</strong>
               </button>
               <button
@@ -604,7 +604,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                 className={activeActions[selectedPostData.id]?.shares ? "active pulse" : ""}
                 onClick={() => togglePostAction(selectedPostData.id, "shares")}
               >
-                <span>??</span>
+                <span>🔁</span>
                 <strong>{selectedPostData.shares ?? 0}</strong>
               </button>
               <button
@@ -613,7 +613,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                 className={activeActions[selectedPostData.id]?.likes ? "active pulse" : ""}
                 onClick={() => togglePostAction(selectedPostData.id, "likes")}
               >
-                <span>??</span>
+                <span>❤️</span>
                 <strong>{selectedPostData.likes ?? 0}</strong>
               </button>
               <button
@@ -622,7 +622,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                 className={activeActions[selectedPostData.id]?.bookmarks ? "active pulse" : ""}
                 onClick={() => togglePostAction(selectedPostData.id, "bookmarks")}
               >
-                <span>??</span>
+                <span>🔖</span>
                 <strong>{selectedPostData.bookmarks ?? 0}</strong>
               </button>
               <button
@@ -631,7 +631,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
                 className={activeActions[selectedPostData.id]?.downloads ? "active pulse" : ""}
                 onClick={() => togglePostAction(selectedPostData.id, "downloads")}
               >
-                <span>??</span>
+                <span>⬇️</span>
                 <strong>{selectedPostData.downloads ?? 0}</strong>
               </button>
             </div>

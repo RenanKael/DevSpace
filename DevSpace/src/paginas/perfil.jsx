@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
-import { createPortal } from "react-dom";
+import { createPortal } from "react-dom";`r`nimport backArrow from "../assets/IMGS/DawnFlech (2).png";
 
 export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refreshFeed, viewedUser }) {
   const [usuario, setUsuario] = useState(null);
@@ -498,7 +498,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
       <div className="profile-page">
 
         <div className="topo-perfil">
-          <span onClick={irHome}>←</span>
+          <button className="back-arrow-btn" onClick={irHome} type="button" title="Voltar">`r`n            <img src={backArrow} alt="Voltar" />`r`n          </button>
           <h3>{usuario.username}</h3>
 
           <div className="avaliacao">
@@ -775,6 +775,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
     </div>
   );
 }
+
 
 
 
