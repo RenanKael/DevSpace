@@ -471,6 +471,13 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
     setDragging(false);
   }
 
+  const currentEditX = Number(editandoImagem === "perfil" ? editPosPerfil.x : editPosCapa.x);
+  const currentEditY = Number(editandoImagem === "perfil" ? editPosPerfil.y : editPosCapa.y);
+  const currentEditZoom = Number(editandoImagem === "perfil" ? editZoomPerfil : editZoomCapa);
+  const zoomScale = currentEditZoom / 100;
+  const translateX = (50 - currentEditX) * (zoomScale - 1);
+  const translateY = (50 - currentEditY) * (zoomScale - 1);
+
   if (!usuario) return <h1>Carregando...</h1>;
 
   const isRenan = usuario.email === "renan.kael@gmail.com";
@@ -686,14 +693,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
                   draggable={false}
                   style={{
                     cursor: dragging ? "grabbing" : "grab",
-                    transform:
-                      editandoImagem === "perfil"
-                        ? `scale(${Number(editZoomPerfil || 100) / 100})`
-                        : `scale(${Number(editZoomCapa || 100) / 100})`,
-                    objectPosition:
-                      editandoImagem === "perfil"
-                        ? `${editPosPerfil.x}% ${editPosPerfil.y}%`
-                        : `${editPosCapa.x}% ${editPosCapa.y}%`
+                    transform: `translate(${translateX}%, ${translateY}%) scale(${zoomScale})`,
+                    objectPosition: "50% 50%"
                   }}
                 />
               </div>
@@ -702,7 +703,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
               <input type="range" min="0" max="100"
                 value={editandoImagem === "perfil" ? editPosPerfil.x : editPosCapa.x}
                 onChange={(e) => {
-                  const v = e.target.value;
+                  const v = Number(e.target.value);
                   if (editandoImagem === "perfil") {
                     setEditPosPerfil({ ...editPosPerfil, x: v });
                   } else {
@@ -715,7 +716,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refresh
               <input type="range" min="0" max="100"
                 value={editandoImagem === "perfil" ? editPosPerfil.y : editPosCapa.y}
                 onChange={(e) => {
-                  const v = e.target.value;
+                  const v = Number(e.target.value);
                   if (editandoImagem === "perfil") {
                     setEditPosPerfil({ ...editPosPerfil, y: v });
                   } else {
