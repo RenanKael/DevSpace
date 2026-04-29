@@ -48,11 +48,14 @@ function normalizeHandle(value) {
 export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProfile }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
+  const [usuarios, setUsuarios] = useState([]);
 
   useEffect(() => {
     const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
     const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
     setUsuario(localUser || sessionUser);
+    const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+    setUsuarios(Array.isArray(savedUsers) ? savedUsers : []);
   }, []);
 
   const [posts, setPosts] = useState([]);
@@ -357,7 +360,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
 
   useEffect(() => {
     const handleStorage = (event) => {
-      if (event.key !== "posts" && event.key !== "usuarioLogado") return;
+      if (event.key !== "posts" && event.key !== "usuarioLogado" && event.key !== "usuarios") return;
 
       if (event.key === "posts") {
         try {
@@ -373,6 +376,12 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
         const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
         const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
         setUsuario(localUser || sessionUser || null);
+        setSyncToast(true);
+      }
+
+      if (event.key === "usuarios") {
+        const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+        setUsuarios(Array.isArray(savedUsers) ? savedUsers : []);
         setSyncToast(true);
       }
     };
@@ -409,6 +418,30 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
     );
   });
 
+  const profileOnlyResults = (() => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query.startsWith("@")) return [];
+    const queryUser = query.slice(1);
+    if (!queryUser) return [];
+
+    const matchedUsers = usuarios.filter((u) => {
+      const handle = (u.handle || u.username || "").toLowerCase();
+      const username = (u.username || "").toLowerCase();
+      return handle.includes(queryUser) || username.includes(queryUser);
+    });
+
+    return matchedUsers.filter((u) => {
+      const userHandle = (u.handle || u.username || "").toLowerCase();
+      const userEmail = (u.email || "").toLowerCase();
+      const hasPost = posts.some((p) => {
+        const pHandle = (p.handle || p.username || "").toLowerCase();
+        const pEmail = (p.email || "").toLowerCase();
+        return pHandle === userHandle || (userEmail && pEmail === userEmail);
+      });
+      return !hasPost;
+    });
+  })();
+
   const selectedPostData = selectedPost
     ? posts.find((post) => post.id === selectedPost.id) || selectedPost
     : null;
@@ -422,7 +455,37 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
 
         <div className="feed">
           {loading && <p>Carregando...</p>}
-          {!loading && filteredPosts.length === 0 && <p>Sem posts correspondentes a busca.</p>}
+          {!loading && filteredPosts.length === 0 && profileOnlyResults.length === 0 && (
+            <p>Sem posts correspondentes a busca.</p>
+          )}
+
+          {!loading && filteredPosts.length === 0 && profileOnlyResults.length > 0 && (
+            <div className="profile-search-list">
+              {profileOnlyResults.map((u) => (
+                <div
+                  key={u.email || u.handle || u.username}
+                  className="profile-search-card"
+                  onClick={() => onOpenUserProfile?.(u)}
+                >
+                  <div
+                    className="profile-search-cover"
+                    style={{ backgroundImage: u.fotoCapa ? `url(${u.fotoCapa})` : "none" }}
+                  />
+                  <div className="profile-search-body">
+                    <div
+                      className="profile-search-avatar"
+                      style={{ backgroundImage: u.fotoPerfil ? `url(${u.fotoPerfil})` : "none" }}
+                    />
+                    <div className="profile-search-meta">
+                      <strong>{u.username}</strong>
+                      <small>@{u.handle || u.username}</small>
+                      <p>{u.bio || "Sem bio..."}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {filteredPosts.map((post) => (
             <div key={post.id} className="post-card" onClick={() => setSelectedPost(post)}>

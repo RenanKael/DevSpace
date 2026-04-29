@@ -719,6 +719,59 @@ body {
   color: white;
 }
 
+.profile-search-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.profile-search-card {
+  background: #111;
+  border: 1px solid #23262b;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.profile-search-cover {
+  height: 84px;
+  background: #1a1d22;
+  background-size: cover;
+  background-position: center;
+}
+
+.profile-search-body {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+}
+
+.profile-search-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #2a2d33;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.profile-search-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-search-meta small {
+  color: #9aa0a6;
+}
+
+.profile-search-meta p {
+  margin-top: 4px;
+  color: #d5d9de;
+  font-size: 0.92rem;
+}
+
 .sync-toast {
   position: fixed;
   right: 20px;
