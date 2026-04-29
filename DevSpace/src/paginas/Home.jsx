@@ -5,6 +5,42 @@ import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import "../style/home.css";
 
+const FAKE_COMMENT_POOL = [
+  { username: "Maria Silva", handle: "mariasilva", texto: "Curti muito essa ideia, ficou bem legal." },
+  { username: "Carlos Devs", handle: "carlosdevs", texto: "Testei aqui e funcionou direitinho." },
+  { username: "Ana Tech", handle: "anatech", texto: "Boa! Depois posta a evolução disso." },
+  { username: "Pedro Code", handle: "pedrocode", texto: "Visual limpo e com boa leitura." },
+  { username: "Lia Gomes", handle: "liagomes", texto: "Mandou bem demais nesse post." },
+  { username: "Felipe Rocha", handle: "feliperocha", texto: "Gostei da solução, bem prática." },
+  { username: "Nina Correa", handle: "ninacorrea", texto: "Esse tipo de conteúdo ajuda muito." },
+  { username: "Arthur Silva", handle: "arthursilva", texto: "Ficou claro e objetivo, top." },
+  { username: "Bruna UX", handle: "brunaux", texto: "Design e conteúdo conversaram bem aqui." },
+  { username: "Vitor Front", handle: "vitorfront", texto: "Vou usar essa abordagem no meu projeto." },
+  { username: "Caio Stack", handle: "caiostack", texto: "Achei a implementação bem elegante." },
+  { username: "Duda Product", handle: "dudaproduct", texto: "Esse fluxo ficou muito mais intuitivo." },
+];
+
+function fakeAvatar(handle) {
+  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle)}`;
+}
+
+function buildFakeComments(postId, count) {
+  const desired = Math.max(1, Number(count || 1));
+  const start = Math.abs(Number(postId || 0)) % FAKE_COMMENT_POOL.length;
+  return Array.from({ length: desired }, (_, idx) => {
+    const item = FAKE_COMMENT_POOL[(start + idx * 2) % FAKE_COMMENT_POOL.length];
+    return {
+      id: Number(`${postId}${idx + 1}`),
+      username: item.username,
+      handle: item.handle,
+      email: `${item.handle}@devspace.fake`,
+      fotoPerfil: fakeAvatar(item.handle),
+      texto: item.texto,
+      criadoEm: new Date(Date.now() - (idx + 1) * 1800000).toISOString(),
+    };
+  });
+}
+
 export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProfile }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
@@ -266,8 +302,12 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
       }
     } else {
       const normalizedPosts = saved.map((post) => {
-        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
         const isSeedFake = !!post.isSeedFake;
+        const rawComments = Array.isArray(post.commentsList) ? post.commentsList : [];
+        const commentsList =
+          isSeedFake && rawComments.length === 0
+            ? buildFakeComments(post.id, post.comments || 2)
+            : rawComments;
         const normalizedComments = isSeedFake
           ? commentsList.length || Number(post.comments || 0)
           : commentsList.length;

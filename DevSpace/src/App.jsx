@@ -4,6 +4,14 @@ import Home from "./paginas/Home";
 import Perfil from "./paginas/Perfil";
 import PostModal from "./components/PostModal";
 
+function fakeAvatar(handle) {
+  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle || "usuario")}`;
+}
+
+function fakeCover(handle) {
+  return `https://picsum.photos/seed/${encodeURIComponent((handle || "usuario") + "-cover")}/1200/320`;
+}
+
 function App() {
   const [logado, setLogado] = useState(false);
   const [pagina, setPagina] = useState("home");
@@ -55,20 +63,31 @@ function App() {
       }
 
       const byEmail = new Set(usuarios.map((u) => (u.email || "").toLowerCase()));
-      const novosUsuarios = [...usuarios];
+      const novosUsuarios = usuarios.map((u) => {
+        const handle = (u.handle || u.username || "usuario").replace(/\s+/g, "").toLowerCase();
+        const isLikelyFake = (u.email || "").toLowerCase().endsWith("@devspace.fake");
+        if (!isLikelyFake) return u;
+        return {
+          ...u,
+          handle,
+          fotoPerfil: u.fotoPerfil || fakeAvatar(handle),
+          fotoCapa: u.fotoCapa || fakeCover(handle),
+        };
+      });
       postsMigrados.forEach((post) => {
         const email = (post.email || `${post.handle || post.username}@devspace.fake`).toLowerCase();
+        const handle = (post.handle || post.username || "usuario").replace(/\s+/g, "").toLowerCase();
         if (!byEmail.has(email)) {
           byEmail.add(email);
           novosUsuarios.push({
             username: post.username || "Usuario",
-            handle: (post.handle || post.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+            handle,
             email,
             senha: "123456",
             criadoEm: post.criadoEm || new Date().toISOString(),
             bio: "Perfil da comunidade DevSpace.",
-            fotoPerfil: post.fotoPerfil || "",
-            fotoCapa: "",
+            fotoPerfil: post.fotoPerfil || fakeAvatar(handle),
+            fotoCapa: fakeCover(handle),
             estrelas: 1,
             projetos: [],
             seguidores: 0,
@@ -80,17 +99,18 @@ function App() {
         const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
         commentsList.forEach((comment) => {
           const cEmail = (comment.email || `${comment.handle || comment.username}@devspace.fake`).toLowerCase();
+          const cHandle = (comment.handle || comment.username || "usuario").replace(/\s+/g, "").toLowerCase();
           if (!byEmail.has(cEmail)) {
             byEmail.add(cEmail);
             novosUsuarios.push({
               username: comment.username || "Usuario",
-              handle: (comment.handle || comment.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+              handle: cHandle,
               email: cEmail,
               senha: "123456",
               criadoEm: comment.criadoEm || new Date().toISOString(),
               bio: "Pessoa da comunidade DevSpace.",
-              fotoPerfil: comment.fotoPerfil || "",
-              fotoCapa: "",
+              fotoPerfil: comment.fotoPerfil || fakeAvatar(cHandle),
+              fotoCapa: fakeCover(cHandle),
               estrelas: 1,
               projetos: [],
               seguidores: 0,
