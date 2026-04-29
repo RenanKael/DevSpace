@@ -193,11 +193,25 @@
   gap: 16px;
 }
 
-.perfil-post-line {
-  width: 6px;
-  height: 100%;
-  border-radius: 999px;
-  background: #5b8cff;
+.perfil-post-avatar-card {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #222;
+  background-position: center;
+  background-size: cover;
+  flex-shrink: 0;
+}
+
+.perfil-post-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.perfil-post-title {
+  color: white;
+  font-weight: bold;
 }
 
 .perfil-post-text {
@@ -250,6 +264,22 @@
 }
 
 .logout-top:hover {
+  background: darkred;
+}
+
+.logout-bottom {
+  width: calc(100% - 60px);
+  margin: 20px 30px 40px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 20px;
+  background: red;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.logout-bottom:hover {
   background: darkred;
 }
 

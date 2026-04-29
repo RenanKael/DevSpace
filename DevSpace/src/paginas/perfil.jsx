@@ -236,14 +236,9 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
             <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
           </div>
 
-          <div className="topo-actions">
-            <button className="btn-editar" onClick={() => setEditando(true)}>
-              Editar Perfil
-            </button>
-            <button className="logout-top" onClick={logout}>
-              Sair da conta
-            </button>
-          </div>
+          <button className="btn-editar" onClick={() => setEditando(true)}>
+            Editar Perfil
+          </button>
         </div>
 
         <div className="info">
@@ -265,13 +260,24 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
             ) : (
               posts.map((post) => (
                 <div key={post.id} className="perfil-post-card">
-                  <div className="perfil-post-line" />
-                  <div className="perfil-post-text">{post.texto || "Post sem texto"}</div>
+                  <div className="perfil-post-avatar-card" style={{
+                    backgroundImage: post.fotoPerfil ? `url(${post.fotoPerfil})` : "none",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center"
+                  }} />
+                  <div className="perfil-post-body">
+                    <div className="perfil-post-title">{post.username}</div>
+                    <div className="perfil-post-text">{post.texto || "Post sem texto"}</div>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </div>
+
+        <button className="logout-bottom" onClick={logout}>
+          Sair da conta
+        </button>
 
         {editando && createPortal(
           <div className="overlay">
