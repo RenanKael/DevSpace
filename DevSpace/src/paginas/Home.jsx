@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import "../style/home.css";
 
@@ -18,6 +19,8 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [openedComments, setOpenedComments] = useState({});
+  const [activeActions, setActiveActions] = useState({});
 
   // Fechar overlay com ESC ou clique fora
   useOverlayClose(!!selectedPost, () => setSelectedPost(null));
@@ -31,6 +34,43 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
     if (selectedPost?.id === postId) {
       setSelectedPost(null);
     }
+  }
+
+  function toggleComments(postId) {
+    setOpenedComments((prev) => ({
+      ...prev,
+      [postId]: !prev[postId],
+    }));
+  }
+
+  function togglePostAction(postId, action) {
+    setActiveActions((prev) => {
+      const postActions = prev[postId] || {};
+      const isActive = !!postActions[action];
+      const nextValue = !isActive;
+
+      setPosts((prevPosts) =>
+        prevPosts.map((post) => {
+          if (post.id !== postId) return post;
+
+          const currentValue = Number(post[action] || 0);
+          return {
+            ...post,
+            [action]: nextValue
+              ? currentValue + 1
+              : Math.max(0, currentValue - 1),
+          };
+        })
+      );
+
+      return {
+        ...prev,
+        [postId]: {
+          ...postActions,
+          [action]: nextValue,
+        },
+      };
+    });
   }
 
   useEffect(() => {
@@ -232,27 +272,61 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
               )}
 
               <div className="post-card-actions" onClick={(e) => e.stopPropagation()}>
-                <button type="button" aria-label="Comentários">
+                <button
+                  type="button"
+                  aria-label="Comentários"
+                  className={activeActions[post.id]?.comments ? "active" : ""}
+                  onClick={() => {
+                    toggleComments(post.id);
+                    togglePostAction(post.id, "comments");
+                  }}
+                >
                   <span>💬</span>
                   <strong>{post.comments ?? 1}</strong>
                 </button>
-                <button type="button" aria-label="Compartilhar">
+                <button
+                  type="button"
+                  aria-label="Compartilhar"
+                  className={activeActions[post.id]?.shares ? "active" : ""}
+                  onClick={() => togglePostAction(post.id, "shares")}
+                >
                   <span>🔁</span>
                   <strong>{post.shares ?? 1}</strong>
                 </button>
-                <button type="button" aria-label="Curtir">
+                <button
+                  type="button"
+                  aria-label="Curtir"
+                  className={activeActions[post.id]?.likes ? "active" : ""}
+                  onClick={() => togglePostAction(post.id, "likes")}
+                >
                   <span>❤️</span>
                   <strong>{post.likes ?? 1}</strong>
                 </button>
-                <button type="button" aria-label="Salvar">
+                <button
+                  type="button"
+                  aria-label="Salvar"
+                  className={activeActions[post.id]?.bookmarks ? "active" : ""}
+                  onClick={() => togglePostAction(post.id, "bookmarks")}
+                >
                   <span>🔖</span>
                   <strong>{post.bookmarks ?? 1}</strong>
                 </button>
-                <button type="button" aria-label="Baixar">
+                <button
+                  type="button"
+                  aria-label="Baixar"
+                  className={activeActions[post.id]?.downloads ? "active" : ""}
+                  onClick={() => togglePostAction(post.id, "downloads")}
+                >
                   <span>⬇️</span>
                   <strong>{post.downloads ?? 1}</strong>
                 </button>
               </div>
+
+              <PostComments
+                postId={post.id}
+                isExpanded={!!openedComments[post.id]}
+                onToggle={() => toggleComments(post.id)}
+              />
             </div>
           ))}
         </div>
@@ -294,6 +368,60 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
                 </div>
               </div>
             )}
+
+            <div className="post-card-actions post-expanded-actions" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                aria-label="Comentários"
+                className={openedComments[selectedPost.id] ? "active" : ""}
+                onClick={() => toggleComments(selectedPost.id)}
+              >
+                <span>💬</span>
+                <strong>{selectedPost.comments ?? 1}</strong>
+              </button>
+              <button
+                type="button"
+                aria-label="Compartilhar"
+                className={activeActions[selectedPost.id]?.shares ? "active" : ""}
+                onClick={() => togglePostAction(selectedPost.id, "shares")}
+              >
+                <span>🔁</span>
+                <strong>{selectedPost.shares ?? 1}</strong>
+              </button>
+              <button
+                type="button"
+                aria-label="Curtir"
+                className={activeActions[selectedPost.id]?.likes ? "active" : ""}
+                onClick={() => togglePostAction(selectedPost.id, "likes")}
+              >
+                <span>❤️</span>
+                <strong>{selectedPost.likes ?? 1}</strong>
+              </button>
+              <button
+                type="button"
+                aria-label="Salvar"
+                className={activeActions[selectedPost.id]?.bookmarks ? "active" : ""}
+                onClick={() => togglePostAction(selectedPost.id, "bookmarks")}
+              >
+                <span>🔖</span>
+                <strong>{selectedPost.bookmarks ?? 1}</strong>
+              </button>
+              <button
+                type="button"
+                aria-label="Baixar"
+                className={activeActions[selectedPost.id]?.downloads ? "active" : ""}
+                onClick={() => togglePostAction(selectedPost.id, "downloads")}
+              >
+                <span>⬇️</span>
+                <strong>{selectedPost.downloads ?? 1}</strong>
+              </button>
+            </div>
+
+            <PostComments
+              postId={selectedPost.id}
+              isExpanded={!!openedComments[selectedPost.id]}
+              onToggle={() => toggleComments(selectedPost.id)}
+            />
           </div>
         </div>
       )}
