@@ -123,8 +123,8 @@ body {
 /* BUSCA */
 .search-box {
   position: absolute;
-  left: 28px;
-  transform: none;
+  left: 43%;
+  transform: translateX(-50%);
 
   width: 300px;
   height: 40px;
