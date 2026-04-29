@@ -292,6 +292,7 @@ export default function Perfil({ onLogout, irHome }) {
                 />
               </div>
 
+              <label>Horizontal</label>
               <input type="range" min="0" max="100"
                 value={editandoImagem === "perfil" ? editPosPerfil.x : editPosCapa.x}
                 onChange={(e) => {
@@ -304,6 +305,7 @@ export default function Perfil({ onLogout, irHome }) {
                 }}
               />
 
+              <label>Vertical</label>
               <input type="range" min="0" max="100"
                 value={editandoImagem === "perfil" ? editPosPerfil.y : editPosCapa.y}
                 onChange={(e) => {

@@ -214,6 +214,12 @@
   color: white;
 }
 
+.popup label {
+  font-weight: bold;
+  color: white;
+  margin-top: 10px;
+}
+
 /* BOTÕES */
 .popup button {
   background: #222;
@@ -362,8 +368,8 @@ input[type="range"] {
 .preview-img.capa {
   width: 100%;
   max-width: 380px;
-  height: auto;
+  height: 140px;
   border-radius: 10px;
-  object-fit: contain;
+  object-fit: cover;
   background: #000;
 }
