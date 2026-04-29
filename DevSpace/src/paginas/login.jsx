@@ -8,6 +8,7 @@ export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [lembrarMe, setLembrarMe] = useState(true);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
 
@@ -93,7 +94,15 @@ export default function Login({ onLogin }) {
         return;
       }
 
-      localStorage.setItem("usuarioLogado", JSON.stringify(admin));
+      if (lembrarMe) {
+        localStorage.setItem("usuarioLogado", JSON.stringify(admin));
+        localStorage.setItem("lembrarMe", "true");
+      } else {
+        sessionStorage.setItem("usuarioLogado", JSON.stringify(admin));
+        localStorage.removeItem("usuarioLogado");
+        localStorage.removeItem("lembrarMe");
+      }
+
       onLogin();
       return;
     }
@@ -114,7 +123,15 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    localStorage.setItem("usuarioLogado", JSON.stringify(usuarioEncontrado));
+    if (lembrarMe) {
+      localStorage.setItem("usuarioLogado", JSON.stringify(usuarioEncontrado));
+      localStorage.setItem("lembrarMe", "true");
+    } else {
+      sessionStorage.setItem("usuarioLogado", JSON.stringify(usuarioEncontrado));
+      localStorage.removeItem("usuarioLogado");
+      localStorage.removeItem("lembrarMe");
+    }
+
     onLogin();
   }
 
@@ -161,6 +178,17 @@ export default function Login({ onLogin }) {
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
           />
+
+          {!modoCadastro && (
+            <label className="remember-me">
+              <input
+                type="checkbox"
+                checked={lembrarMe}
+                onChange={(e) => setLembrarMe(e.target.checked)}
+              />
+              Lembrar de mim
+            </label>
+          )}
 
           {erro && <p className="erro">{erro}</p>}
           {sucesso && <p className="sucesso">{sucesso}</p>}

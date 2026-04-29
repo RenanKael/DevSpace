@@ -12,9 +12,19 @@ function App() {
   const [postRefresh, setPostRefresh] = useState(0);
 
   useEffect(() => {
+    const savedLocal = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const savedSession = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+
+    if (savedLocal || savedSession) {
+      setLogado(true);
+    }
+  }, []);
+
+  useEffect(() => {
     if (logado) {
-      const user = JSON.parse(localStorage.getItem("usuarioLogado"));
-      setUsuario(user);
+      const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+      setUsuario(localUser || sessionUser);
     } else {
       setUsuario(null);
     }

@@ -181,6 +181,8 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
 
   function logout() {
     localStorage.removeItem("usuarioLogado");
+    localStorage.removeItem("lembrarMe");
+    sessionStorage.removeItem("usuarioLogado");
     onLogout();
   }
 
