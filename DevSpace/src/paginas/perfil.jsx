@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import { createPortal } from "react-dom";
 
-export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, viewedUser }) {
+export default function Perfil({ onLogout, irHome, irPerfil, onOpenPost, refreshFeed, viewedUser }) {
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -130,8 +130,14 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
   useEffect(() => {
     if (!usuario || !usuarioLogado) return;
     const followingList = Array.isArray(usuarioLogado.seguindo) ? usuarioLogado.seguindo : [];
-    const targetKey = (usuario.email || usuario.handle || "").toLowerCase();
-    setIsFollowing(followingList.some((item) => item.toLowerCase() === targetKey));
+    const targetHandle = (usuario.handle || usuario.username || "").toLowerCase();
+    const targetEmail = (usuario.email || "").toLowerCase();
+    setIsFollowing(
+      followingList.some((item) => {
+        const key = (item || "").toLowerCase();
+        return key === targetHandle || (targetEmail && key === targetEmail);
+      })
+    );
   }, [usuario, usuarioLogado]);
 
   const isOwnProfile = useMemo(() => {
@@ -367,9 +373,8 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
 
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
     const loggedEmail = (usuarioLogado.email || "").toLowerCase();
-    const targetEmail = (usuario.email || "").toLowerCase();
     const targetHandle = (usuario.handle || "").toLowerCase();
-    const targetKey = (targetEmail || targetHandle).toLowerCase();
+    const targetKey = targetHandle;
 
     const updatedUsers = usuarios.map((u) => {
       const userEmail = (u.email || "").toLowerCase();
@@ -377,16 +382,17 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
 
       if (userEmail === loggedEmail) {
         const list = Array.isArray(u.seguindo) ? u.seguindo : [];
-        const already = list.some((item) => item.toLowerCase() === targetKey);
+        const normalized = list.map((item) => (item || "").toLowerCase());
+        const already = normalized.includes(targetKey);
         return {
           ...u,
           seguindo: already
-            ? list.filter((item) => item.toLowerCase() !== targetKey)
-            : [...list, targetKey],
+            ? normalized.filter((item) => item !== targetKey)
+            : [...normalized, targetKey],
         };
       }
 
-      if ((targetEmail && userEmail === targetEmail) || (!targetEmail && userHandle === targetHandle)) {
+      if (userHandle === targetHandle) {
         const currentFollowers = Number(u.seguidores || 0);
         return {
           ...u,
@@ -403,9 +409,8 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
 
     const nextLogged = updatedUsers.find((u) => (u.email || "").toLowerCase() === loggedEmail) || usuarioLogado;
     const nextTarget = updatedUsers.find((u) => {
-      const userEmail = (u.email || "").toLowerCase();
       const userHandle = (u.handle || "").toLowerCase();
-      return (targetEmail && userEmail === targetEmail) || (!targetEmail && userHandle === targetHandle);
+      return userHandle === targetHandle;
     }) || usuario;
 
     setUsuarioLogado(nextLogged);
@@ -462,7 +467,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
 
   return (
     <div className="home">
-      <Sidebar onReload={irHome} onOpenPost={onOpenPost} />
+      <Sidebar onReload={irHome} irPerfil={irPerfil} onOpenPost={onOpenPost} />
 
       <div className="profile-page">
 

@@ -12,6 +12,11 @@ function fakeCover(handle) {
   return `https://picsum.photos/seed/${encodeURIComponent((handle || "usuario") + "-cover")}/1200/320`;
 }
 
+function isFakeCommunityUser(user) {
+  const email = (user?.email || "").toLowerCase();
+  return email.endsWith("@dev.com") || email.endsWith("@devspace.fake");
+}
+
 function App() {
   const [logado, setLogado] = useState(false);
   const [pagina, setPagina] = useState("home");
@@ -65,7 +70,7 @@ function App() {
       const byEmail = new Set(usuarios.map((u) => (u.email || "").toLowerCase()));
       const novosUsuarios = usuarios.map((u) => {
         const handle = (u.handle || u.username || "usuario").replace(/\s+/g, "").toLowerCase();
-        const isLikelyFake = (u.email || "").toLowerCase().endsWith("@devspace.fake");
+        const isLikelyFake = isFakeCommunityUser(u);
         if (!isLikelyFake) return u;
         return {
           ...u,
@@ -121,7 +126,40 @@ function App() {
           }
         });
       });
-      localStorage.setItem("usuarios", JSON.stringify(novosUsuarios));
+      const enrichedUsers = novosUsuarios.map((u) => {
+        const handle = (u.handle || u.username || "usuario").replace(/\s+/g, "").toLowerCase();
+        if (!isFakeCommunityUser(u)) return { ...u, handle };
+        return {
+          ...u,
+          handle,
+          fotoPerfil: u.fotoPerfil || fakeAvatar(handle),
+          fotoCapa: u.fotoCapa || fakeCover(handle),
+        };
+      });
+      const usersByEmail = new Map(
+        enrichedUsers.map((u) => [String(u.email || "").toLowerCase(), (u.handle || "").toLowerCase()])
+      );
+      const usersByHandle = new Set(
+        enrichedUsers.map((u) => String(u.handle || "").toLowerCase()).filter(Boolean)
+      );
+      const migratedUsers = enrichedUsers.map((u) => {
+        const seguindoRaw = Array.isArray(u.seguindo) ? u.seguindo : [];
+        const seguindoNormalized = seguindoRaw
+          .map((entry) => {
+            const key = String(entry || "").toLowerCase();
+            if (!key) return "";
+            if (usersByHandle.has(key)) return key;
+            if (usersByEmail.has(key)) return usersByEmail.get(key) || "";
+            return "";
+          })
+          .filter(Boolean);
+        const seguindo = [...new Set(seguindoNormalized)];
+        return {
+          ...u,
+          seguindo,
+        };
+      });
+      localStorage.setItem("usuarios", JSON.stringify(migratedUsers));
     } catch (error) {
       console.warn("Erro ao limpar posts:", error);
     }
@@ -185,6 +223,10 @@ function App() {
           irHome={() => {
             setPerfilAlvo(null);
             setPagina("home");
+          }}
+          irPerfil={() => {
+            setPerfilAlvo(null);
+            setPagina("perfil");
           }}
           onOpenPost={handleOpenPost}
           refreshFeed={postRefresh}
