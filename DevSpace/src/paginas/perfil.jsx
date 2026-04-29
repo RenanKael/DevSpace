@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import { createPortal } from "react-dom";
 
-export default function Perfil({ onLogout, irHome }) {
+export default function Perfil({ onLogout, irHome, onOpenPost }) {
   const [usuario, setUsuario] = useState(null);
   const [editando, setEditando] = useState(false);
 
@@ -177,7 +177,7 @@ export default function Perfil({ onLogout, irHome }) {
 
   return (
     <div className="home">
-      <Sidebar onReload={irHome} />
+      <Sidebar onReload={irHome} onOpenPost={onOpenPost} />
 
       <div className="profile-page">
 

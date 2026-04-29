@@ -4,7 +4,7 @@ import paginaInicial from "../assets/IMGS/Home.png";
 import explorar from "../assets/IMGS/Explorar.png";
 import perfil from "../assets/IMGS/NoPerfil.png";
 
-export default function Sidebar({ onReload, irPerfil }) {
+export default function Sidebar({ onReload, irPerfil, onOpenPost }) {
   return (
     <div className="sidebar">
       <div className="logo" onClick={onReload}>
@@ -28,7 +28,7 @@ export default function Sidebar({ onReload, irPerfil }) {
         </div>
       </nav>
 
-      <button className="post-btn">Postar</button>
+      <button className="post-btn" onClick={onOpenPost}>Postar</button>
     </div>
   );
 }

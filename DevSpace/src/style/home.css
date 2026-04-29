@@ -162,6 +162,178 @@ body {
   margin-bottom: 20px;
 }
 
+.post-card {
+  background: #111;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03);
+}
+
+.post-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.post-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #333;
+  background-size: cover;
+  background-position: center;
+}
+
+.post-card-user {
+  display: flex;
+  flex-direction: column;
+  color: white;
+}
+
+.post-card-user span {
+  color: #888;
+  font-size: 13px;
+}
+
+.post-card-text {
+  margin: 0 0 12px;
+  line-height: 1.5;
+  color: #ddd;
+}
+
+.post-card-image img {
+  width: 100%;
+  border-radius: 14px;
+  display: block;
+}
+
+.post-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.post-modal-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #333;
+}
+
+.post-modal-user span {
+  display: block;
+  color: white;
+  font-weight: bold;
+}
+
+.post-modal-user small {
+  color: #aaa;
+}
+
+.post-textarea {
+  width: 100%;
+  min-height: 130px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 14px;
+  padding: 14px;
+  color: white;
+  resize: vertical;
+}
+
+.post-image-preview {
+  margin-top: 14px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.post-image-preview img {
+  width: 100%;
+  display: block;
+}
+
+.post-file-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.post-file-label input {
+  display: none;
+}
+
+.post-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+.post-toolbar button {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: none;
+  background: #1a1a1a;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.post-error {
+  color: #ff6b6b;
+  margin: 10px 0 0;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  z-index: 9999;
+}
+
+.popup {
+  background: #111;
+  padding: 22px;
+  border-radius: 18px;
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.post-popup {
+  width: min(560px, 100%);
+}
+
+.close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
 .user-info{
   display: flex;
   flex-direction: column;

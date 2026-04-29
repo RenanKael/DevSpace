@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import "../style/home.css";
 
-export default function Home({ irPerfil }) {
+export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
 
@@ -12,12 +12,12 @@ export default function Home({ irPerfil }) {
     setUsuario(user);
   }, []);
 
-  const [posts, setPosts] = useState([
-    "Post 1",
-    "Post 2",
-    "Post 3",
-    "Post 4",
-  ]);
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("posts")) || [];
+    setPosts(saved);
+  }, [refreshFeed]);
 
   const [loading, setLoading] = useState(false);
 
@@ -40,12 +40,8 @@ export default function Home({ irPerfil }) {
     setLoading(true);
 
     setTimeout(() => {
-      setPosts([
-        "Novo post A",
-        "Novo post B",
-        "Novo post C",
-        "Novo post D",
-      ]);
+      const saved = JSON.parse(localStorage.getItem("posts")) || [];
+      setPosts(saved);
       setLoading(false);
     }, 1000);
   };
@@ -55,6 +51,7 @@ export default function Home({ irPerfil }) {
       <Sidebar
         onReload={reloadFeed}
         irPerfil={irPerfil}
+        onOpenPost={onOpenPost}
       />
 
       <div className="main">
@@ -63,9 +60,32 @@ export default function Home({ irPerfil }) {
         <div className="feed">
           {loading && <p>Carregando...</p>}
 
-          {posts.map((post, index) => (
-            <div key={index} className="post-placeholder">
-              {post}
+          {!loading && posts.length === 0 && (
+            <p>Sem posts ainda. Use o botão "Postar" para começar.</p>
+          )}
+
+          {posts.map((post) => (
+            <div key={post.id} className="post-card">
+              <div className="post-card-header">
+                <div
+                  className="post-card-avatar"
+                  style={{
+                    backgroundImage: post.fotoPerfil ? `url(${post.fotoPerfil})` : "none",
+                  }}
+                />
+                <div className="post-card-user">
+                  <strong>{post.username}</strong>
+                  <span>@{post.username}</span>
+                </div>
+              </div>
+
+              <p className="post-card-text">{post.texto}</p>
+
+              {post.imagem && (
+                <div className="post-card-image">
+                  <img src={post.imagem} alt="Post" />
+                </div>
+              )}
             </div>
           ))}
         </div>
