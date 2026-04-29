@@ -120,16 +120,37 @@ body {
   transform: translateY(0);
 }
 
-/* BUSCA CENTRALIZADA */
-.topbar input {
+/* BUSCA */
+.search-box {
   position: absolute;
-  left: 50%;
+  left: 43%;
   transform: translateX(-50%);
 
   width: 300px;
-  padding: 10px;
+  height: 40px;
+  padding: 0 14px;
   border-radius: 20px;
+  background: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-box img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: invert(1);
+  flex-shrink: 0;
+}
+
+.search-box input {
+  width: 100%;
+  min-width: 0;
   border: none;
+  outline: none;
+  background: transparent;
+  color: black;
 }
 
 /* PERFIL */

@@ -1,20 +1,24 @@
 import { useState } from "react";
 import "../style/home.css";
+import lupa from "../assets/IMGS/Lupa.svg";
 
 export default function Topbar({ visible, usuario, onSearch }) {
   const [query, setQuery] = useState("");
 
   return (
     <div className={`topbar ${visible ? "show" : "hide"}`}>
-      <input
-        type="text"
-        placeholder="Buscar posts ou usuários"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          onSearch?.(e.target.value);
-        }}
-      />
+      <div className="search-box">
+        <img src={lupa} alt="" aria-hidden="true" />
+        <input
+          type="text"
+          placeholder="Buscar posts ou usuários"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            onSearch?.(e.target.value);
+          }}
+        />
+      </div>
 
       <div className="profile">
         <div className="user-info">
