@@ -1,9 +1,20 @@
+import { useState } from "react";
 import "../style/home.css";
 
-export default function Topbar({ visible, usuario }) {
+export default function Topbar({ visible, usuario, onSearch }) {
+  const [query, setQuery] = useState("");
+
   return (
     <div className={`topbar ${visible ? "show" : "hide"}`}>
-      <input type="text" placeholder="Buscar" />
+      <input
+        type="text"
+        placeholder="Buscar posts ou usuários"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          onSearch?.(e.target.value);
+        }}
+      />
 
       <div className="profile">
         <div className="user-info">

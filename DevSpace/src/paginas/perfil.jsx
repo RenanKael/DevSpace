@@ -35,6 +35,10 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
 
     if (user) {
       if (!user.criadoEm) user.criadoEm = new Date().toISOString();
+      if (!user.handle) user.handle = user.username.replace(/\s+/g, "").toLowerCase();
+      if (!user.seguidores) user.seguidores = 0;
+      if (!user.seguindo) user.seguindo = [];
+      if (!user.comments) user.comments = 0;
 
       setUsuario(user);
       setForm(user);
@@ -235,8 +239,8 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
           />
 
           <div className="stats">
-            <span><b>0</b> Seguindo</span>
-            <span><b>0</b> Seguidores</span>
+            <span><b>{usuario.seguindo?.length || 0}</b> Seguindo</span>
+            <span><b>{usuario.seguidores || 0}</b> Seguidores</span>
             <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
           </div>
 
@@ -247,7 +251,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
 
         <div className="info">
           <h2>{usuario.username}</h2>
-          <span>@{usuario.username}</span>
+          <span>@{usuario.handle || usuario.username}</span>
 
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
 
@@ -291,6 +295,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost }) {
               <h2>Editar Perfil</h2>
 
               <input value={form.username || ""} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="Nome" />
+              <input value={form.handle || ""} onChange={(e) => setForm({ ...form, handle: e.target.value })} placeholder="@handle" />
               <input value={form.bio || ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio" />
               <input value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" />
 

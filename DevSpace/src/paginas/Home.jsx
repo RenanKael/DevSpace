@@ -14,6 +14,7 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
   }, []);
 
   const [posts, setPosts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("posts")) || [];
@@ -47,6 +48,18 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
     }, 1000);
   };
 
+  const filteredPosts = posts.filter((post) => {
+    const query = searchQuery.toLowerCase();
+    if (!query) return true;
+
+    return [
+      post.texto,
+      post.username,
+      post.handle,
+      post.email
+    ].some((value) => value?.toLowerCase().includes(query));
+  });
+
   return (
     <div className="home">
       <Sidebar
@@ -56,16 +69,16 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
       />
 
       <div className="main">
-        <Topbar visible={showTopbar} usuario={usuario} />
+        <Topbar visible={showTopbar} usuario={usuario} onSearch={setSearchQuery} />
 
         <div className="feed">
           {loading && <p>Carregando...</p>}
 
-          {!loading && posts.length === 0 && (
-            <p>Sem posts ainda. Use o botão "Postar" para começar.</p>
+          {!loading && filteredPosts.length === 0 && (
+            <p>Sem posts correspondentes à busca.</p>
           )}
 
-          {posts.map((post) => (
+          {filteredPosts.map((post) => (
             <div key={post.id} className="post-card">
               <div className="post-card-header">
                 <div

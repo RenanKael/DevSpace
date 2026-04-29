@@ -6,6 +6,7 @@ export default function Login({ onLogin }) {
   const [modoCadastro, setModoCadastro] = useState(false);
 
   const [username, setUsername] = useState("");
+  const [handle, setHandle] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [lembrarMe, setLembrarMe] = useState(true);
@@ -28,6 +29,7 @@ export default function Login({ onLogin }) {
 
     const novoUsuario = {
       username,
+      handle: handle || username.replace(/\s+/g, "").toLowerCase(),
       email,
       senha,
       criadoEm: new Date().toISOString(),
@@ -35,7 +37,11 @@ export default function Login({ onLogin }) {
       fotoPerfil: "",
       fotoCapa: "",
       estrelas: 1,
-      projetos: []
+      projetos: [],
+      seguidores: 0,
+      seguindo: [],
+      comments: 0,
+      isAdmin: false
     };
 
     usuarios.push(novoUsuario);
@@ -71,15 +77,20 @@ export default function Login({ onLogin }) {
     if (!admin) {
       admin = {
         username: "RenanADM",
+        handle: "renanadm",
         email: "renan.kael@gmail.com",
         senha: "rklv2007",
         criadoEm: new Date().toISOString(),
         bio: "Conta administrativa",
         fotoPerfil: "",
         fotoCapa: "",
-        estrelas: 5,
+        estrelas: 6,
         projetos: [],
-        avaliacao: 5
+        avaliacao: 6,
+        seguidores: 0,
+        seguindo: [],
+        comments: 0,
+        isAdmin: true
       };
 
       usuarios.push(admin);
@@ -157,12 +168,21 @@ export default function Login({ onLogin }) {
           <h3>{modoCadastro ? "Criar conta" : "Entrar no DevSpace"}</h3>
 
           {modoCadastro && (
-            <input
-              type="text"
-              placeholder="Nome de usuário"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
+            <>
+              <input
+                type="text"
+                placeholder="Nome de usuário"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+
+              <input
+                type="text"
+                placeholder="@handle"
+                value={handle}
+                onChange={(e) => setHandle(e.target.value)}
+              />
+            </>
           )}
 
           <input
