@@ -333,11 +333,13 @@ body {
   max-width: 900px;
   max-height: calc(100vh - 64px);
   overflow: auto;
+  overflow-x: visible;
   background: #111;
   border: 1px solid #222;
   border-radius: 28px;
   padding: 22px;
   box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+  pointer-events: auto;
 }
 
 .post-expanded-close {
@@ -356,6 +358,9 @@ body {
   transition: background-color 0.2s ease;
   display: grid;
   place-items: center;
+  pointer-events: auto;
+  z-index: 10001;
+  flex-shrink: 0;
 }
 
 .post-expanded-close:hover {
@@ -495,6 +500,7 @@ body {
   align-items: center;
   padding: 20px;
   z-index: 9999;
+  pointer-events: auto;
 }
 
 .popup {
@@ -508,6 +514,8 @@ body {
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: visible;
+  pointer-events: auto;
 }
 
 .post-popup {
@@ -530,6 +538,9 @@ body {
   transition: background-color 0.2s ease;
   display: grid;
   place-items: center;
+  pointer-events: auto;
+  z-index: 10001;
+  flex-shrink: 0;
 }
 
 .close-btn:hover {

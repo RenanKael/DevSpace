@@ -8,6 +8,7 @@
   align-items: center;
   padding: 20px;
   z-index: 9999;
+  pointer-events: auto;
 }
 
 .overlay-content {
@@ -17,7 +18,9 @@
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: visible;
   animation: slideUp 0.3s ease-out;
+  pointer-events: auto;
 }
 
 .overlay-close-btn {
@@ -36,6 +39,9 @@
   transition: background-color 0.2s ease;
   display: grid;
   place-items: center;
+  pointer-events: auto;
+  z-index: 10001;
+  flex-shrink: 0;
 }
 
 .overlay-close-btn:hover {
