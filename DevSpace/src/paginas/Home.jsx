@@ -41,6 +41,10 @@ function buildFakeComments(postId, count) {
   });
 }
 
+function normalizeHandle(value) {
+  return (value || "usuario").replace(/\s+/g, "").toLowerCase();
+}
+
 export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProfile }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
@@ -307,15 +311,25 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed, onOpenUserProf
           (post.email || "").toLowerCase().endsWith("@dev.com");
         const rawComments = Array.isArray(post.commentsList) ? post.commentsList : [];
         const fallbackCount = Number(post.comments || 0) > 0 ? Number(post.comments) : 2;
-        const commentsList =
+        const commentsListRaw =
           isLegacyFake && rawComments.length === 0
             ? buildFakeComments(post.id, fallbackCount)
             : rawComments;
+        const commentsList = commentsListRaw.map((comment) => {
+          const handle = normalizeHandle(comment?.handle || comment?.username);
+          return {
+            ...comment,
+            handle,
+            fotoPerfil: comment?.fotoPerfil || fakeAvatar(handle),
+          };
+        });
+        const postHandle = normalizeHandle(post.handle || post.username);
         const normalizedComments = isLegacyFake
           ? commentsList.length
           : rawComments.length;
         return {
           ...post,
+          fotoPerfil: post.fotoPerfil || (isLegacyFake ? fakeAvatar(postHandle) : ""),
           commentsList,
           comments: normalizedComments,
           isSeedFake: isLegacyFake,
