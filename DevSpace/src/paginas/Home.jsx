@@ -20,7 +20,76 @@ export default function Home({ irPerfil, onOpenPost, refreshFeed }) {
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("posts")) || [];
-    setPosts(saved);
+
+    if (saved.length === 0) {
+      const fakeSeed = [
+        {
+          id: 1,
+          username: "Lia Gomes",
+          handle: "liagomes",
+          email: "lia.gomes@dev.com",
+          fotoPerfil: "",
+          texto: "Começando a semana com foco e café na mesa. Vamos fazer acontecer!",
+          imagem: "",
+          comments: 2,
+          shares: 1,
+          likes: 5,
+          bookmarks: 1,
+          downloads: 0,
+          criadoEm: new Date().toISOString(),
+        },
+        {
+          id: 2,
+          username: "Felipe Rocha",
+          handle: "feliperocha",
+          email: "felipe.rocha@dev.com",
+          fotoPerfil: "",
+          texto: "Adorei o novo projeto, já estou testando as ideias no protótipo.",
+          imagem: "",
+          comments: 3,
+          shares: 2,
+          likes: 8,
+          bookmarks: 2,
+          downloads: 0,
+          criadoEm: new Date().toISOString(),
+        },
+        {
+          id: 3,
+          username: "Nina Correa",
+          handle: "ninacorrea",
+          email: "nina.correa@dev.com",
+          fotoPerfil: "",
+          texto: "Hora de aprender algo novo: hoje vou estudar animações CSS para fazer cards mais fluidos.",
+          imagem: "",
+          comments: 4,
+          shares: 1,
+          likes: 11,
+          bookmarks: 3,
+          downloads: 0,
+          criadoEm: new Date().toISOString(),
+        },
+        {
+          id: 4,
+          username: "Arthur Silva",
+          handle: "arthursilva",
+          email: "arthur.silva@dev.com",
+          fotoPerfil: "",
+          texto: "Todo dia é dia de melhorar o design e deixar o app mais agradável para as pessoas.",
+          imagem: "",
+          comments: 1,
+          shares: 0,
+          likes: 7,
+          bookmarks: 1,
+          downloads: 0,
+          criadoEm: new Date().toISOString(),
+        },
+      ];
+
+      localStorage.setItem("posts", JSON.stringify(fakeSeed));
+      setPosts(fakeSeed);
+    } else {
+      setPosts(saved);
+    }
   }, [refreshFeed]);
 
   const [loading, setLoading] = useState(false);
