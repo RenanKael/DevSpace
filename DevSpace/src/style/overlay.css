@@ -27,7 +27,7 @@
   background: transparent;
   border: none;
   color: white;
-  font-size: 28px;
+  font-size: 20px;
   cursor: pointer;
   width: 44px;
   height: 44px;
@@ -37,6 +37,7 @@
   border-radius: 8px;
   transition: background-color 0.2s;
   padding: 0;
+  line-height: 1;
 }
 
 .overlay-close-btn:hover {
