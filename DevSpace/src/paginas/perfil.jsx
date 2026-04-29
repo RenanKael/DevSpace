@@ -35,6 +35,7 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
   const [avaliacao, setAvaliacao] = useState(0);
 
   const [reloadImg, setReloadImg] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({
     startX: 0,
@@ -70,6 +71,13 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
       setZoomCapa(Number(normalized.zoomCapa || 100));
     }
   }, [viewedUser]);
+
+  useEffect(() => {
+    if (!usuario || !usuarioLogado) return;
+    const followingList = Array.isArray(usuarioLogado.seguindo) ? usuarioLogado.seguindo : [];
+    const targetKey = (usuario.email || usuario.handle || "").toLowerCase();
+    setIsFollowing(followingList.some((item) => item.toLowerCase() === targetKey));
+  }, [usuario, usuarioLogado]);
 
   const isOwnProfile = useMemo(() => {
     if (!usuario || !usuarioLogado) return false;
@@ -298,6 +306,64 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
     sessionStorage.removeItem("usuarioLogado");
     onLogout();
   }
+
+  function toggleFollow() {
+    if (isOwnProfile || !usuario || !usuarioLogado) return;
+
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const loggedEmail = (usuarioLogado.email || "").toLowerCase();
+    const targetEmail = (usuario.email || "").toLowerCase();
+    const targetHandle = (usuario.handle || "").toLowerCase();
+    const targetKey = (targetEmail || targetHandle).toLowerCase();
+
+    const updatedUsers = usuarios.map((u) => {
+      const userEmail = (u.email || "").toLowerCase();
+      const userHandle = (u.handle || "").toLowerCase();
+
+      if (userEmail === loggedEmail) {
+        const list = Array.isArray(u.seguindo) ? u.seguindo : [];
+        const already = list.some((item) => item.toLowerCase() === targetKey);
+        return {
+          ...u,
+          seguindo: already
+            ? list.filter((item) => item.toLowerCase() !== targetKey)
+            : [...list, targetKey],
+        };
+      }
+
+      if ((targetEmail && userEmail === targetEmail) || (!targetEmail && userHandle === targetHandle)) {
+        const currentFollowers = Number(u.seguidores || 0);
+        return {
+          ...u,
+          seguidores: isFollowing
+            ? Math.max(0, currentFollowers - 1)
+            : currentFollowers + 1,
+        };
+      }
+
+      return u;
+    });
+
+    localStorage.setItem("usuarios", JSON.stringify(updatedUsers));
+
+    const nextLogged = updatedUsers.find((u) => (u.email || "").toLowerCase() === loggedEmail) || usuarioLogado;
+    const nextTarget = updatedUsers.find((u) => {
+      const userEmail = (u.email || "").toLowerCase();
+      const userHandle = (u.handle || "").toLowerCase();
+      return (targetEmail && userEmail === targetEmail) || (!targetEmail && userHandle === targetHandle);
+    }) || usuario;
+
+    setUsuarioLogado(nextLogged);
+    setUsuario(nextTarget);
+    setIsFollowing(!isFollowing);
+
+    const rememberMe = localStorage.getItem("lembrarMe") === "true";
+    if (rememberMe) {
+      localStorage.setItem("usuarioLogado", JSON.stringify(nextLogged));
+    } else {
+      sessionStorage.setItem("usuarioLogado", JSON.stringify(nextLogged));
+    }
+  }
   function beginImageDrag(e) {
     if (!isOwnProfile || !editandoImagem) return;
     const point = e.touches?.[0] || e;
@@ -390,6 +456,11 @@ export default function Perfil({ onLogout, irHome, onOpenPost, refreshFeed, view
           {isOwnProfile && (
             <button className="btn-editar" onClick={() => setEditando(true)}>
               Editar Perfil
+            </button>
+          )}
+          {!isOwnProfile && (
+            <button className="btn-editar" onClick={toggleFollow}>
+              {isFollowing ? "Seguindo" : "Seguir"}
             </button>
           )}
         </div>
