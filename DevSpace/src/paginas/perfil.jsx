@@ -807,11 +807,3 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     </div>
   );
 }
-
-
-
-
-
-
-
-
