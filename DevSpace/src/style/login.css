@@ -245,14 +245,15 @@ html, body {
 }
 
 .btn-google {
-  background: #050505;
-  color: white;
+  background: #1f2937;
+  color: black;
   border: 2px solid #d9d9d9;
   margin-top: 15px !important;
 }
 
 .btn-google:hover {
-  background: #151515;
+  background: #374151;
+  color: black;
 }
 
 .divisor {
@@ -295,8 +296,8 @@ html, body {
   width: 100%;
   padding: 16px;
   margin-bottom: 12px;
-  background: #050505;
-  color: white;
+  background: #1f2937;
+  color: black;
   border: 2px solid #d9d9d9;
   border-radius: 12px;
   font-weight: 600;
@@ -306,8 +307,9 @@ html, body {
 }
 
 .btn-metodo:hover {
-  background: #151515;
+  background: #374151;
   border-color: white;
+  color: black;
 }
 
 .metodo-form {
@@ -338,15 +340,15 @@ html, body {
 
 .btn-voltar {
   background: transparent;
-  color: #d9d9d9;
+  color: black;
   border: 2px solid #d9d9d9;
   margin-top: 12px !important;
 }
 
 .btn-voltar:hover {
-  background: #050505;
+  background: #1f2937;
   border-color: white;
-  color: white;
+  color: black;
 }
 
 /* Ajustes para responsividade */
@@ -410,9 +412,9 @@ html, body {
   min-height: 92px;
   padding: 14px !important;
   margin: 0 !important;
-  background: #050505 !important;
-  color: white;
-  border: 2px solid #2a2a2a !important;
+  background: #15181d !important;
+  color: black;
+  border: 2px solid #333 !important;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -429,7 +431,7 @@ html, body {
   width: auto;
   height: auto;
   border: none;
-  color: #aaa;
+  color: black;
   font-size: 12px;
   line-height: 1.35;
 }
@@ -437,7 +439,8 @@ html, body {
 .auth-option.active,
 .auth-option:hover {
   border-color: #d9d9d9 !important;
-  background: #151515 !important;
+  background: #242932 !important;
+  color: black;
 }
 
 .codigo-teste {
