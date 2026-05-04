@@ -50,13 +50,18 @@ function findUserProfile(item, users) {
   const handle = normalizeHandle(item?.handle || "");
   const username = (item?.username || "").toLowerCase();
 
+  const byEmail = email
+    ? users.find((user) => (user.email || "").toLowerCase() === email)
+    : null;
+
+  if (byEmail) return byEmail;
+
   return users.find((user) => {
     const userEmail = (user.email || "").toLowerCase();
     const userHandle = normalizeHandle(user.handle || user.username || "");
     const userName = (user.username || "").toLowerCase();
 
     return (
-      (email && userEmail === email) ||
       (handle && userHandle === handle) ||
       (username && userName === username)
     );
@@ -65,7 +70,15 @@ function findUserProfile(item, users) {
 
 function isFakeIdentity(item) {
   const email = (item?.email || "").toLowerCase();
-  return !!item?.isSeedFake || email.endsWith("@dev.com") || email.endsWith("@devspace.fake");
+  const handle = normalizeHandle(item?.handle || item?.username || "");
+  const isFakeHandle = FAKE_COMMENT_POOL.some((fake) => fake.handle === handle);
+
+  return (
+    !!item?.isSeedFake ||
+    isFakeHandle ||
+    email.endsWith("@dev.com") ||
+    email.endsWith("@devspace.fake")
+  );
 }
 
 export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile }) {
