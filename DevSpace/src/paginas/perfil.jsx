@@ -256,7 +256,12 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     );
 
     localStorage.setItem("usuarios", JSON.stringify(novosUsuarios));
-    localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    if (localStorage.getItem("usuarioLogado")) {
+      localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    }
+    if (sessionStorage.getItem("usuarioLogado")) {
+      sessionStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    }
     sincronizarReferenciasDoUsuario(usuario, atualizado);
 
     setUsuarioLogado(atualizado);
@@ -304,7 +309,12 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     );
 
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
-    localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    if (localStorage.getItem("usuarioLogado")) {
+      localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    }
+    if (sessionStorage.getItem("usuarioLogado")) {
+      sessionStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    }
     sincronizarReferenciasDoUsuario(usuario, atualizado);
 
     setUsuarioLogado(atualizado);

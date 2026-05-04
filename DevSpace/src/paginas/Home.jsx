@@ -63,6 +63,11 @@ function findUserProfile(item, users) {
   });
 }
 
+function isFakeIdentity(item) {
+  const email = (item?.email || "").toLowerCase();
+  return !!item?.isSeedFake || email.endsWith("@dev.com") || email.endsWith("@devspace.fake");
+}
+
 export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
@@ -341,13 +346,14 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
             : rawComments;
         const commentsList = commentsListRaw.map((comment) => {
           const handle = normalizeHandle(comment?.handle || comment?.username);
-          const commentProfile = isLegacyFake ? null : findUserProfile(comment, usersList);
+          const commentIsFake = isFakeIdentity(comment);
+          const commentProfile = commentIsFake ? null : findUserProfile(comment, usersList);
           return {
             ...comment,
             username: commentProfile?.username || comment?.username,
             handle: commentProfile?.handle || handle,
             email: commentProfile?.email || comment?.email,
-            fotoPerfil: commentProfile?.fotoPerfil || comment?.fotoPerfil || (isLegacyFake ? fakeAvatar(handle) : ""),
+            fotoPerfil: commentProfile?.fotoPerfil || comment?.fotoPerfil || (commentIsFake ? fakeAvatar(handle) : ""),
           };
         });
         const postHandle = normalizeHandle(post.handle || post.username);
