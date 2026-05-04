@@ -466,7 +466,7 @@ export default function Login({ onLogin }) {
               Confirmar
             </button>
 
-            <button type="button" className="btn-voltar" onClick={() => setEtapa("escolherCadastro")}>
+            <button type="button" className="btn-voltar cadastro-voltar" onClick={() => setEtapa("escolherCadastro")}>
               Trocar metodo
             </button>
           </form>
