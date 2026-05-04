@@ -358,7 +358,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                   username: atualizado.username,
                   handle: atualizado.handle,
                   email: atualizado.email,
-                  fotoPerfil: atualizado.fotoPerfil || "",
+                  fotoPerfil: "",
                 }
               : comment
           )
@@ -371,7 +371,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
               username: atualizado.username,
               handle: atualizado.handle,
               email: atualizado.email,
-              fotoPerfil: atualizado.fotoPerfil || "",
+              fotoPerfil: "",
             }
           : {}),
         commentsList,
@@ -379,7 +379,11 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       };
     });
 
-    localStorage.setItem("posts", JSON.stringify(postsAtualizados));
+    try {
+      localStorage.setItem("posts", JSON.stringify(postsAtualizados));
+    } catch (error) {
+      console.warn("Nao foi possivel atualizar referencias dos posts:", error);
+    }
   }
 
   function savePostEdit() {

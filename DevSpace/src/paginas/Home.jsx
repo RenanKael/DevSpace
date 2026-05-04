@@ -105,10 +105,21 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   useOverlayClose(!!selectedPost, () => setSelectedPost(null));
   useOverlayClose(!!imagePreview, () => setImagePreview(null));
 
+  function salvarPosts(postsAtualizados) {
+    try {
+      localStorage.setItem("posts", JSON.stringify(postsAtualizados));
+      return true;
+    } catch (error) {
+      console.warn("Nao foi possivel salvar posts no localStorage:", error);
+      setSyncToast(true);
+      return false;
+    }
+  }
+
   function deletePost(postId) {
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const updated = savedPosts.filter((post) => post.id !== postId);
-    localStorage.setItem("posts", JSON.stringify(updated));
+    salvarPosts(updated);
     setPosts(updated);
     if (selectedPost?.id === postId) setSelectedPost(null);
   }
@@ -141,7 +152,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           [action]: nextValue ? currentValue + 1 : Math.max(0, currentValue - 1),
         };
       });
-      localStorage.setItem("posts", JSON.stringify(updatedPosts));
+      salvarPosts(updatedPosts);
       return updatedPosts;
     });
   }
@@ -159,7 +170,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           username: usuario.username || "Usuario",
           handle: (usuario.handle || usuario.username || "usuario").replace(/\s+/g, "").toLowerCase(),
           email: usuario.email || "",
-          fotoPerfil: usuario.fotoPerfil || "",
+          fotoPerfil: "",
           texto,
           criadoEm: new Date().toISOString(),
         };
@@ -172,7 +183,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         };
       });
 
-      localStorage.setItem("posts", JSON.stringify(updatedPosts));
+      salvarPosts(updatedPosts);
       return updatedPosts;
     });
   }
@@ -337,7 +348,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           },
         ];
 
-        localStorage.setItem("posts", JSON.stringify(fakeSeed));
+        salvarPosts(fakeSeed);
         localStorage.setItem("adminSeedInitialized", "true");
         setPosts(fakeSeed);
       } else {
@@ -346,6 +357,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     } else {
       const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
       const usersList = Array.isArray(savedUsers) ? savedUsers : [];
+      const postsParaSalvar = [];
       const normalizedPosts = saved.map((post) => {
         const isLegacyFake =
           !!post.isSeedFake ||
@@ -373,7 +385,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         const normalizedComments = isLegacyFake
           ? commentsList.length
           : rawComments.length;
-        return {
+        const normalizedPost = {
           ...post,
           username: postProfile?.username || post.username,
           handle: postProfile?.handle || post.handle,
@@ -383,8 +395,23 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           comments: normalizedComments,
           isSeedFake: isLegacyFake,
         };
+        const storageComments = commentsList.map((comment) => {
+          const commentProfile = isFakeIdentity(comment) ? null : findUserProfile(comment, usersList);
+          return {
+            ...comment,
+            fotoPerfil: commentProfile ? "" : comment.fotoPerfil,
+          };
+        });
+        postsParaSalvar.push({
+          ...normalizedPost,
+          fotoPerfil: postProfile ? "" : normalizedPost.fotoPerfil,
+          commentsList: storageComments,
+        });
+        return normalizedPost;
       });
-      localStorage.setItem("posts", JSON.stringify(normalizedPosts));
+      if (JSON.stringify(postsParaSalvar) !== JSON.stringify(saved)) {
+        salvarPosts(postsParaSalvar);
+      }
       setPosts(normalizedPosts);
     }
   }, [refreshFeed, usuario, usuarios]);
