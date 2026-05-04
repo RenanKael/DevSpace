@@ -489,7 +489,7 @@ export default function Login({ onLogin }) {
 
             <input
               type="text"
-              placeholder="Nome"
+              placeholder="Nome de usuario"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
