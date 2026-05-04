@@ -45,6 +45,24 @@ function normalizeHandle(value) {
   return (value || "usuario").replace(/\s+/g, "").toLowerCase();
 }
 
+function findUserProfile(item, users) {
+  const email = (item?.email || "").toLowerCase();
+  const handle = normalizeHandle(item?.handle || "");
+  const username = (item?.username || "").toLowerCase();
+
+  return users.find((user) => {
+    const userEmail = (user.email || "").toLowerCase();
+    const userHandle = normalizeHandle(user.handle || user.username || "");
+    const userName = (user.username || "").toLowerCase();
+
+    return (
+      (email && userEmail === email) ||
+      (handle && userHandle === handle) ||
+      (username && userName === username)
+    );
+  });
+}
+
 export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
@@ -308,10 +326,13 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         setPosts(saved);
       }
     } else {
+      const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+      const usersList = Array.isArray(savedUsers) ? savedUsers : [];
       const normalizedPosts = saved.map((post) => {
         const isLegacyFake =
           !!post.isSeedFake ||
           (post.email || "").toLowerCase().endsWith("@dev.com");
+        const postProfile = isLegacyFake ? null : findUserProfile(post, usersList);
         const rawComments = Array.isArray(post.commentsList) ? post.commentsList : [];
         const fallbackCount = Number(post.comments || 0) > 0 ? Number(post.comments) : 2;
         const commentsListRaw =
@@ -320,10 +341,13 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
             : rawComments;
         const commentsList = commentsListRaw.map((comment) => {
           const handle = normalizeHandle(comment?.handle || comment?.username);
+          const commentProfile = isLegacyFake ? null : findUserProfile(comment, usersList);
           return {
             ...comment,
-            handle,
-            fotoPerfil: comment?.fotoPerfil || fakeAvatar(handle),
+            username: commentProfile?.username || comment?.username,
+            handle: commentProfile?.handle || handle,
+            email: commentProfile?.email || comment?.email,
+            fotoPerfil: commentProfile?.fotoPerfil || comment?.fotoPerfil || (isLegacyFake ? fakeAvatar(handle) : ""),
           };
         });
         const postHandle = normalizeHandle(post.handle || post.username);
@@ -332,7 +356,10 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           : rawComments.length;
         return {
           ...post,
-          fotoPerfil: post.fotoPerfil || (isLegacyFake ? fakeAvatar(postHandle) : ""),
+          username: postProfile?.username || post.username,
+          handle: postProfile?.handle || post.handle,
+          email: postProfile?.email || post.email,
+          fotoPerfil: postProfile?.fotoPerfil || post.fotoPerfil || (isLegacyFake ? fakeAvatar(postHandle) : ""),
           commentsList,
           comments: normalizedComments,
           isSeedFake: isLegacyFake,
@@ -341,7 +368,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       localStorage.setItem("posts", JSON.stringify(normalizedPosts));
       setPosts(normalizedPosts);
     }
-  }, [refreshFeed, usuario]);
+  }, [refreshFeed, usuario, usuarios]);
 
   const [loading, setLoading] = useState(false);
 
