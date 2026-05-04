@@ -257,6 +257,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
     localStorage.setItem("usuarios", JSON.stringify(novosUsuarios));
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    sincronizarReferenciasDoUsuario(usuario, atualizado);
 
     setUsuarioLogado(atualizado);
     setUsuario(atualizado);
@@ -304,6 +305,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
     localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    sincronizarReferenciasDoUsuario(usuario, atualizado);
 
     setUsuarioLogado(atualizado);
     setUsuario(atualizado);
@@ -316,6 +318,58 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
     setErro("");
     setSucesso("Perfil atualizado com sucesso!");
+  }
+
+  function sincronizarReferenciasDoUsuario(anterior, atualizado) {
+    const postsSalvos = JSON.parse(localStorage.getItem("posts")) || [];
+    const antigoEmail = (anterior.email || "").toLowerCase();
+    const antigoHandle = (anterior.handle || anterior.username || "").toLowerCase();
+    const antigoUsername = (anterior.username || "").toLowerCase();
+
+    function pertenceAoUsuario(item) {
+      const itemEmail = (item.email || "").toLowerCase();
+      const itemHandle = (item.handle || "").toLowerCase();
+      const itemUsername = (item.username || "").toLowerCase();
+
+      return (
+        (antigoEmail && itemEmail === antigoEmail) ||
+        (antigoHandle && itemHandle === antigoHandle) ||
+        (antigoUsername && itemUsername === antigoUsername)
+      );
+    }
+
+    const postsAtualizados = postsSalvos.map((post) => {
+      const postDoUsuario = pertenceAoUsuario(post);
+      const commentsList = Array.isArray(post.commentsList)
+        ? post.commentsList.map((comment) =>
+            pertenceAoUsuario(comment)
+              ? {
+                  ...comment,
+                  username: atualizado.username,
+                  handle: atualizado.handle,
+                  email: atualizado.email,
+                  fotoPerfil: atualizado.fotoPerfil || "",
+                }
+              : comment
+          )
+        : [];
+
+      return {
+        ...post,
+        ...(postDoUsuario
+          ? {
+              username: atualizado.username,
+              handle: atualizado.handle,
+              email: atualizado.email,
+              fotoPerfil: atualizado.fotoPerfil || "",
+            }
+          : {}),
+        commentsList,
+        comments: commentsList.length || Number(post.comments || 0),
+      };
+    });
+
+    localStorage.setItem("posts", JSON.stringify(postsAtualizados));
   }
 
   function savePostEdit() {
