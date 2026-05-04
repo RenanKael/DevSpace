@@ -208,3 +208,267 @@ html, body {
 .container{
   overflow: hidden;
 }
+
+/* ===== NOVOS ESTILOS ===== */
+
+.card-maior {
+  height: auto !important;
+  max-height: 700px;
+}
+
+.lembrar-me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  color: white;
+  font-size: 14px;
+}
+
+.lembrar-me input[type="checkbox"] {
+  width: auto;
+  height: auto;
+  accent-color: #d9d9d9;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.btn-entrar {
+  background: #d9d9d9;
+  color: black;
+  font-weight: bold;
+  margin-top: 15px !important;
+}
+
+.btn-entrar:hover {
+  background: #bfbfbf;
+}
+
+.btn-google {
+  background: #1f2937;
+  color: white;
+  border: 2px solid #d9d9d9;
+  margin-top: 15px !important;
+}
+
+.btn-google:hover {
+  background: #374151;
+}
+
+.divisor {
+  border: none;
+  border-top: 1px solid #555;
+  margin: 25px 0 25px 0;
+}
+
+.toggle-cadastro {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #d9d9d9;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0;
+  text-decoration: underline;
+  margin: 0;
+  font-size: 14px;
+}
+
+.link-btn:hover {
+  color: white;
+}
+
+.descricao {
+  color: #bbb;
+  font-size: 14px;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.btn-metodo {
+  width: 100%;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #1f2937;
+  color: white;
+  border: 2px solid #d9d9d9;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-metodo:hover {
+  background: #374151;
+  border-color: white;
+}
+
+.metodo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.metodo-form input {
+  width: 100% !important;
+  padding: 12px 8px !important;
+  margin-bottom: 0 !important;
+  border-bottom: 2px solid #888 !important;
+}
+
+.btn-enviar {
+  background: #d9d9d9;
+  color: black;
+  font-weight: bold;
+  padding: 12px !important;
+  margin: 0 !important;
+}
+
+.btn-enviar:hover {
+  background: #bfbfbf;
+}
+
+.btn-voltar {
+  background: transparent;
+  color: #d9d9d9;
+  border: 2px solid #d9d9d9;
+  margin-top: 12px !important;
+}
+
+.btn-voltar:hover {
+  background: #1f2937;
+  border-color: white;
+  color: white;
+}
+
+/* Ajustes para responsividade */
+@media (max-width: 1024px) {
+  .container {
+    flex-direction: column;
+    gap: 50px;
+    padding: 40px;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .left {
+    align-items: center;
+    text-align: center;
+  }
+
+  .left h2 {
+    font-size: 36px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    height: auto;
+  }
+}
+
+/* Fluxo novo de login/cadastro */
+.login-page {
+  min-height: 100vh;
+}
+
+.auth-card {
+  height: auto;
+  min-height: 520px;
+  padding: 46px 50px;
+  gap: 0;
+}
+
+.auth-card h3 {
+  margin-bottom: 34px;
+}
+
+.auth-card input {
+  margin-bottom: 24px;
+}
+
+.cadastro-card {
+  min-height: 580px;
+}
+
+.metodos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.auth-option {
+  min-height: 92px;
+  padding: 14px !important;
+  margin: 0 !important;
+  background: #15181d !important;
+  color: white;
+  border: 2px solid #333 !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  text-align: left;
+}
+
+.auth-option strong {
+  font-size: 15px;
+}
+
+.auth-option span {
+  position: static;
+  width: auto;
+  height: auto;
+  border: none;
+  color: #aaa;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.auth-option.active,
+.auth-option:hover {
+  border-color: #d9d9d9 !important;
+  background: #242932 !important;
+}
+
+.codigo-teste {
+  color: #aaa;
+  font-size: 13px;
+  text-align: center;
+  background: #111;
+  border: 1px solid #2b2b2b;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 18px;
+}
+
+.auth-card .descricao {
+  line-height: 1.45;
+}
+
+.auth-card .erro,
+.auth-card .sucesso {
+  text-align: center;
+  line-height: 1.35;
+}
+
+.auth-card .link-btn {
+  width: auto !important;
+  display: inline;
+  padding: 0;
+}
+
+@media (max-width: 1024px) {
+  .metodos-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -16,7 +16,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const [editandoImagem, setEditandoImagem] = useState(null);
 
   const [form, setForm] = useState({});
-  const [senhaAtual, setSenhaAtual] = useState("");
 
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
@@ -270,44 +269,34 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
   function salvarPerfil() {
     if (!isOwnProfile) return;
-    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-
-    let atualizado = { ...usuario, ...form };
-
-    const emailExiste = usuarios.find(
-      (u) => u.email === form.email && u.email !== usuario.email
-    );
-
-    if (emailExiste) {
-      setErro("Email ja esta em uso!");
+    
+    if (!form.username || !form.handle) {
+      setErro("Nome e @ são obrigatórios!");
       return;
     }
 
-    if (form.novaSenha || form.confirmarSenha) {
-      if (!senhaAtual) {
-        setErro("Digite a senha atual!");
-        return;
-      }
+    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
-      if (senhaAtual !== usuario.senha) {
-        setErro("Senha atual incorreta!");
-        return;
-      }
+    // Verifica se o handle já está em uso por outro usuário
+    const handleJaExiste = usuarios.find(
+      (u) => u.handle === form.handle.toLowerCase() && u.email !== usuario.email
+    );
 
-      if (form.novaSenha !== form.confirmarSenha) {
-        setErro("Senhas nao coincidem!");
-        return;
-      }
+    if (handleJaExiste) {
+      setErro("Este @ já está em uso!");
+      return;
     }
+
+    let atualizado = {
+      ...usuario,
+      username: form.username,
+      handle: form.handle.toLowerCase(),
+      bio: form.bio || ""
+    };
 
     atualizado.fotoPerfil = usuario.fotoPerfil;
     atualizado.fotoCapa = usuario.fotoCapa;
-
-    atualizado.senha = form.novaSenha ? form.novaSenha : usuario.senha;
     atualizado.avaliacao = avaliacao;
-
-    delete atualizado.novaSenha;
-    delete atualizado.confirmarSenha;
 
     usuarios = usuarios.map((u) =>
       u.email === usuario.email ? atualizado : u
@@ -326,7 +315,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     setEditando(false);
 
     setErro("");
-    setSucesso("Perfil atualizado!");
+    setSucesso("Perfil atualizado com sucesso!");
   }
 
   function savePostEdit() {
@@ -501,7 +490,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       <div className="profile-page">
 
         <div className="topo-perfil">
-          <button className="back-arrow-btn" onClick={irHome} type="button" title="Voltar">`r`n            <img src={backArrow} alt="Voltar" />`r`n          </button>
+          <button className="back-arrow-btn" onClick={irHome} type="button" title="Voltar">
+            <img src={backArrow} alt="Voltar" />
+          </button>
           <h3>{usuario.username}</h3>
 
           <div className="avaliacao">
@@ -646,13 +637,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
               <h2>Editar Perfil</h2>
 
               <input value={form.username || ""} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="Nome" />
-              <input value={form.handle || ""} onChange={(e) => setForm({ ...form, handle: e.target.value })} placeholder="@handle" />
+              <input value={form.handle || ""} onChange={(e) => setForm({ ...form, handle: e.target.value.replace(/\s+/g, "") })} placeholder="@usuário" />
               <input value={form.bio || ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio" />
-              <input value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" />
-
-              <input type="password" placeholder="Senha atual" value={senhaAtual} onChange={(e) => setSenhaAtual(e.target.value)} />
-              <input type="password" placeholder="Nova senha" onChange={(e) => setForm({ ...form, novaSenha: e.target.value })} />
-              <input type="password" placeholder="Confirmar senha" onChange={(e) => setForm({ ...form, confirmarSenha: e.target.value })} />
 
               <button onClick={() => document.getElementById("perfil").click()}>Alterar Foto Perfil</button>
               <input id="perfil" type="file" hidden onChange={(e) => handleImagem(e, "perfil")} />

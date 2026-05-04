@@ -1,252 +1,525 @@
-import "../style/login.css"; 
-import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import { useState } from "react";
+import "../style/login.css";
+import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
+
+const ADMIN_EMAIL = "renan.kael@gmail.com";
+const ADMIN_HANDLE = "renanadm";
+const GOOGLE_EMAIL = "usuario.google@devspace.app";
+
+function getUsuarios() {
+  return JSON.parse(localStorage.getItem("usuarios")) || [];
+}
+
+function normalizeHandle(value) {
+  return value.replace(/^@+/, "").replace(/\s+/g, "").toLowerCase();
+}
+
+function onlyDigits(value) {
+  return value.replace(/\D/g, "");
+}
+
+function createBaseUser(extra) {
+  return {
+    username: "",
+    handle: "",
+    email: "",
+    senha: "",
+    telefone: "",
+    criadoEm: new Date().toISOString(),
+    bio: "",
+    fotoPerfil: "",
+    fotoCapa: "",
+    estrelas: 1,
+    projetos: [],
+    seguidores: 0,
+    seguindo: [],
+    comments: 0,
+    isAdmin: false,
+    ...extra,
+  };
+}
+
+function ensureAdminUser() {
+  const usuarios = getUsuarios();
+  const admin = usuarios.find((u) => (u.email || "").toLowerCase() === ADMIN_EMAIL);
+
+  if (admin) return { usuarios, admin };
+
+  const novoAdmin = createBaseUser({
+    username: "RenanADM",
+    handle: ADMIN_HANDLE,
+    email: ADMIN_EMAIL,
+    senha: "rklv2007",
+    telefone: "",
+    bio: "Conta administrativa",
+    estrelas: 6,
+    avaliacao: 6,
+    isAdmin: true,
+  });
+
+  const atualizados = [...usuarios, novoAdmin];
+  localStorage.setItem("usuarios", JSON.stringify(atualizados));
+  return { usuarios: atualizados, admin: novoAdmin };
+}
 
 export default function Login({ onLogin }) {
-  const [modoCadastro, setModoCadastro] = useState(false);
+  const [etapa, setEtapa] = useState("login");
+  const [metodoCadastro, setMetodoCadastro] = useState("sms");
+  const [identidadeVerificada, setIdentidadeVerificada] = useState(null);
+
+  const [telefoneCadastro, setTelefoneCadastro] = useState("");
+  const [emailCadastro, setEmailCadastro] = useState("");
+  const [codigoVerificacao, setCodigoVerificacao] = useState("");
+  const [codigoEnviado, setCodigoEnviado] = useState("");
 
   const [username, setUsername] = useState("");
   const [handle, setHandle] = useState("");
-  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+
+  const [login, setLogin] = useState("");
+  const [senhaLogin, setSenhaLogin] = useState("");
   const [lembrarMe, setLembrarMe] = useState(true);
+
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
 
-  function criarConta() {
-    if (!username || !email || !senha) {
-      setErro("Preencha todos os campos!");
-      return;
-    }
-
-    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-
-    const jaExiste = usuarios.find((u) => u.email === email);
-    if (jaExiste) {
-      setErro("Este email já está cadastrado.");
-      return;
-    }
-
-    const novoUsuario = {
-      username,
-      handle: handle || username.replace(/\s+/g, "").toLowerCase(),
-      email,
-      senha,
-      criadoEm: new Date().toISOString(),
-      bio: "",
-      fotoPerfil: "",
-      fotoCapa: "",
-      estrelas: 1,
-      projetos: [],
-      seguidores: 0,
-      seguindo: [],
-      comments: 0,
-      isAdmin: false
-    };
-
-    usuarios.push(novoUsuario);
-    localStorage.setItem("usuarios", JSON.stringify(usuarios));
-
-    setSucesso("Conta criada com sucesso! Faça login agora.");
+  function limparAvisos() {
     setErro("");
-
-    setUsername("");
-    setEmail("");
-    setSenha("");
-
-    setTimeout(() => {
-      setModoCadastro(false);
-      setSucesso("");
-    }, 2500);
+    setSucesso("");
   }
 
-  function entrar() {
-    if (!email || !senha) {
-      setErro("Digite email ou nome de usuário e senha.");
+  function salvarSessao(usuario) {
+    if (lembrarMe) {
+      localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+      localStorage.setItem("lembrarMe", "true");
+      sessionStorage.removeItem("usuarioLogado");
+    } else {
+      sessionStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+      localStorage.removeItem("usuarioLogado");
+      localStorage.removeItem("lembrarMe");
+    }
+  }
+
+  function resetarFormularios() {
+    setTelefoneCadastro("");
+    setEmailCadastro("");
+    setCodigoVerificacao("");
+    setCodigoEnviado("");
+    setIdentidadeVerificada(null);
+    setUsername("");
+    setHandle("");
+    setSenha("");
+    setLogin("");
+    setSenhaLogin("");
+    limparAvisos();
+  }
+
+  function voltarParaLogin() {
+    resetarFormularios();
+    setMetodoCadastro("sms");
+    setEtapa("login");
+  }
+
+  function enviarCodigoVerificacao() {
+    limparAvisos();
+
+    const telefoneLimpo = onlyDigits(telefoneCadastro);
+    const emailLimpo = emailCadastro.trim().toLowerCase();
+
+    if (metodoCadastro === "sms" && telefoneLimpo.length < 10) {
+      setErro("Digite um numero de celular valido.");
       return;
     }
 
-    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-
-    // 🔥 BUSCA ADMIN NO STORAGE
-    let admin = usuarios.find(
-      (u) => u.email === "renan.kael@gmail.com"
-    );
-
-    // cria admin se não existir
-    if (!admin) {
-      admin = {
-        username: "RenanADM",
-        handle: "renanadm",
-        email: "renan.kael@gmail.com",
-        senha: "rklv2007",
-        criadoEm: new Date().toISOString(),
-        bio: "Conta administrativa",
-        fotoPerfil: "",
-        fotoCapa: "",
-        estrelas: 6,
-        projetos: [],
-        avaliacao: 6,
-        seguidores: 0,
-        seguindo: [],
-        comments: 0,
-        isAdmin: true
-      };
-
-      usuarios.push(admin);
-      localStorage.setItem("usuarios", JSON.stringify(usuarios));
+    if (metodoCadastro === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) {
+      setErro("Digite um email valido.");
+      return;
     }
 
-    // 🔒 LOGIN ADMIN (AGORA COM SENHA REAL)
-    if (email === "renan.kael@gmail.com" || email === "AllzynADM") {
+    const usuarios = getUsuarios();
+    const identityKey = metodoCadastro === "sms" ? `tel_${telefoneLimpo}` : emailLimpo;
+    const jaExiste = usuarios.find((u) => {
+      const email = (u.email || "").toLowerCase();
+      const telefone = onlyDigits(u.telefone || "");
+      return email === identityKey || (metodoCadastro === "sms" && telefone === telefoneLimpo);
+    });
 
-      if (admin.senha !== senha) {
-        setErro("Senha incorreta!");
-        return;
-      }
+    if (jaExiste) {
+      setErro("Essa conta ja existe. Entre pelo login ou pelo Google.");
+      return;
+    }
 
-      if (lembrarMe) {
-        localStorage.setItem("usuarioLogado", JSON.stringify(admin));
-        localStorage.setItem("lembrarMe", "true");
-      } else {
-        sessionStorage.setItem("usuarioLogado", JSON.stringify(admin));
-        localStorage.removeItem("usuarioLogado");
-        localStorage.removeItem("lembrarMe");
-      }
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+    setCodigoEnviado(codigo);
+    setCodigoVerificacao("");
+    setIdentidadeVerificada({
+      metodo: metodoCadastro,
+      email: metodoCadastro === "email" ? emailLimpo : identityKey,
+      telefone: metodoCadastro === "sms" ? telefoneCadastro.trim() : "",
+      contato: metodoCadastro === "sms" ? telefoneCadastro.trim() : emailLimpo,
+      provider: metodoCadastro,
+    });
+    setSucesso(
+      metodoCadastro === "sms"
+        ? `SMS enviado para ${telefoneCadastro.trim()}.`
+        : `Codigo enviado para ${emailLimpo}.`
+    );
+    setEtapa("verificacao");
+  }
 
+  function verificarCodigo() {
+    limparAvisos();
+
+    if (codigoVerificacao.trim() !== codigoEnviado) {
+      setErro("Codigo incorreto. Confira e tente de novo.");
+      return;
+    }
+
+    setSucesso("Conta verificada. Agora crie seu usuario.");
+    setEtapa("criarPerfil");
+  }
+
+  function finalizarCadastro() {
+    limparAvisos();
+
+    const nomeLimpo = username.trim();
+    const handleLimpo = normalizeHandle(handle);
+
+    if (!identidadeVerificada) {
+      setErro("Verifique seu email, celular ou Google antes de finalizar.");
+      setEtapa("escolherCadastro");
+      return;
+    }
+
+    if (!nomeLimpo || !handleLimpo || !senha) {
+      setErro("Preencha nome, @ e senha para finalizar.");
+      return;
+    }
+
+    if (handleLimpo.length < 3) {
+      setErro("O @ precisa ter pelo menos 3 caracteres.");
+      return;
+    }
+
+    if (senha.length < 6) {
+      setErro("A senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    const usuarios = getUsuarios();
+    const jaExiste = usuarios.find((u) => {
+      const email = (u.email || "").toLowerCase();
+      const userHandle = (u.handle || "").toLowerCase();
+      return email === identidadeVerificada.email.toLowerCase() || userHandle === handleLimpo;
+    });
+
+    if (jaExiste) {
+      setErro("Esse email/celular ou @ ja esta cadastrado.");
+      return;
+    }
+
+    const novoUsuario = createBaseUser({
+      username: nomeLimpo,
+      handle: handleLimpo,
+      email: identidadeVerificada.email,
+      senha,
+      telefone: identidadeVerificada.telefone,
+      authProvider: identidadeVerificada.provider,
+      verificado: true,
+    });
+
+    const atualizados = [...usuarios, novoUsuario];
+    localStorage.setItem("usuarios", JSON.stringify(atualizados));
+    localStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
+    localStorage.setItem("lembrarMe", "true");
+    sessionStorage.removeItem("usuarioLogado");
+
+    resetarFormularios();
+    onLogin();
+  }
+
+  function entrarComGoogle() {
+    limparAvisos();
+
+    const usuarios = getUsuarios();
+    const usuarioGoogle = usuarios.find((u) => (u.email || "").toLowerCase() === GOOGLE_EMAIL);
+
+    if (usuarioGoogle) {
+      salvarSessao(usuarioGoogle);
+      resetarFormularios();
       onLogin();
       return;
     }
 
-    // 🔥 LOGIN NORMAL
-    const usuarioEncontrado = usuarios.find(
-      (u) =>
-        (u.email === email || u.username === email)
-    );
+    setIdentidadeVerificada({
+      metodo: "google",
+      email: GOOGLE_EMAIL,
+      telefone: "",
+      contato: "Conta Google conectada",
+      provider: "google",
+    });
+    setUsername("Usuario Google");
+    setMetodoCadastro("google");
+    setSucesso("Google conectado. Complete seu perfil para continuar.");
+    setEtapa("criarPerfil");
+  }
+
+  function entrarComEmail() {
+    limparAvisos();
+
+    if (!login.trim() || !senhaLogin) {
+      setErro("Digite email, usuario ou @ e a senha.");
+      return;
+    }
+
+    const { usuarios, admin } = ensureAdminUser();
+    const loginLimpo = normalizeHandle(login.trim());
+    const loginEmail = login.trim().toLowerCase();
+
+    const usuarioEncontrado =
+      loginEmail === ADMIN_EMAIL || loginLimpo === "allzynadm" || loginLimpo === ADMIN_HANDLE
+        ? admin
+        : usuarios.find((u) => {
+            const email = (u.email || "").toLowerCase();
+            const userHandle = (u.handle || "").toLowerCase();
+            const userName = (u.username || "").toLowerCase();
+            return email === loginEmail || userHandle === loginLimpo || userName === login.trim().toLowerCase();
+          });
 
     if (!usuarioEncontrado) {
-      setErro("Usuário não encontrado!");
+      setErro("Usuario nao encontrado.");
       return;
     }
 
-    if (usuarioEncontrado.senha !== senha) {
-      setErro("Senha incorreta!");
+    if (!usuarioEncontrado.senha || usuarioEncontrado.senha !== senhaLogin) {
+      setErro("Senha incorreta.");
       return;
     }
 
-    if (lembrarMe) {
-      localStorage.setItem("usuarioLogado", JSON.stringify(usuarioEncontrado));
-      localStorage.setItem("lembrarMe", "true");
-    } else {
-      sessionStorage.setItem("usuarioLogado", JSON.stringify(usuarioEncontrado));
-      localStorage.removeItem("usuarioLogado");
-      localStorage.removeItem("lembrarMe");
-    }
-
+    salvarSessao(usuarioEncontrado);
+    resetarFormularios();
     onLogin();
   }
 
   return (
-    <div className="container">
+    <div className="container login-page">
       <div className="left">
-        <img src={logo} />
-        <h2>Faça login e entre para o nosso time!</h2>
+        <img src={logo} alt="DevSpace" />
+        <h2>Faca login e entre para o nosso time!</h2>
       </div>
 
       <div className="right">
-        <form
-          className="card"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (modoCadastro) {
-              criarConta();
-            } else {
-              entrar();
-            }
-          }}
-        >
-          <h3>{modoCadastro ? "Criar conta" : "Entrar no DevSpace"}</h3>
+        {etapa === "login" && (
+          <form
+            className="card auth-card"
+            onSubmit={(e) => {
+              e.preventDefault();
+              entrarComEmail();
+            }}
+          >
+            <h3>Entrar no DevSpace</h3>
 
-          {modoCadastro && (
-            <>
-              <input
-                type="text"
-                placeholder="Nome de usuário"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
+            <input
+              type="text"
+              placeholder="Email, usuario ou @"
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
+            />
 
-              <input
-                type="text"
-                placeholder="@handle"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-              />
-            </>
-          )}
+            <input
+              type="password"
+              placeholder="Senha"
+              value={senhaLogin}
+              onChange={(e) => setSenhaLogin(e.target.value)}
+            />
 
-          <input
-            type="text"
-            placeholder={modoCadastro ? "Email" : "Email ou usuário"}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <input
-            type="password"
-            placeholder="Senha"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-          />
-
-          {!modoCadastro && (
-            <label className="remember-me">
+            <label className="lembrar-me">
               <input
                 type="checkbox"
                 checked={lembrarMe}
                 onChange={(e) => setLembrarMe(e.target.checked)}
               />
-              Lembrar de mim
+              Lembrar-me neste dispositivo
             </label>
-          )}
 
-          {erro && <p className="erro">{erro}</p>}
-          {sucesso && <p className="sucesso">{sucesso}</p>}
+            {erro && <p className="erro">{erro}</p>}
+            {sucesso && <p className="sucesso">{sucesso}</p>}
 
-          {!modoCadastro ? (
-            <>
-              <button type="submit">Entrar</button>
+            <button type="submit" className="btn-entrar">
+              Entrar
+            </button>
+
+            <hr className="divisor" />
+
+            <button type="button" className="btn-google" onClick={entrarComGoogle}>
+              Entrar com Google
+            </button>
+
+            <p className="toggle-cadastro">
+              Nao tem conta?{" "}
+              <button type="button" onClick={() => setEtapa("escolherCadastro")} className="link-btn">
+                Cadastre-se
+              </button>
+            </p>
+          </form>
+        )}
+
+        {etapa === "escolherCadastro" && (
+          <form className="card auth-card cadastro-card" onSubmit={(e) => e.preventDefault()}>
+            <h3>Criar conta</h3>
+            <p className="descricao">Escolha uma forma de confirmar que a conta e sua.</p>
+
+            <div className="metodos-grid">
+              <button
+                type="button"
+                className={metodoCadastro === "sms" ? "auth-option active" : "auth-option"}
+                onClick={() => {
+                  setMetodoCadastro("sms");
+                  limparAvisos();
+                }}
+              >
+                <strong>Celular</strong>
+                <span>Receba um codigo por SMS.</span>
+              </button>
 
               <button
                 type="button"
-                className="btn-secundario"
+                className={metodoCadastro === "email" ? "auth-option active" : "auth-option"}
                 onClick={() => {
-                  setErro("");
-                  setSucesso("");
-                  setModoCadastro(true);
+                  setMetodoCadastro("email");
+                  limparAvisos();
                 }}
               >
-                Cadastrar
+                <strong>Email</strong>
+                <span>Receba um codigo no email.</span>
               </button>
-            </>
-          ) : (
-            <>
-              <button type="submit">Criar conta</button>
+            </div>
 
-              <button
-                type="button"
-                className="btn-secundario"
-                onClick={() => {
-                  setErro("");
-                  setSucesso("");
-                  setModoCadastro(false);
-                }}
-              >
-                Voltar ao login
-              </button>
-            </>
-          )}
-        </form>
+            {metodoCadastro === "sms" && (
+              <div className="metodo-form">
+                <input
+                  type="tel"
+                  placeholder="Celular com DDD"
+                  value={telefoneCadastro}
+                  onChange={(e) => setTelefoneCadastro(e.target.value)}
+                />
+              </div>
+            )}
+
+            {metodoCadastro === "email" && (
+              <div className="metodo-form">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={emailCadastro}
+                  onChange={(e) => setEmailCadastro(e.target.value)}
+                />
+              </div>
+            )}
+
+            {erro && <p className="erro">{erro}</p>}
+            {sucesso && <p className="sucesso">{sucesso}</p>}
+
+            <button type="button" className="btn-entrar" onClick={enviarCodigoVerificacao}>
+              Enviar codigo
+            </button>
+
+            <button type="button" className="btn-google" onClick={entrarComGoogle}>
+              Continuar com Google
+            </button>
+
+            <button type="button" className="btn-voltar" onClick={voltarParaLogin}>
+              Voltar
+            </button>
+          </form>
+        )}
+
+        {etapa === "verificacao" && (
+          <form
+            className="card auth-card"
+            onSubmit={(e) => {
+              e.preventDefault();
+              verificarCodigo();
+            }}
+          >
+            <h3>Confirmar codigo</h3>
+
+            <p className="descricao">
+              Enviamos um codigo para {identidadeVerificada?.contato || "seu contato"}.
+            </p>
+
+            <div className="codigo-teste">Codigo de teste: {codigoEnviado}</div>
+
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Codigo de 6 digitos"
+              value={codigoVerificacao}
+              onChange={(e) => setCodigoVerificacao(onlyDigits(e.target.value))}
+              maxLength="6"
+            />
+
+            {erro && <p className="erro">{erro}</p>}
+            {sucesso && <p className="sucesso">{sucesso}</p>}
+
+            <button type="submit" className="btn-entrar">
+              Confirmar
+            </button>
+
+            <button type="button" className="btn-voltar" onClick={() => setEtapa("escolherCadastro")}>
+              Trocar metodo
+            </button>
+          </form>
+        )}
+
+        {etapa === "criarPerfil" && (
+          <form
+            className="card auth-card cadastro-card"
+            onSubmit={(e) => {
+              e.preventDefault();
+              finalizarCadastro();
+            }}
+          >
+            <h3>Complete seu perfil</h3>
+            <p className="descricao">
+              {identidadeVerificada?.provider === "google"
+                ? "Google conectado. Agora escolha seu nome, @ e senha."
+                : "Conta verificada. Agora escolha seu nome, @ e senha."}
+            </p>
+
+            <input
+              type="text"
+              placeholder="Nome"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+
+            <input
+              type="text"
+              placeholder="@usuario"
+              value={handle}
+              onChange={(e) => setHandle(e.target.value.replace(/\s+/g, ""))}
+            />
+
+            <input
+              type="password"
+              placeholder="Criar senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+            />
+
+            {erro && <p className="erro">{erro}</p>}
+            {sucesso && <p className="sucesso">{sucesso}</p>}
+
+            <button type="submit" className="btn-entrar">
+              Finalizar cadastro
+            </button>
+
+            <button type="button" className="btn-voltar" onClick={voltarParaLogin}>
+              Cancelar
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
