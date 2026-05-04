@@ -272,7 +272,7 @@ html, body {
 .link-btn {
   background: none;
   border: none;
-  color: #d9d9d9;
+  color: black;
   cursor: pointer;
   font-weight: bold;
   padding: 0;
@@ -282,7 +282,7 @@ html, body {
 }
 
 .link-btn:hover {
-  color: white;
+  color: black;
 }
 
 .descricao {
@@ -297,7 +297,7 @@ html, body {
   padding: 16px;
   margin-bottom: 12px;
   background: #1f2937;
-  color: black;
+  color: white;
   border: 2px solid #d9d9d9;
   border-radius: 12px;
   font-weight: 600;
@@ -309,7 +309,7 @@ html, body {
 .btn-metodo:hover {
   background: #374151;
   border-color: white;
-  color: black;
+  color: white;
 }
 
 .metodo-form {
@@ -340,7 +340,7 @@ html, body {
 
 .btn-voltar {
   background: transparent;
-  color: black;
+  color: #d9d9d9;
   border: 2px solid #d9d9d9;
   margin-top: 12px !important;
 }
@@ -348,6 +348,11 @@ html, body {
 .btn-voltar:hover {
   background: #1f2937;
   border-color: white;
+  color: white;
+}
+
+.cadastro-voltar,
+.cadastro-voltar:hover {
   color: black;
 }
 
@@ -413,7 +418,7 @@ html, body {
   padding: 14px !important;
   margin: 0 !important;
   background: #15181d !important;
-  color: black;
+  color: white;
   border: 2px solid #333 !important;
   display: flex;
   flex-direction: column;
@@ -431,7 +436,7 @@ html, body {
   width: auto;
   height: auto;
   border: none;
-  color: black;
+  color: #aaa;
   font-size: 12px;
   line-height: 1.35;
 }
@@ -440,7 +445,7 @@ html, body {
 .auth-option:hover {
   border-color: #d9d9d9 !important;
   background: #242932 !important;
-  color: black;
+  color: white;
 }
 
 .codigo-teste {

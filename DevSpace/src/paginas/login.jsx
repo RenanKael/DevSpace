@@ -428,7 +428,7 @@ export default function Login({ onLogin }) {
               Continuar com Google
             </button>
 
-            <button type="button" className="btn-voltar" onClick={voltarParaLogin}>
+            <button type="button" className="btn-voltar cadastro-voltar" onClick={voltarParaLogin}>
               Voltar
             </button>
           </form>
@@ -515,7 +515,7 @@ export default function Login({ onLogin }) {
               Finalizar cadastro
             </button>
 
-            <button type="button" className="btn-voltar" onClick={voltarParaLogin}>
+            <button type="button" className="btn-voltar cadastro-voltar" onClick={voltarParaLogin}>
               Cancelar
             </button>
           </form>
