@@ -17,6 +17,9 @@ function loadImage(src) {
   });
 }
 
+const MAX_IMAGE_SIZE = 1280;
+const IMAGE_QUALITY = 0.86;
+
 export function useImageEditorPreview(initialImage = null) {
   const [preview, setPreview] = useState(initialImage);
   const [draftPreview, setDraftPreview] = useState(null);
@@ -105,17 +108,22 @@ export function useImageEditorPreview(initialImage = null) {
       const canvas = document.createElement("canvas");
       const width = image.naturalWidth || image.width;
       const height = image.naturalHeight || image.height;
+      const outputRatio = Math.min(1, MAX_IMAGE_SIZE / Math.max(width, height));
+      const outputWidth = Math.round(width * outputRatio);
+      const outputHeight = Math.round(height * outputRatio);
       const scale = zoom / 100;
-      const drawWidth = width * scale;
-      const drawHeight = height * scale;
-      const drawX = (width - drawWidth) * (editPos.x / 100);
-      const drawY = (height - drawHeight) * (editPos.y / 100);
+      const drawWidth = outputWidth * scale;
+      const drawHeight = outputHeight * scale;
+      const drawX = (outputWidth - drawWidth) * (editPos.x / 100);
+      const drawY = (outputHeight - drawHeight) * (editPos.y / 100);
       const context = canvas.getContext("2d");
 
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, outputWidth, outputHeight);
       context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
-      setPreview(canvas.toDataURL("image/png"));
+      setPreview(canvas.toDataURL("image/jpeg", IMAGE_QUALITY));
     } catch {
       setPreview(draftPreview);
     }

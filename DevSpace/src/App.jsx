@@ -273,17 +273,21 @@ function App() {
   }
 
   function handlePostCreated(post) {
-    const posts = JSON.parse(localStorage.getItem("posts")) || [];
-    const novoPost = {
-      ...post,
-      comments: Number(post.comments || 0),
-      commentsList: Array.isArray(post.commentsList) ? post.commentsList : [],
-      isSeedFake: !!post.isSeedFake,
-    };
-    const novos = [novoPost, ...posts];
-    localStorage.setItem("posts", JSON.stringify(novos));
-    setPostRefresh((value) => value + 1);
-    setIsPostModalOpen(false);
+    try {
+      const posts = JSON.parse(localStorage.getItem("posts")) || [];
+      const novoPost = {
+        ...post,
+        comments: Number(post.comments || 0),
+        commentsList: Array.isArray(post.commentsList) ? post.commentsList : [],
+        isSeedFake: !!post.isSeedFake,
+      };
+      const novos = [novoPost, ...posts];
+      localStorage.setItem("posts", JSON.stringify(novos));
+      setPostRefresh((value) => value + 1);
+      setIsPostModalOpen(false);
+    } catch (error) {
+      console.warn("Nao foi possivel salvar o post:", error);
+    }
   }
 
   if (!logado) {

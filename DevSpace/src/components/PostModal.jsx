@@ -70,8 +70,8 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       return;
     }
 
-    clearForm();
     onPostSaved(novoPost);
+    clearForm();
   }
 
   if (!open) return null;
