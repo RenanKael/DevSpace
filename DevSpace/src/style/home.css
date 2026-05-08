@@ -615,6 +615,7 @@ body {
 }
 
 .post-image-preview {
+  position: relative;
   margin-top: 14px;
   border-radius: 14px;
   overflow: hidden;
@@ -623,6 +624,34 @@ body {
 .post-image-preview img {
   width: 100%;
   display: block;
+}
+
+.post-image-edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.post-image-edit-actions button,
+.post-image-remove {
+  border: none;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+}
+
+.post-image-edit-actions button {
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.post-image-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
 }
 
 .post-file-label {

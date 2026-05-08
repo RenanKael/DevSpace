@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import { useImageEditorPreview } from "../hooks/useImageEditorPreview";
@@ -9,6 +9,8 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
   const [erro, setErro] = useState("");
   const {
     preview,
+    draftPreview,
+    isEditingImage,
     editPos,
     zoom,
     handleFileChange,
@@ -18,19 +20,25 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
     setEditPos,
     setZoom,
     imageStyle,
+    saveImageEdit,
+    cancelImageEdit,
+    removeImage,
     reset,
   } = useImageEditorPreview(null);
 
-  // Fechar modal com ESC
-  useOverlayClose(open, onClose);
+  const clearForm = useCallback(() => {
+    setTexto("");
+    reset();
+    setErro("");
+  }, [reset]);
 
-  useEffect(() => {
-    if (!open) {
-      setTexto("");
-      reset();
-      setErro("");
-    }
-  }, [open, reset]);
+  const handleClose = useCallback(() => {
+    clearForm();
+    onClose();
+  }, [clearForm, onClose]);
+
+  // Fechar modal com ESC
+  useOverlayClose(open, handleClose);
 
   function handleSubmit() {
     if (!texto.trim() && !preview) {
@@ -62,6 +70,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       return;
     }
 
+    clearForm();
     onPostSaved(novoPost);
   }
 
@@ -72,7 +81,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       <div className="popup post-popup" onClick={(e) => e.stopPropagation()}>
         <button 
           className="close-btn" 
-          onClick={onClose}
+          onClick={handleClose}
           type="button"
           title="Fechar"
         >
@@ -104,7 +113,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
           onChange={(e) => setTexto(e.target.value)}
         />
 
-        {preview && (
+        {isEditingImage && draftPreview && (
           <>
             <div
               className="post-image-preview"
@@ -115,7 +124,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
               onTouchEnd={handleMouseUp}
             >
               <img
-                src={preview}
+                src={draftPreview}
                 alt="Prévia do post"
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleMouseDown}
@@ -143,17 +152,30 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
               <label>Zoom</label>
               <input
                 type="range"
-                min="80"
+                min="100"
                 max="220"
                 value={zoom}
                 onChange={(e) => setZoom(Number(e.target.value))}
               />
             </div>
+            <div className="post-image-edit-actions">
+              <button type="button" onClick={saveImageEdit}>Salvar imagem</button>
+              <button type="button" onClick={cancelImageEdit}>Cancelar</button>
+            </div>
           </>
         )}
 
+        {!isEditingImage && preview && (
+          <div className="post-image-preview">
+            <img src={preview} alt="Previa do post" />
+            <button className="post-image-remove" type="button" onClick={removeImage} title="Remover imagem">
+              x
+            </button>
+          </div>
+        )}
+
         <label className="post-file-label">
-          <span>Adicionar imagem</span>
+          <span>{preview ? "Trocar imagem" : "Adicionar imagem"}</span>
           <input type="file" accept="image/*" onChange={handleFileChange} />
         </label>
 
@@ -169,8 +191,8 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
         {erro && <p className="post-error">{erro}</p>}
 
         <div className="popup-btns">
-          <button onClick={handleSubmit}>Postar</button>
-          <button onClick={onClose}>Cancelar</button>
+          <button onClick={handleSubmit} disabled={isEditingImage}>Postar</button>
+          <button onClick={handleClose}>Cancelar</button>
         </div>
       </div>
     </div>,
