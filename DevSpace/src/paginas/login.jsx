@@ -79,6 +79,11 @@ export default function Login({ onLogin }) {
   const [login, setLogin] = useState("");
   const [senhaLogin, setSenhaLogin] = useState("");
   const [lembrarMe, setLembrarMe] = useState(true);
+  const [alterarLogin, setAlterarLogin] = useState("");
+  const [senhaAtual, setSenhaAtual] = useState("");
+  const [novoEmail, setNovoEmail] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmarNovaSenha, setConfirmarNovaSenha] = useState("");
 
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
@@ -111,6 +116,11 @@ export default function Login({ onLogin }) {
     setSenha("");
     setLogin("");
     setSenhaLogin("");
+    setAlterarLogin("");
+    setSenhaAtual("");
+    setNovoEmail("");
+    setNovaSenha("");
+    setConfirmarNovaSenha("");
     limparAvisos();
   }
 
@@ -238,6 +248,139 @@ export default function Login({ onLogin }) {
     onLogin();
   }
 
+  function encontrarUsuarioPorLogin(usuarios, valor) {
+    const loginLimpo = normalizeHandle(valor.trim());
+    const loginEmail = valor.trim().toLowerCase();
+
+    return usuarios.find((u) => {
+      const email = (u.email || "").toLowerCase();
+      const userHandle = (u.handle || "").toLowerCase();
+      const userName = (u.username || "").toLowerCase();
+      return email === loginEmail || userHandle === loginLimpo || userName === valor.trim().toLowerCase();
+    });
+  }
+
+  function sincronizarEmailNosPosts(emailAnterior, usuarioAtualizado) {
+    const posts = JSON.parse(localStorage.getItem("posts")) || [];
+    const antigoEmail = (emailAnterior || "").toLowerCase();
+    if (!antigoEmail) return;
+
+    const postsAtualizados = posts.map((post) => {
+      const postDoUsuario = (post.email || "").toLowerCase() === antigoEmail;
+      const commentsList = Array.isArray(post.commentsList)
+        ? post.commentsList.map((comment) =>
+            (comment.email || "").toLowerCase() === antigoEmail
+              ? {
+                  ...comment,
+                  email: usuarioAtualizado.email,
+                }
+              : comment
+          )
+        : [];
+
+      return {
+        ...post,
+        ...(postDoUsuario ? { email: usuarioAtualizado.email } : {}),
+        commentsList,
+      };
+    });
+
+    localStorage.setItem("posts", JSON.stringify(postsAtualizados));
+  }
+
+  function alterarAcesso() {
+    limparAvisos();
+
+    if (!alterarLogin.trim() || !senhaAtual) {
+      setErro("Informe sua conta atual e sua senha atual.");
+      return;
+    }
+
+    const emailLimpo = novoEmail.trim().toLowerCase();
+    const senhaLimpa = novaSenha.trim();
+
+    if (!emailLimpo && !senhaLimpa) {
+      setErro("Digite um novo email, uma nova senha ou os dois.");
+      return;
+    }
+
+    if (emailLimpo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) {
+      setErro("Digite um novo email valido.");
+      return;
+    }
+
+    if (senhaLimpa && senhaLimpa.length < 6) {
+      setErro("A nova senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (senhaLimpa && senhaLimpa !== confirmarNovaSenha) {
+      setErro("A confirmacao da nova senha nao bate.");
+      return;
+    }
+
+    const usuarios = getUsuarios();
+    const usuarioEncontrado = encontrarUsuarioPorLogin(usuarios, alterarLogin);
+
+    if (!usuarioEncontrado) {
+      setErro("Usuario nao encontrado.");
+      return;
+    }
+
+    if (!usuarioEncontrado.senha || usuarioEncontrado.senha !== senhaAtual) {
+      setErro("Senha atual incorreta.");
+      return;
+    }
+
+    const emailAnterior = usuarioEncontrado.email;
+    const emailEmUso = emailLimpo && usuarios.some((u) =>
+      (u.email || "").toLowerCase() === emailLimpo &&
+      (u.email || "").toLowerCase() !== (usuarioEncontrado.email || "").toLowerCase()
+    );
+
+    if (emailEmUso) {
+      setErro("Esse email ja esta em uso por outra conta.");
+      return;
+    }
+
+    const usuarioAtualizado = {
+      ...usuarioEncontrado,
+      email: emailLimpo || usuarioEncontrado.email,
+      senha: senhaLimpa || usuarioEncontrado.senha,
+    };
+
+    const atualizados = usuarios.map((u) =>
+      (u.email || "").toLowerCase() === (usuarioEncontrado.email || "").toLowerCase()
+        ? usuarioAtualizado
+        : u
+    );
+
+    localStorage.setItem("usuarios", JSON.stringify(atualizados));
+    sincronizarEmailNosPosts(emailAnterior, usuarioAtualizado);
+
+    const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+    const atualizaSessao = (u) =>
+      u && (u.email || "").toLowerCase() === (emailAnterior || "").toLowerCase();
+
+    if (atualizaSessao(localUser)) {
+      localStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
+    }
+    if (atualizaSessao(sessionUser)) {
+      sessionStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
+    }
+
+    setLogin(usuarioAtualizado.email || usuarioAtualizado.handle || usuarioAtualizado.username || "");
+    setSenhaLogin("");
+    setAlterarLogin("");
+    setSenhaAtual("");
+    setNovoEmail("");
+    setNovaSenha("");
+    setConfirmarNovaSenha("");
+    setSucesso("Acesso atualizado. Entre com os novos dados.");
+    setEtapa("login");
+  }
+
   function entrarComGoogle() {
     limparAvisos();
 
@@ -361,6 +504,81 @@ export default function Login({ onLogin }) {
                 Cadastre-se
               </button>
             </p>
+
+            <p className="toggle-cadastro">
+              Quer mudar seu acesso?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  limparAvisos();
+                  setAlterarLogin(login);
+                  setEtapa("alterarAcesso");
+                }}
+                className="link-btn"
+              >
+                Alterar email ou senha
+              </button>
+            </p>
+          </form>
+        )}
+
+        {etapa === "alterarAcesso" && (
+          <form
+            className="card auth-card cadastro-card"
+            onSubmit={(e) => {
+              e.preventDefault();
+              alterarAcesso();
+            }}
+          >
+            <h3>Alterar acesso</h3>
+            <p className="descricao">Confirme sua conta atual e defina o que deseja mudar.</p>
+
+            <input
+              type="text"
+              placeholder="Email, usuario ou @ atual"
+              value={alterarLogin}
+              onChange={(e) => setAlterarLogin(e.target.value)}
+            />
+
+            <input
+              type="password"
+              placeholder="Senha atual"
+              value={senhaAtual}
+              onChange={(e) => setSenhaAtual(e.target.value)}
+            />
+
+            <input
+              type="email"
+              placeholder="Novo email (opcional)"
+              value={novoEmail}
+              onChange={(e) => setNovoEmail(e.target.value)}
+            />
+
+            <input
+              type="password"
+              placeholder="Nova senha (opcional)"
+              value={novaSenha}
+              onChange={(e) => setNovaSenha(e.target.value)}
+            />
+
+            <input
+              type="password"
+              placeholder="Confirmar nova senha"
+              value={confirmarNovaSenha}
+              onChange={(e) => setConfirmarNovaSenha(e.target.value)}
+              disabled={!novaSenha.trim()}
+            />
+
+            {erro && <p className="erro">{erro}</p>}
+            {sucesso && <p className="sucesso">{sucesso}</p>}
+
+            <button type="submit" className="btn-entrar">
+              Salvar novo acesso
+            </button>
+
+            <button type="button" className="btn-voltar cadastro-voltar" onClick={voltarParaLogin}>
+              Voltar
+            </button>
           </form>
         )}
 
