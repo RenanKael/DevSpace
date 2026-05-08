@@ -16,6 +16,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const [editandoImagem, setEditandoImagem] = useState(null);
 
   const [form, setForm] = useState({});
+  const [senhaAtualPerfil, setSenhaAtualPerfil] = useState("");
+  const [novaSenhaPerfil, setNovaSenhaPerfil] = useState("");
+  const [confirmarSenhaPerfil, setConfirmarSenhaPerfil] = useState("");
 
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
@@ -281,6 +284,30 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       return;
     }
 
+    const querAlterarSenha = senhaAtualPerfil || novaSenhaPerfil || confirmarSenhaPerfil;
+
+    if (querAlterarSenha) {
+      if (!senhaAtualPerfil || !novaSenhaPerfil || !confirmarSenhaPerfil) {
+        setErro("Preencha a senha atual, a nova senha e a confirmação.");
+        return;
+      }
+
+      if (senhaAtualPerfil !== usuario.senha) {
+        setErro("Senha atual incorreta.");
+        return;
+      }
+
+      if (novaSenhaPerfil.length < 6) {
+        setErro("A nova senha precisa ter pelo menos 6 caracteres.");
+        return;
+      }
+
+      if (novaSenhaPerfil !== confirmarSenhaPerfil) {
+        setErro("A confirmação da nova senha não bate.");
+        return;
+      }
+    }
+
     let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
 
     // Verifica se o handle já está em uso por outro usuário
@@ -297,7 +324,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       ...usuario,
       username: form.username,
       handle: form.handle.toLowerCase(),
-      bio: form.bio || ""
+      bio: form.bio || "",
+      senha: querAlterarSenha ? novaSenhaPerfil : usuario.senha,
     };
 
     atualizado.fotoPerfil = usuario.fotoPerfil;
@@ -325,9 +353,12 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     setPreviewImg(null);
     setEditandoImagem(null);
     setEditando(false);
+    setSenhaAtualPerfil("");
+    setNovaSenhaPerfil("");
+    setConfirmarSenhaPerfil("");
 
     setErro("");
-    setSucesso("Perfil atualizado com sucesso!");
+    setSucesso(querAlterarSenha ? "Perfil e senha atualizados com sucesso!" : "Perfil atualizado com sucesso!");
   }
 
   function sincronizarReferenciasDoUsuario(anterior, atualizado) {
@@ -705,13 +736,46 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
         {isOwnProfile && editando && createPortal(
           <div className="overlay">
             <div className="popup">
-              <button className="close-btn" onClick={() => setEditando(false)}>x</button>
+              <button
+                className="close-btn"
+                onClick={() => {
+                  setEditando(false);
+                  setSenhaAtualPerfil("");
+                  setNovaSenhaPerfil("");
+                  setConfirmarSenhaPerfil("");
+                  setErro("");
+                }}
+              >
+                x
+              </button>
 
               <h2>Editar Perfil</h2>
 
               <input value={form.username || ""} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="Nome" />
               <input value={form.handle || ""} onChange={(e) => setForm({ ...form, handle: e.target.value.replace(/\s+/g, "") })} placeholder="@usuário" />
               <input value={form.bio || ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio" />
+
+              <div className="password-edit-group">
+                <strong>Alterar senha</strong>
+                <input
+                  type="password"
+                  value={senhaAtualPerfil}
+                  onChange={(e) => setSenhaAtualPerfil(e.target.value)}
+                  placeholder="Senha atual"
+                />
+                <input
+                  type="password"
+                  value={novaSenhaPerfil}
+                  onChange={(e) => setNovaSenhaPerfil(e.target.value)}
+                  placeholder="Nova senha"
+                />
+                <input
+                  type="password"
+                  value={confirmarSenhaPerfil}
+                  onChange={(e) => setConfirmarSenhaPerfil(e.target.value)}
+                  placeholder="Confirmar nova senha"
+                />
+              </div>
 
               <button onClick={() => document.getElementById("perfil").click()}>Alterar Foto Perfil</button>
               <input id="perfil" type="file" hidden onChange={(e) => handleImagem(e, "perfil")} />
@@ -724,7 +788,17 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
               <div className="popup-btns">
                 <button onClick={salvarPerfil}>Salvar</button>
-                <button onClick={() => setEditando(false)}>Cancelar</button>
+                <button
+                  onClick={() => {
+                    setEditando(false);
+                    setSenhaAtualPerfil("");
+                    setNovaSenhaPerfil("");
+                    setConfirmarSenhaPerfil("");
+                    setErro("");
+                  }}
+                >
+                  Cancelar
+                </button>
               </div>
             </div>
           </div>,
