@@ -654,6 +654,47 @@ body {
   border-radius: 50%;
 }
 
+.post-image-editor-overlay {
+  z-index: 10001;
+}
+
+.post-image-editor-popup {
+  max-width: 640px;
+}
+
+.post-image-editor-popup h2 {
+  margin: 0 0 16px;
+}
+
+.post-editor-preview-box {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  margin-bottom: 16px;
+  border: 1px solid #333;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #111;
+}
+
+.post-editor-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  touch-action: none;
+}
+
+.post-image-editor-popup label {
+  display: block;
+  margin-top: 12px;
+  color: #ddd;
+  font-size: 13px;
+}
+
+.post-image-editor-popup input[type="range"] {
+  width: 100%;
+}
+
 .post-file-label {
   display: inline-flex;
   align-items: center;
