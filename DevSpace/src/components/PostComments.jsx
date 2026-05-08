@@ -5,10 +5,27 @@ export default function PostComments({
   isExpanded,
   comments,
   onAddComment,
+  onDeleteComment,
   usuario,
   onOpenUserProfile,
 }) {
   const [novoComentario, setNovoComentario] = useState("");
+
+  const usuarioEmail = (usuario?.email || "").toLowerCase();
+  const usuarioHandle = (usuario?.handle || usuario?.username || "").replace(/\s+/g, "").toLowerCase();
+  const usuarioNome = (usuario?.username || "").toLowerCase();
+
+  const isOwnComment = (comment) => {
+    const commentEmail = (comment?.email || "").toLowerCase();
+    const commentHandle = (comment?.handle || comment?.username || "").replace(/\s+/g, "").toLowerCase();
+    const commentName = (comment?.username || "").toLowerCase();
+
+    return (
+      (usuarioEmail && commentEmail === usuarioEmail) ||
+      (usuarioHandle && commentHandle === usuarioHandle) ||
+      (usuarioNome && commentName === usuarioNome)
+    );
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -62,6 +79,19 @@ export default function PostComments({
                     {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
                   </small>
                 </div>
+                {isOwnComment(comment) && (
+                  <button
+                    type="button"
+                    className="comment-delete-btn"
+                    title="Excluir comentario"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteComment?.(postId, comment.id);
+                    }}
+                  >
+                    x
+                  </button>
+                )}
               </div>
             </div>
           ))}

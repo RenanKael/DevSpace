@@ -417,6 +417,24 @@ body {
   flex: 1;
 }
 
+.comment-delete-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d7dce2;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.comment-delete-btn:hover {
+  background: rgba(255, 82, 82, 0.16);
+  border-color: rgba(255, 82, 82, 0.45);
+  color: #ff8a8a;
+}
+
 .comment-header small,
 .comment-time {
   color: #9aa0a6;
