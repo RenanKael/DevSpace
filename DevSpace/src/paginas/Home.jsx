@@ -191,6 +191,28 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     });
   }
 
+  function deleteCommentFromPost(postId, commentId) {
+    if (!usuario) return;
+
+    setPosts((prevPosts) => {
+      const updatedPosts = prevPosts.map((post) => {
+        if (post.id !== postId) return post;
+
+        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+        const nextComments = commentsList.filter((comment) => comment.id !== commentId);
+
+        return {
+          ...post,
+          commentsList: nextComments,
+          comments: nextComments.length,
+        };
+      });
+
+      salvarPosts(updatedPosts);
+      return updatedPosts;
+    });
+  }
+
   useEffect(() => {
     let saved = [];
     const raw = localStorage.getItem("posts");
@@ -698,6 +720,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
                 isExpanded={!!openedComments[post.id]}
                 comments={post.commentsList || []}
                 onAddComment={addCommentToPost}
+                onDeleteComment={deleteCommentFromPost}
                 usuario={usuario}
                 onOpenUserProfile={onOpenUserProfile}
               />
@@ -806,6 +829,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
               isExpanded={!!openedComments[selectedPostData.id]}
               comments={selectedPostData.commentsList || []}
               onAddComment={addCommentToPost}
+              onDeleteComment={deleteCommentFromPost}
               usuario={usuario}
               onOpenUserProfile={onOpenUserProfile}
             />
