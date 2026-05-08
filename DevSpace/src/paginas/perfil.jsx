@@ -534,15 +534,24 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const currentEditX = Number(editandoImagem === "perfil" ? editPosPerfil.x : editPosCapa.x);
   const currentEditY = Number(editandoImagem === "perfil" ? editPosPerfil.y : editPosCapa.y);
   const currentEditZoom = Number(editandoImagem === "perfil" ? editZoomPerfil : editZoomCapa);
-  const zoomScale = currentEditZoom / 100;
-  const translateX = (50 - currentEditX) * (zoomScale - 1);
-  const translateY = (50 - currentEditY) * (zoomScale - 1);
-  const perfilScale = Number(zoomPerfil || 100) / 100;
-  const perfilTx = (50 - Number(posPerfil.x || 50)) * (perfilScale - 1);
-  const perfilTy = (50 - Number(posPerfil.y || 50)) * (perfilScale - 1);
-  const capaScale = Number(zoomCapa || 100) / 100;
-  const capaTx = (50 - Number(posCapa.x || 50)) * (capaScale - 1);
-  const capaTy = (50 - Number(posCapa.y || 50)) * (capaScale - 1);
+  const imageAdjustStyle = (pos, zoom) => {
+    const x = Number(pos?.x ?? 50);
+    const y = Number(pos?.y ?? 50);
+    const scale = Number(zoom || 100) / 100;
+
+    return {
+      objectPosition: `${x}% ${y}%`,
+      transform: `scale(${scale})`,
+      transformOrigin: `${x}% ${y}%`,
+    };
+  };
+
+  const editImageStyle = imageAdjustStyle(
+    { x: currentEditX, y: currentEditY },
+    currentEditZoom
+  );
+  const perfilImageStyle = imageAdjustStyle(posPerfil, zoomPerfil);
+  const capaImageStyle = imageAdjustStyle(posCapa, zoomCapa);
 
   if (!usuario) return <h1>Carregando...</h1>;
 
@@ -581,9 +590,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
             <img
               src={usuario.fotoCapa}
               alt="Capa do perfil"
-              style={{
-                transform: `translate(${capaTx}%, ${capaTy}%) scale(${capaScale})`,
-              }}
+              style={capaImageStyle}
             />
           )}
         </div>
@@ -600,9 +607,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
               <img
                 src={usuario.fotoPerfil}
                 alt="Foto do perfil"
-                style={{
-                  transform: `translate(${perfilTx}%, ${perfilTy}%) scale(${perfilScale})`,
-                }}
+                style={perfilImageStyle}
               />
             )}
           </button>
@@ -768,9 +773,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                   onTouchStart={beginImageDrag}
                   draggable={false}
                   style={{
+                    ...editImageStyle,
                     cursor: dragging ? "grabbing" : "grab",
-                    transform: `translate(${translateX}%, ${translateY}%) scale(${zoomScale})`,
-                    objectPosition: "50% 50%"
                   }}
                 />
               </div>
@@ -843,9 +847,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                 <img
                   src={usuario.fotoPerfil}
                   alt={`Foto de perfil de ${usuario.username}`}
-                  style={{
-                    transform: `translate(${perfilTx}%, ${perfilTy}%) scale(${perfilScale})`,
-                  }}
+                  style={perfilImageStyle}
                 />
               </div>
             </div>
