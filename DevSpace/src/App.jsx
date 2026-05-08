@@ -28,6 +28,42 @@ function scoreUser(user) {
   );
 }
 
+const LEGACY_COMMUNITY_USERS = [
+  { username: "Lia Gomes", handle: "liagomes", email: "lia.gomes@dev.com", bio: "Compartilhando ideias, rotina e pequenos avancos no DevSpace." },
+  { username: "Felipe Rocha", handle: "feliperocha", email: "felipe.rocha@dev.com", bio: "Desenvolvedor em modo prototipo, teste e cafe." },
+  { username: "Nina Correa", handle: "ninacorrea", email: "nina.correa@dev.com", bio: "Aprendendo front-end, animacoes e interfaces mais fluidas." },
+  { username: "Arthur Silva", handle: "arthursilva", email: "arthur.silva@dev.com", bio: "Design, produto e detalhes que deixam apps melhores." },
+  { username: "Xande", handle: "xande", email: "xande@dev.com", bio: "Conta antiga da comunidade DevSpace." },
+  { username: "Maria Silva", handle: "mariasilva", email: "mariasilva@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
+  { username: "Carlos Devs", handle: "carlosdevs", email: "carlosdevs@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
+  { username: "Ana Tech", handle: "anatech", email: "anatech@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
+  { username: "Pedro Code", handle: "pedrocode", email: "pedrocode@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
+  { username: "Bruna UX", handle: "brunaux", email: "brunaux@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
+  { username: "Vitor Front", handle: "vitorfront", email: "vitorfront@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
+  { username: "Caio Stack", handle: "caiostack", email: "caiostack@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
+  { username: "Duda Product", handle: "dudaproduct", email: "dudaproduct@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
+];
+
+function createCommunityUser(user) {
+  const handle = (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase();
+  return {
+    username: user.username || "Usuario",
+    handle,
+    email: user.email || `${handle}@devspace.fake`,
+    senha: "123456",
+    criadoEm: new Date().toISOString(),
+    bio: user.bio || "Perfil da comunidade DevSpace.",
+    fotoPerfil: user.fotoPerfil || fakeAvatar(handle),
+    fotoCapa: user.fotoCapa || fakeCover(handle),
+    estrelas: 1,
+    projetos: [],
+    seguidores: 0,
+    seguindo: [],
+    comments: 0,
+    isAdmin: false,
+  };
+}
+
 function App() {
   const [logado, setLogado] = useState(false);
   const [pagina, setPagina] = useState("home");
@@ -49,7 +85,7 @@ function App() {
       const posts = JSON.parse(localStorage.getItem("posts")) || [];
       const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
       const postsValidos = posts.filter((post) => {
-        return post && (post.email || post.username || post.handle) && post.criadoEm;
+        return post && (post.email || post.username || post.handle);
       });
 
       const postsMigrados = postsValidos.map((post) => {
@@ -61,6 +97,7 @@ function App() {
 
         return {
           ...post,
+          criadoEm: post.criadoEm || new Date().toISOString(),
           commentsList,
           isSeedFake,
           comments,
@@ -79,6 +116,7 @@ function App() {
       }
 
       const byEmail = new Set(usuarios.map((u) => (u.email || "").toLowerCase()));
+      const byHandle = new Set(usuarios.map((u) => (u.handle || "").toLowerCase()).filter(Boolean));
       const novosUsuarios = usuarios.map((u) => {
         const handle = (u.handle || u.username || "usuario").replace(/\s+/g, "").toLowerCase();
         const isLikelyFake = isFakeCommunityUser(u);
@@ -89,6 +127,15 @@ function App() {
           fotoPerfil: u.fotoPerfil || fakeAvatar(handle),
           fotoCapa: u.fotoCapa || fakeCover(handle),
         };
+      });
+      LEGACY_COMMUNITY_USERS.forEach((legacyUser) => {
+        const email = (legacyUser.email || "").toLowerCase();
+        const handle = (legacyUser.handle || "").toLowerCase();
+        if (byEmail.has(email) || byHandle.has(handle)) return;
+
+        byEmail.add(email);
+        byHandle.add(handle);
+        novosUsuarios.push(createCommunityUser(legacyUser));
       });
       postsMigrados.forEach((post) => {
         const email = (post.email || `${post.handle || post.username}@devspace.fake`).toLowerCase();

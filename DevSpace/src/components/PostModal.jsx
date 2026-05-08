@@ -1,12 +1,25 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useOverlayClose } from "../hooks/useOverlayClose";
+import { useImageEditorPreview } from "../hooks/useImageEditorPreview";
 import "../style/home.css";
 
 export default function PostModal({ open, onClose, usuario, onPostSaved }) {
   const [texto, setTexto] = useState("");
-  const [preview, setPreview] = useState(null);
   const [erro, setErro] = useState("");
+  const {
+    preview,
+    editPos,
+    zoom,
+    handleFileChange,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    setEditPos,
+    setZoom,
+    imageStyle,
+    reset,
+  } = useImageEditorPreview(null);
 
   // Fechar modal com ESC
   useOverlayClose(open, onClose);
@@ -14,21 +27,10 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
   useEffect(() => {
     if (!open) {
       setTexto("");
-      setPreview(null);
+      reset();
       setErro("");
     }
-  }, [open]);
-
-  function handleFileChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreview(reader.result);
-    };
-    reader.readAsDataURL(file);
-  }
+  }, [open, reset]);
 
   function handleSubmit() {
     if (!texto.trim() && !preview) {
@@ -103,9 +105,51 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
         />
 
         {preview && (
-          <div className="post-image-preview">
-            <img src={preview} alt="Prévia do post" />
-          </div>
+          <>
+            <div
+              className="post-image-preview"
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onTouchMove={handleMouseMove}
+              onTouchEnd={handleMouseUp}
+            >
+              <img
+                src={preview}
+                alt="Prévia do post"
+                onMouseDown={handleMouseDown}
+                onTouchStart={handleMouseDown}
+                draggable={false}
+                style={imageStyle}
+              />
+            </div>
+            <div className="post-image-adjuster">
+              <label>Horizontal</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={editPos.x}
+                onChange={(e) => setEditPos({ ...editPos, x: Number(e.target.value) })}
+              />
+              <label>Vertical</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={editPos.y}
+                onChange={(e) => setEditPos({ ...editPos, y: Number(e.target.value) })}
+              />
+              <label>Zoom</label>
+              <input
+                type="range"
+                min="80"
+                max="220"
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+              />
+            </div>
+          </>
         )}
 
         <label className="post-file-label">

@@ -160,6 +160,9 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   function addCommentToPost(postId, texto) {
     if (!usuario) return;
 
+    const usuarioAtualizado = findUserProfile(usuario, usuarios) || usuario;
+    const commentHandle = (usuarioAtualizado.handle || usuarioAtualizado.username || "usuario").replace(/\s+/g, "").toLowerCase();
+
     setPosts((prevPosts) => {
       const updatedPosts = prevPosts.map((post) => {
         if (post.id !== postId) return post;
@@ -167,10 +170,10 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
         const novoComentario = {
           id: Date.now() + Math.floor(Math.random() * 1000),
-          username: usuario.username || "Usuario",
-          handle: (usuario.handle || usuario.username || "usuario").replace(/\s+/g, "").toLowerCase(),
-          email: usuario.email || "",
-          fotoPerfil: "",
+          username: usuarioAtualizado.username || "Usuario",
+          handle: commentHandle,
+          email: usuarioAtualizado.email || "",
+          fotoPerfil: usuarioAtualizado.fotoPerfil || "",
           texto,
           criadoEm: new Date().toISOString(),
         };
@@ -199,11 +202,9 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     }
 
     const isAdmin = usuario?.email === "renan.kael@gmail.com";
-    const adminSeedInitialized = localStorage.getItem("adminSeedInitialized") === "true";
 
-    if (!Array.isArray(saved) || saved.length === 0) {
-      if (isAdmin && !adminSeedInitialized) {
-        const fakeSeed = [
+    const fakeSeed = isAdmin
+      ? [
           {
             id: 1,
             username: "Lia Gomes",
@@ -346,8 +347,11 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
             downloads: 0,
             criadoEm: new Date().toISOString(),
           },
-        ];
+        ]
+      : [];
 
+    if (!Array.isArray(saved) || saved.length === 0) {
+      if (isAdmin) {
         salvarPosts(fakeSeed);
         localStorage.setItem("adminSeedInitialized", "true");
         setPosts(fakeSeed);
@@ -355,6 +359,17 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         setPosts(saved);
       }
     } else {
+      const hasLegacySeed = saved.some((post) => post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com"));
+      const savedWithRecoveredSeed = isAdmin && !hasLegacySeed
+        ? [...fakeSeed, ...saved]
+        : saved;
+
+      if (savedWithRecoveredSeed !== saved) {
+        salvarPosts(savedWithRecoveredSeed);
+      }
+
+      saved = savedWithRecoveredSeed;
+
       const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
       const usersList = Array.isArray(savedUsers) ? savedUsers : [];
       const postsParaSalvar = [];
@@ -399,12 +414,12 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           const commentProfile = isFakeIdentity(comment) ? null : findUserProfile(comment, usersList);
           return {
             ...comment,
-            fotoPerfil: commentProfile ? "" : comment.fotoPerfil,
+            fotoPerfil: commentProfile?.fotoPerfil || comment.fotoPerfil,
           };
         });
         postsParaSalvar.push({
           ...normalizedPost,
-          fotoPerfil: postProfile ? "" : normalizedPost.fotoPerfil,
+          fotoPerfil: postProfile?.fotoPerfil || normalizedPost.fotoPerfil,
           commentsList: storageComments,
         });
         return normalizedPost;
