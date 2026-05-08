@@ -49,6 +49,27 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     baseY: 50,
   });
 
+  function normalizeProfileKey(value) {
+    return String(value || "").replace(/^@+/, "").replace(/\s+/g, "").toLowerCase().trim();
+  }
+
+  function postBelongsToUser(post, user) {
+    if (!post || !user) return false;
+
+    const postEmail = String(post.email || "").toLowerCase().trim();
+    const userEmail = String(user.email || "").toLowerCase().trim();
+    const postUsername = String(post.username || "").toLowerCase().trim();
+    const userUsername = String(user.username || "").toLowerCase().trim();
+    const postHandle = normalizeProfileKey(post.handle || post.username);
+    const userHandle = normalizeProfileKey(user.handle || user.username);
+
+    return (
+      (postEmail && userEmail && postEmail === userEmail) ||
+      (postUsername && userUsername && postUsername === userUsername) ||
+      (postHandle && userHandle && postHandle === userHandle)
+    );
+  }
+
   useEffect(() => {
     const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
     const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
@@ -177,20 +198,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       savedPosts = postsValidos;
     }
 
-    const filtered = savedPosts.filter((post) => {
-      const postEmail = post.email?.toLowerCase().trim();
-      const usuarioEmail = usuario.email?.toLowerCase().trim();
-      const postUsername = post.username?.toLowerCase().trim();
-      const usuarioUsername = usuario.username?.toLowerCase().trim();
-      const postHandle = post.handle?.toLowerCase().trim();
-      const usuarioHandle = usuario.handle?.toLowerCase().trim();
-
-      return (
-        postEmail === usuarioEmail ||
-        postUsername === usuarioUsername ||
-        postHandle === usuarioHandle
-      );
-    });
+    const filtered = savedPosts.filter((post) => postBelongsToUser(post, usuario));
 
     const ordered = filtered.sort(
       (a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()
@@ -426,7 +434,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     );
 
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
-    setPosts(updatedPosts.filter((post) => post.email === usuario.email || post.username === usuario.username));
+    setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setEditingPost(null);
     setEditingText("");
   }
@@ -439,7 +447,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     );
 
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
-    setPosts(updatedPosts.filter((p) => p.email === usuario.email || p.username === usuario.username));
+    setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setActiveMenuPostId(null);
   }
 
@@ -448,7 +456,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const updatedPosts = savedPosts.filter((post) => post.id !== postId);
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
-    setPosts(updatedPosts.filter((post) => post.email === usuario.email || post.username === usuario.username));
+    setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setActiveMenuPostId(null);
   }
 
