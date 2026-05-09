@@ -235,10 +235,20 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   }
 
   function toggleComments(postId) {
+    const willOpen = !openedComments[postId];
+
     setOpenedComments((prev) => ({
       ...prev,
       [postId]: !prev[postId],
     }));
+
+    if (willOpen) {
+      window.setTimeout(() => {
+        document
+          .querySelector(`[data-post-card-id="${postId}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 40);
+    }
   }
 
   function togglePostAction(postId, action) {
@@ -840,6 +850,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           {filteredPosts.map((post) => (
             <div
               key={post.id}
+              data-post-card-id={post.id}
               className={`${post.imagem ? "post-card has-image" : "post-card text-only"} ${
                 openedComments[post.id] ? "comments-open" : ""
               }`}

@@ -206,6 +206,7 @@ body {
 .feed.comments-mode {
   scroll-snap-type: none;
   scroll-padding: 0;
+  gap: 24px;
 }
 
 .feed.comments-mode .post-card {
@@ -342,10 +343,11 @@ body {
 }
 
 .post-card.comments-open {
-  min-height: auto;
+  min-height: max-content;
   max-height: none;
   height: auto;
   overflow: hidden;
+  scroll-margin-top: 16px;
 }
 
 .post-card.text-only.comments-open {
@@ -360,12 +362,12 @@ body {
 
 .post-card.has-image.comments-open .post-card-window {
   flex: 0 1 auto;
-  max-height: min(360px, 42vh);
+  max-height: 300px;
 }
 
 .post-card.has-image.comments-open .post-card-window-body {
-  height: min(322px, calc(42vh - 38px));
-  max-height: calc(42vh - 38px);
+  height: 260px;
+  max-height: 260px;
 }
 
 .post-card.has-image.comments-open .post-card-window-body img {
@@ -655,7 +657,7 @@ body {
 }
 
 .post-comments-section.expanded {
-  max-height: min(380px, 50vh);
+  max-height: 340px;
   overflow: hidden;
   scrollbar-width: thin;
   scrollbar-color: #333 transparent;
@@ -677,7 +679,7 @@ body {
 .post-comments-list {
   flex: 1 1 auto;
   min-height: 0;
-  max-height: min(260px, 32vh);
+  max-height: 220px;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 4px;
