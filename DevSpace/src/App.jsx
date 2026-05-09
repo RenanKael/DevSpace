@@ -89,6 +89,10 @@ function createHistoryState(pagina, perfilAlvo, perfilCollection) {
   };
 }
 
+function createInitialRouteState() {
+  return getRouteFromLocation();
+}
+
 function createCommunityUser(user) {
   const handle = (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase();
   return {
@@ -110,14 +114,14 @@ function createCommunityUser(user) {
 }
 
 function App() {
+  const [route, setRoute] = useState(createInitialRouteState);
   const [logado, setLogado] = useState(false);
-  const initialRoute = getRouteFromLocation();
-  const [pagina, setPagina] = useState(initialRoute.pagina);
   const [usuario, setUsuario] = useState(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postRefresh, setPostRefresh] = useState(0);
-  const [perfilAlvo, setPerfilAlvo] = useState(initialRoute.perfilAlvo);
-  const [perfilCollection, setPerfilCollection] = useState(initialRoute.perfilCollection);
+  const pagina = route.pagina;
+  const perfilAlvo = route.perfilAlvo;
+  const perfilCollection = route.perfilCollection;
 
   useEffect(() => {
     const savedLocal = JSON.parse(localStorage.getItem("usuarioLogado"));
@@ -300,9 +304,11 @@ function App() {
 
     const handlePopState = (event) => {
       const route = event.state?.devspace ? event.state : getRouteFromLocation();
-      setPagina(route.pagina || "home");
-      setPerfilAlvo(route.perfilAlvo || null);
-      setPerfilCollection(route.perfilCollection || "curtidos");
+      setRoute({
+        pagina: route.pagina || "home",
+        perfilAlvo: route.perfilAlvo || null,
+        perfilCollection: route.perfilCollection || "curtidos",
+      });
       setIsPostModalOpen(false);
     };
 
@@ -336,9 +342,11 @@ function App() {
     const nextPerfilCollection = hasPerfilCollection ? next.perfilCollection : perfilCollection;
     const nextUrl = buildRouteUrl(nextPagina, nextPerfilAlvo, nextPerfilCollection);
 
-    setPagina(nextPagina);
-    setPerfilAlvo(nextPerfilAlvo);
-    setPerfilCollection(nextPerfilCollection);
+    setRoute({
+      pagina: nextPagina,
+      perfilAlvo: nextPerfilAlvo,
+      perfilCollection: nextPerfilCollection,
+    });
     setIsPostModalOpen(false);
 
     window.history.pushState(
