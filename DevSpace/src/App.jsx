@@ -45,6 +45,50 @@ const LEGACY_COMMUNITY_USERS = [
   { username: "Duda Product", handle: "dudaproduct", email: "dudaproduct@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
 ];
 
+const COLLECTION_TYPES = new Set(["curtidos", "salvos", "republicados"]);
+
+function getRouteFromLocation() {
+  const parts = window.location.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+
+  if (parts[0] === "explorar") {
+    return { pagina: "explorar", perfilAlvo: null, perfilCollection: "curtidos" };
+  }
+
+  if (parts[0] === "perfil" && parts[1] === "colecao" && COLLECTION_TYPES.has(parts[2])) {
+    return { pagina: "perfilColecao", perfilAlvo: null, perfilCollection: parts[2] };
+  }
+
+  if (parts[0] === "perfil") {
+    const handle = parts[1]?.replace(/^@+/, "");
+    return {
+      pagina: "perfil",
+      perfilAlvo: handle ? { handle } : null,
+      perfilCollection: "curtidos",
+    };
+  }
+
+  return { pagina: "home", perfilAlvo: null, perfilCollection: "curtidos" };
+}
+
+function buildRouteUrl(pagina, perfilAlvo, perfilCollection) {
+  if (pagina === "explorar") return "/explorar";
+  if (pagina === "perfilColecao") return `/perfil/colecao/${perfilCollection || "curtidos"}`;
+  if (pagina === "perfil") {
+    const handle = (perfilAlvo?.handle || "").replace(/^@+/, "").trim();
+    return handle ? `/perfil/${encodeURIComponent(handle)}` : "/perfil";
+  }
+  return "/";
+}
+
+function createHistoryState(pagina, perfilAlvo, perfilCollection) {
+  return {
+    devspace: true,
+    pagina,
+    perfilAlvo,
+    perfilCollection,
+  };
+}
+
 function createCommunityUser(user) {
   const handle = (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase();
   return {
@@ -67,12 +111,13 @@ function createCommunityUser(user) {
 
 function App() {
   const [logado, setLogado] = useState(false);
-  const [pagina, setPagina] = useState("home");
+  const initialRoute = getRouteFromLocation();
+  const [pagina, setPagina] = useState(initialRoute.pagina);
   const [usuario, setUsuario] = useState(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postRefresh, setPostRefresh] = useState(0);
-  const [perfilAlvo, setPerfilAlvo] = useState(null);
-  const [perfilCollection, setPerfilCollection] = useState("curtidos");
+  const [perfilAlvo, setPerfilAlvo] = useState(initialRoute.perfilAlvo);
+  const [perfilCollection, setPerfilCollection] = useState(initialRoute.perfilCollection);
 
   useEffect(() => {
     const savedLocal = JSON.parse(localStorage.getItem("usuarioLogado"));
@@ -246,6 +291,26 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const currentUrl = buildRouteUrl(pagina, perfilAlvo, perfilCollection);
+    window.history.replaceState(
+      createHistoryState(pagina, perfilAlvo, perfilCollection),
+      "",
+      currentUrl
+    );
+
+    const handlePopState = (event) => {
+      const route = event.state?.devspace ? event.state : getRouteFromLocation();
+      setPagina(route.pagina || "home");
+      setPerfilAlvo(route.perfilAlvo || null);
+      setPerfilCollection(route.perfilCollection || "curtidos");
+      setIsPostModalOpen(false);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
     if (logado) {
       const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
       const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
@@ -263,6 +328,26 @@ function App() {
     setIsPostModalOpen(false);
   }
 
+  function navigate(next) {
+    const hasPerfilAlvo = Object.prototype.hasOwnProperty.call(next, "perfilAlvo");
+    const hasPerfilCollection = Object.prototype.hasOwnProperty.call(next, "perfilCollection");
+    const nextPagina = next.pagina || pagina;
+    const nextPerfilAlvo = hasPerfilAlvo ? next.perfilAlvo : perfilAlvo;
+    const nextPerfilCollection = hasPerfilCollection ? next.perfilCollection : perfilCollection;
+    const nextUrl = buildRouteUrl(nextPagina, nextPerfilAlvo, nextPerfilCollection);
+
+    setPagina(nextPagina);
+    setPerfilAlvo(nextPerfilAlvo);
+    setPerfilCollection(nextPerfilCollection);
+    setIsPostModalOpen(false);
+
+    window.history.pushState(
+      createHistoryState(nextPagina, nextPerfilAlvo, nextPerfilCollection),
+      "",
+      nextUrl
+    );
+  }
+
   function abrirPerfilAlvo(userRef) {
     if (!userRef) return;
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
@@ -273,8 +358,7 @@ function App() {
       ? usuarios.find((u) => (u.handle || "").toLowerCase() === (userRef.handle || "").toLowerCase())
       : null;
     const alvo = byEmail || byHandle || userRef;
-    setPerfilAlvo(alvo);
-    setPagina("perfil");
+    navigate({ pagina: "perfil", perfilAlvo: alvo });
   }
 
   function handlePostCreated(post) {
@@ -304,24 +388,14 @@ function App() {
       <>
         <Perfil
           onLogout={() => setLogado(false)}
-          irHome={() => {
-            setPerfilAlvo(null);
-            setPagina("home");
-          }}
-          irPerfil={() => {
-            setPerfilAlvo(null);
-            setPagina("perfil");
-          }}
-          irExplorar={() => {
-            setPerfilAlvo(null);
-            setPagina("explorar");
-          }}
+          irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
+          irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
+          irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
           onOpenPost={handleOpenPost}
           refreshFeed={postRefresh}
           viewedUser={perfilAlvo}
           onOpenProfileCollection={(tipo) => {
-            setPerfilCollection(tipo);
-            setPagina("perfilColecao");
+            navigate({ pagina: "perfilColecao", perfilAlvo: null, perfilCollection: tipo });
           }}
         />
 
@@ -340,18 +414,9 @@ function App() {
       <>
         <PerfilColecao
           tipo={perfilCollection}
-          irHome={() => {
-            setPerfilAlvo(null);
-            setPagina("home");
-          }}
-          irPerfil={() => {
-            setPerfilAlvo(null);
-            setPagina("perfil");
-          }}
-          irExplorar={() => {
-            setPerfilAlvo(null);
-            setPagina("explorar");
-          }}
+          irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
+          irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
+          irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
           onOpenPost={handleOpenPost}
           onOpenUserProfile={abrirPerfilAlvo}
         />
@@ -370,11 +435,8 @@ function App() {
     return (
       <>
         <Explorar
-          irHome={() => setPagina("home")}
-          irPerfil={() => {
-            setPerfilAlvo(null);
-            setPagina("perfil");
-          }}
+          irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
+          irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
           onOpenPost={handleOpenPost}
           onOpenUserProfile={abrirPerfilAlvo}
         />
@@ -392,11 +454,8 @@ function App() {
   return (
     <>
       <Home
-        irPerfil={() => {
-          setPerfilAlvo(null);
-          setPagina("perfil");
-        }}
-        irExplorar={() => setPagina("explorar")}
+        irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
+        irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
         onOpenPost={handleOpenPost}
         refreshFeed={postRefresh}
         onOpenUserProfile={abrirPerfilAlvo}
