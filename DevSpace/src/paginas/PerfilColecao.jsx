@@ -22,6 +22,12 @@ const COLLECTIONS = {
   },
 };
 
+const ACTIONS = {
+  shares: "repostedBy",
+  likes: "likedBy",
+  bookmarks: "savedBy",
+};
+
 function normalizeKey(value) {
   return String(value || "").replace(/^@+/, "").replace(/\s+/g, "").toLowerCase().trim();
 }
@@ -37,6 +43,12 @@ function getUserKeys(user) {
 function postHasUserAction(post, field, userKeys) {
   const values = Array.isArray(post?.[field]) ? post[field].map(normalizeKey) : [];
   return userKeys.some((key) => values.includes(key));
+}
+
+function postActionIsActive(post, action, userKeys) {
+  const field = ACTIONS[action];
+  if (!field) return false;
+  return postHasUserAction(post, field, userKeys);
 }
 
 export default function PerfilColecao({
@@ -68,6 +80,46 @@ export default function PerfilColecao({
       .filter((post) => postHasUserAction(post, config.field, userKeys))
       .sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
   }, [posts, usuario, config.field]);
+
+  function togglePostAction(postId, action) {
+    const field = ACTIONS[action];
+    const userKeys = getUserKeys(usuario);
+    const ownerKey = userKeys[0];
+    if (!field || !ownerKey) return;
+
+    const updatedPosts = posts.map((post) => {
+      if (post.id !== postId) return post;
+
+      const owners = Array.isArray(post[field]) ? post[field].map(normalizeKey) : [];
+      const isActive = userKeys.some((key) => owners.includes(key));
+      const nextOwners = isActive
+        ? owners.filter((key) => !userKeys.includes(key))
+        : [...new Set([...owners, ownerKey])];
+      const currentValue = Number(post[action] || 0);
+
+      return {
+        ...post,
+        [action]: isActive ? Math.max(0, currentValue - 1) : currentValue + 1,
+        [field]: nextOwners,
+      };
+    });
+
+    localStorage.setItem("posts", JSON.stringify(updatedPosts));
+    setPosts(updatedPosts);
+
+    const nextSelectedPost = updatedPosts.find((post) => post.id === postId);
+    const stillInThisCollection = nextSelectedPost
+      ? postHasUserAction(nextSelectedPost, config.field, userKeys)
+      : false;
+
+    if (nextSelectedPost && stillInThisCollection) {
+      setSelectedPost(nextSelectedPost);
+    } else {
+      setSelectedPost(null);
+    }
+  }
+
+  const selectedPostUserKeys = getUserKeys(usuario);
 
   return (
     <div className="home">
@@ -177,19 +229,34 @@ export default function PerfilColecao({
 
             <div className="post-card-actions post-expanded-actions">
               <button type="button" aria-label="Comentarios">
-                <span>C</span>
+                <span>💬</span>
                 <strong>{Array.isArray(selectedPost.commentsList) ? selectedPost.commentsList.length : selectedPost.comments ?? 0}</strong>
               </button>
-              <button type="button" aria-label="Repost">
-                <span>R</span>
+              <button
+                type="button"
+                aria-label="Repost"
+                className={postActionIsActive(selectedPost, "shares", selectedPostUserKeys) ? "active" : ""}
+                onClick={() => togglePostAction(selectedPost.id, "shares")}
+              >
+                <span>🔁</span>
                 <strong>{selectedPost.shares ?? 0}</strong>
               </button>
-              <button type="button" aria-label="Curtir">
-                <span>L</span>
+              <button
+                type="button"
+                aria-label="Curtir"
+                className={postActionIsActive(selectedPost, "likes", selectedPostUserKeys) ? "active" : ""}
+                onClick={() => togglePostAction(selectedPost.id, "likes")}
+              >
+                <span>❤️</span>
                 <strong>{selectedPost.likes ?? 0}</strong>
               </button>
-              <button type="button" aria-label="Salvar">
-                <span>S</span>
+              <button
+                type="button"
+                aria-label="Salvar"
+                className={postActionIsActive(selectedPost, "bookmarks", selectedPostUserKeys) ? "active" : ""}
+                onClick={() => togglePostAction(selectedPost.id, "bookmarks")}
+              >
+                <span>🔖</span>
                 <strong>{selectedPost.bookmarks ?? 0}</strong>
               </button>
             </div>
