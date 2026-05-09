@@ -551,7 +551,7 @@ body {
 }
 
 .post-card-actions button[aria-label="Comentarios"] span::before {
-  content: "◌";
+  content: "💬";
 }
 
 .post-card-actions button[aria-label="Repost"] span::before {
