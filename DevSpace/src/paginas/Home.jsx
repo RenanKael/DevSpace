@@ -208,12 +208,13 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [openedComments, setOpenedComments] = useState({});
+  const [commentsPostId, setCommentsPostId] = useState(null);
   const [activeActions, setActiveActions] = useState({});
   const [syncToast, setSyncToast] = useState(false);
 
   useOverlayClose(!!selectedPost, () => setSelectedPost(null));
   useOverlayClose(!!imagePreview, () => setImagePreview(null));
+  useOverlayClose(!!commentsPostId, () => setCommentsPostId(null));
 
   function salvarPosts(postsAtualizados) {
     try {
@@ -235,20 +236,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   }
 
   function toggleComments(postId) {
-    const willOpen = !openedComments[postId];
-
-    setOpenedComments((prev) => ({
-      ...prev,
-      [postId]: !prev[postId],
-    }));
-
-    if (willOpen) {
-      window.setTimeout(() => {
-        document
-          .querySelector(`[data-post-card-id="${postId}"]`)
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 40);
-    }
+    setCommentsPostId(postId);
   }
 
   function togglePostAction(postId, action) {
@@ -804,6 +792,10 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   const selectedPostData = selectedPost
     ? posts.find((post) => post.id === selectedPost.id) || selectedPost
     : null;
+  const commentsPost = commentsPostId
+    ? posts.find((post) => post.id === commentsPostId) ||
+      (selectedPostData?.id === commentsPostId ? selectedPostData : null)
+    : null;
 
   return (
     <div className="home">
@@ -813,7 +805,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         <Topbar visible={showTopbar} usuario={usuario} onSearch={setSearchQuery} />
 
         <div className="feed-layout">
-        <div className={`feed ${Object.values(openedComments).some(Boolean) ? "comments-mode" : ""}`}>
+        <div className="feed">
           {loading && <p>Carregando...</p>}
           {!loading && filteredPosts.length === 0 && profileOnlyResults.length === 0 && (
             <p>{searchQuery.trim().startsWith("@") ? "Nenhum perfil encontrado." : "Sem posts correspondentes a busca."}</p>
@@ -851,9 +843,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
             <div
               key={post.id}
               data-post-card-id={post.id}
-              className={`${post.imagem ? "post-card has-image" : "post-card text-only"} ${
-                openedComments[post.id] ? "comments-open" : ""
-              }`}
+              className={post.imagem ? "post-card has-image" : "post-card text-only"}
               onClick={() => setSelectedPost(post)}
             >
               <div className="post-card-header">
@@ -916,7 +906,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
                 <button
                   type="button"
                   aria-label="Comentarios"
-                  className={openedComments[post.id] ? "active pulse" : ""}
+                  className={commentsPostId === post.id ? "active pulse" : ""}
                   onClick={() => toggleComments(post.id)}
                 >
                   <span>💬</span>
@@ -960,15 +950,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
                 </button>
               </div>
 
-              <PostComments
-                postId={post.id}
-                isExpanded={!!openedComments[post.id]}
-                comments={post.commentsList || []}
-                onAddComment={addCommentToPost}
-                onDeleteComment={deleteCommentFromPost}
-                usuario={usuario}
-                onOpenUserProfile={onOpenUserProfile}
-              />
             </div>
           ))}
         </div>
@@ -1058,7 +1039,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
               <button
                 type="button"
                 aria-label="Comentarios"
-                className={openedComments[selectedPostData.id] ? "active pulse" : ""}
+                className={commentsPostId === selectedPostData.id ? "active pulse" : ""}
                 onClick={() => toggleComments(selectedPostData.id)}
               >
                 <span>💬</span>
@@ -1101,11 +1082,41 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
                 <strong>{selectedPostData.downloads ?? 0}</strong>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {commentsPost && (
+        <div className="post-preview-overlay comments-overlay" onClick={() => setCommentsPostId(null)}>
+          <div className="comments-popup" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="post-expanded-close"
+              onClick={() => setCommentsPostId(null)}
+              type="button"
+              title="Fechar"
+            >
+              x
+            </button>
+
+            <div className="comments-popup-head">
+              <div
+                className="post-card-avatar"
+                style={{
+                  backgroundImage: commentsPost.fotoPerfil ? `url(${commentsPost.fotoPerfil})` : "none",
+                }}
+              />
+              <div>
+                <small className="post-card-handle">@{commentsPost.handle || commentsPost.username}</small>
+                <strong>{commentsPost.username}</strong>
+              </div>
+            </div>
+
+            <p className="comments-popup-text">{commentsPost.texto || "Post sem texto"}</p>
 
             <PostComments
-              postId={selectedPostData.id}
-              isExpanded={!!openedComments[selectedPostData.id]}
-              comments={selectedPostData.commentsList || []}
+              postId={commentsPost.id}
+              isExpanded
+              comments={commentsPost.commentsList || []}
               onAddComment={addCommentToPost}
               onDeleteComment={deleteCommentFromPost}
               usuario={usuario}

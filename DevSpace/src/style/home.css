@@ -688,6 +688,60 @@ body {
   touch-action: pan-y;
 }
 
+.comments-overlay {
+  z-index: 12000;
+}
+
+.comments-popup {
+  position: relative;
+  width: min(620px, 94vw);
+  max-height: min(760px, calc(100vh - 48px));
+  background: #111;
+  border: 1px solid #25282e;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.58);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.comments-popup-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 46px;
+  margin-bottom: 12px;
+}
+
+.comments-popup-head > div:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.comments-popup-text {
+  margin: 0 0 12px;
+  color: #e6e6e6;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.comments-popup .post-comments-section {
+  max-height: none;
+  overflow: visible;
+}
+
+.comments-popup .post-comments-container {
+  min-height: 0;
+  max-height: none;
+  margin-top: 0;
+  flex: 1;
+}
+
+.comments-popup .post-comments-list {
+  max-height: min(440px, 54vh);
+}
+
 @keyframes commentsSlideDown {
   from {
     opacity: 0;
