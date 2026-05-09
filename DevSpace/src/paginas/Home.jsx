@@ -803,7 +803,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         <Topbar visible={showTopbar} usuario={usuario} onSearch={setSearchQuery} />
 
         <div className="feed-layout">
-        <div className="feed">
+        <div className={`feed ${Object.values(openedComments).some(Boolean) ? "comments-mode" : ""}`}>
           {loading && <p>Carregando...</p>}
           {!loading && filteredPosts.length === 0 && profileOnlyResults.length === 0 && (
             <p>{searchQuery.trim().startsWith("@") ? "Nenhum perfil encontrado." : "Sem posts correspondentes a busca."}</p>
@@ -840,7 +840,9 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           {filteredPosts.map((post) => (
             <div
               key={post.id}
-              className={post.imagem ? "post-card has-image" : "post-card text-only"}
+              className={`${post.imagem ? "post-card has-image" : "post-card text-only"} ${
+                openedComments[post.id] ? "comments-open" : ""
+              }`}
               onClick={() => setSelectedPost(post)}
             >
               <div className="post-card-header">

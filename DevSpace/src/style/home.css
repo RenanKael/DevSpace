@@ -203,6 +203,16 @@ body {
   gap: 34px;
 }
 
+.feed.comments-mode {
+  scroll-snap-type: none;
+  scroll-padding: 0;
+}
+
+.feed.comments-mode .post-card {
+  scroll-snap-align: none;
+  scroll-snap-stop: normal;
+}
+
 .suggestions-sidebar {
   height: calc(100vh - 96px);
   margin-top: 86px;
@@ -329,6 +339,37 @@ body {
 
 .post-card.text-only .post-card-actions {
   margin-top: auto;
+}
+
+.post-card.comments-open {
+  min-height: auto;
+  max-height: none;
+  height: auto;
+  overflow: hidden;
+}
+
+.post-card.text-only.comments-open {
+  max-height: none;
+  height: auto;
+  min-height: auto;
+}
+
+.post-card.comments-open .post-card-actions {
+  margin-top: 0;
+}
+
+.post-card.has-image.comments-open .post-card-window {
+  flex: 0 1 auto;
+  max-height: min(360px, 42vh);
+}
+
+.post-card.has-image.comments-open .post-card-window-body {
+  height: min(322px, calc(42vh - 38px));
+  max-height: calc(42vh - 38px);
+}
+
+.post-card.has-image.comments-open .post-card-window-body img {
+  height: 100%;
 }
 
 .post-card-header {
@@ -614,8 +655,8 @@ body {
 }
 
 .post-comments-section.expanded {
-  max-height: min(230px, 34vh);
-  overflow-y: auto;
+  max-height: min(380px, 50vh);
+  overflow: hidden;
   scrollbar-width: thin;
   scrollbar-color: #333 transparent;
 }
@@ -627,6 +668,22 @@ body {
   padding: 10px;
   background: rgba(255, 255, 255, 0.03);
   animation: commentsSlideDown 0.26s ease;
+  display: flex;
+  flex-direction: column;
+  max-height: none;
+  overflow: hidden;
+}
+
+.post-comments-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(260px, 32vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3f46 transparent;
+  touch-action: pan-y;
 }
 
 @keyframes commentsSlideDown {
@@ -729,6 +786,7 @@ body {
   display: flex;
   gap: 8px;
   margin-top: 10px;
+  flex-shrink: 0;
 }
 
 .comment-form input {

@@ -44,57 +44,59 @@ export default function PostComments({
     >
       {isExpanded && (
         <div className="post-comments-container">
-          {comments.length === 0 && (
-            <p className="post-comments-empty">Sem comentarios ainda.</p>
-          )}
+          <div className="post-comments-list">
+            {comments.length === 0 && (
+              <p className="post-comments-empty">Sem comentarios ainda.</p>
+            )}
 
-          {comments.map((comment) => (
-            <div key={comment.id} className="post-comment">
-              <div className="comment-row">
-                <div
-                  className="comment-avatar"
-                  style={{
-                    backgroundImage: comment.fotoPerfil ? `url(${comment.fotoPerfil})` : "none",
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenUserProfile?.(comment);
-                  }}
-                />
-                <div className="comment-content">
-                  <div className="comment-header">
-                    <strong
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenUserProfile?.(comment);
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      {comment.username}
-                    </strong>
-                    <small>@{comment.handle}</small>
-                  </div>
-                  <p className="comment-text">{comment.texto}</p>
-                  <small className="comment-time">
-                    {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
-                  </small>
-                </div>
-                {isOwnComment(comment) && (
-                  <button
-                    type="button"
-                    className="comment-delete-btn"
-                    title="Excluir comentario"
+            {comments.map((comment) => (
+              <div key={comment.id} className="post-comment">
+                <div className="comment-row">
+                  <div
+                    className="comment-avatar"
+                    style={{
+                      backgroundImage: comment.fotoPerfil ? `url(${comment.fotoPerfil})` : "none",
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteComment?.(postId, comment.id);
+                      onOpenUserProfile?.(comment);
                     }}
-                  >
-                    x
-                  </button>
-                )}
+                  />
+                  <div className="comment-content">
+                    <div className="comment-header">
+                      <strong
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenUserProfile?.(comment);
+                        }}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {comment.username}
+                      </strong>
+                      <small>@{comment.handle}</small>
+                    </div>
+                    <p className="comment-text">{comment.texto}</p>
+                    <small className="comment-time">
+                      {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
+                    </small>
+                  </div>
+                  {isOwnComment(comment) && (
+                    <button
+                      type="button"
+                      className="comment-delete-btn"
+                      title="Excluir comentario"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteComment?.(postId, comment.id);
+                      }}
+                    >
+                      x
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
           <form className="comment-form" onSubmit={handleSubmit}>
             <input
