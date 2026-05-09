@@ -655,7 +655,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
             <span><b>{usuario.seguindo?.length || 0}</b> Seguindo</span>
             <span><b>{usuario.seguidores || 0}</b> Seguidores</span>
             <span><b>{posts.length}</b> Posts</span>
-            <span><b>{usuario.projetos?.length || 0}</b> Projetos</span>
           </div>
 
           {isOwnProfile && (
