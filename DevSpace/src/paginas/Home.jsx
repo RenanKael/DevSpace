@@ -45,6 +45,24 @@ function normalizeHandle(value) {
   return (value || "usuario").replace(/\s+/g, "").toLowerCase();
 }
 
+function normalizeActionKey(value) {
+  return String(value || "").replace(/^@+/, "").replace(/\s+/g, "").toLowerCase().trim();
+}
+
+function getActionKeys(user) {
+  return [
+    normalizeActionKey(user?.email),
+    normalizeActionKey(user?.handle),
+    normalizeActionKey(user?.username),
+  ].filter(Boolean);
+}
+
+const ACTION_OWNER_FIELDS = {
+  shares: "repostedBy",
+  likes: "likedBy",
+  bookmarks: "savedBy",
+};
+
 function findUserProfile(item, users) {
   const email = (item?.email || "").toLowerCase();
   const handle = normalizeHandle(item?.handle || "");
@@ -132,8 +150,18 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   }
 
   function togglePostAction(postId, action) {
-    const isActive = !!activeActions[postId]?.[action];
+    const ownerField = ACTION_OWNER_FIELDS[action];
+    const userKeys = getActionKeys(usuario);
+    const savedPosts = JSON.parse(localStorage.getItem("posts")) || posts;
+    const currentPost = savedPosts.find((post) => post.id === postId) || posts.find((post) => post.id === postId);
+    const currentOwners = ownerField && Array.isArray(currentPost?.[ownerField])
+      ? currentPost[ownerField].map(normalizeActionKey)
+      : [];
+    const isActive = ownerField && userKeys.length > 0
+      ? userKeys.some((key) => currentOwners.includes(key))
+      : !!activeActions[postId]?.[action];
     const nextValue = !isActive;
+    const ownerKey = userKeys[0];
 
     setActiveActions((prev) => ({
       ...prev,
@@ -147,9 +175,19 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       const updatedPosts = prevPosts.map((post) => {
         if (post.id !== postId) return post;
         const currentValue = Number(post[action] || 0);
+        const owners = ownerField && Array.isArray(post[ownerField])
+          ? post[ownerField].map(normalizeActionKey)
+          : [];
+        const nextOwners = ownerField && ownerKey
+          ? nextValue
+            ? [...new Set([...owners, ownerKey])]
+            : owners.filter((key) => !userKeys.includes(key))
+          : owners;
+
         return {
           ...post,
           [action]: nextValue ? currentValue + 1 : Math.max(0, currentValue - 1),
+          ...(ownerField ? { [ownerField]: nextOwners } : {}),
         };
       });
       salvarPosts(updatedPosts);
@@ -431,6 +469,9 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           commentsList,
           comments: normalizedComments,
           isSeedFake: isLegacyFake,
+          likedBy: Array.isArray(post.likedBy) ? post.likedBy : [],
+          savedBy: Array.isArray(post.savedBy) ? post.savedBy : [],
+          repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
         };
         const storageComments = commentsList.map((comment) => {
           const commentProfile = isFakeIdentity(comment) ? null : findUserProfile(comment, usersList);
@@ -505,6 +546,22 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     const timer = setTimeout(() => setSyncToast(false), 2200);
     return () => clearTimeout(timer);
   }, [syncToast]);
+
+  useEffect(() => {
+    const userKeys = getActionKeys(usuario);
+    if (userKeys.length === 0) return;
+
+    const nextActions = {};
+    posts.forEach((post) => {
+      nextActions[post.id] = {};
+      Object.entries(ACTION_OWNER_FIELDS).forEach(([action, field]) => {
+        const owners = Array.isArray(post[field]) ? post[field].map(normalizeActionKey) : [];
+        nextActions[post.id][action] = userKeys.some((key) => owners.includes(key));
+      });
+    });
+
+    setActiveActions(nextActions);
+  }, [posts, usuario]);
 
   const reloadFeed = () => {
     if (loading) return;

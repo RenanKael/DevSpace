@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Login from "./paginas/Login";
 import Home from "./paginas/Home";
 import Perfil from "./paginas/Perfil";
+import PerfilColecao from "./paginas/PerfilColecao";
 import Explorar from "./paginas/explorar";
 import PostModal from "./components/PostModal";
 
@@ -71,6 +72,7 @@ function App() {
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postRefresh, setPostRefresh] = useState(0);
   const [perfilAlvo, setPerfilAlvo] = useState(null);
+  const [perfilCollection, setPerfilCollection] = useState("curtidos");
 
   useEffect(() => {
     const savedLocal = JSON.parse(localStorage.getItem("usuarioLogado"));
@@ -105,6 +107,9 @@ function App() {
           likes: Number(post.likes || 0),
           bookmarks: Number(post.bookmarks || 0),
           downloads: Number(post.downloads || 0),
+          likedBy: Array.isArray(post.likedBy) ? post.likedBy : [],
+          savedBy: Array.isArray(post.savedBy) ? post.savedBy : [],
+          repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
         };
       });
 
@@ -314,6 +319,41 @@ function App() {
           onOpenPost={handleOpenPost}
           refreshFeed={postRefresh}
           viewedUser={perfilAlvo}
+          onOpenProfileCollection={(tipo) => {
+            setPerfilCollection(tipo);
+            setPagina("perfilColecao");
+          }}
+        />
+
+        <PostModal
+          open={isPostModalOpen}
+          onClose={handleClosePost}
+          usuario={usuario}
+          onPostSaved={handlePostCreated}
+        />
+      </>
+    );
+  }
+
+  if (pagina === "perfilColecao") {
+    return (
+      <>
+        <PerfilColecao
+          tipo={perfilCollection}
+          irHome={() => {
+            setPerfilAlvo(null);
+            setPagina("home");
+          }}
+          irPerfil={() => {
+            setPerfilAlvo(null);
+            setPagina("perfil");
+          }}
+          irExplorar={() => {
+            setPerfilAlvo(null);
+            setPagina("explorar");
+          }}
+          onOpenPost={handleOpenPost}
+          onOpenUserProfile={abrirPerfilAlvo}
         />
 
         <PostModal

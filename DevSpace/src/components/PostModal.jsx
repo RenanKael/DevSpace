@@ -61,6 +61,9 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       likes: 0,
       bookmarks: 0,
       downloads: 0,
+      likedBy: [],
+      savedBy: [],
+      repostedBy: [],
     };
 
     if (!novoPost.email && !novoPost.username && !novoPost.handle) {

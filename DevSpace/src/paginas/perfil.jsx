@@ -4,7 +4,7 @@ import "../style/perfil.css";
 import { createPortal } from "react-dom";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
 
-export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenPost, refreshFeed, viewedUser }) {
+export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection }) {
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -12,6 +12,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const [activeMenuPostId, setActiveMenuPostId] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
   const [editingText, setEditingText] = useState("");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const [editandoImagem, setEditandoImagem] = useState(null);
 
@@ -213,6 +214,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
         setEditando(false);
         setEditandoImagem(null);
         setFotoPerfilAberta(false);
+        setProfileMenuOpen(false);
       }
     };
 
@@ -475,6 +477,12 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     onLogout();
   }
 
+  function openProfileCollection(tipo) {
+    if (!isOwnProfile) return;
+    setProfileMenuOpen(false);
+    onOpenProfileCollection?.(tipo);
+  }
+
   function toggleFollow() {
     if (isOwnProfile || !usuario || !usuarioLogado) return;
 
@@ -611,13 +619,46 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
           </button>
           <h3>{usuario.username}</h3>
 
-          <div className="avaliacao">
-            {Array.from({ length: starCount }, (_, index) => {
-              const n = index + 1;
-              return (
-                <span key={n} className={n <= activeStars ? "star ativa" : "star"}>★</span>
-              );
-            })}
+          <div className="topo-perfil-actions">
+            <div className="avaliacao">
+              {Array.from({ length: starCount }, (_, index) => {
+                const n = index + 1;
+                return (
+                  <span key={n} className={n <= activeStars ? "star ativa" : "star"}>★</span>
+                );
+              })}
+            </div>
+
+            {isOwnProfile && (
+              <div className="perfil-settings-wrap">
+                <button
+                  type="button"
+                  className="perfil-settings-btn"
+                  onClick={() => setProfileMenuOpen((open) => !open)}
+                  aria-label="Abrir configuracoes do perfil"
+                  aria-expanded={profileMenuOpen}
+                >
+                  ⋯
+                </button>
+
+                {profileMenuOpen && (
+                  <div className="perfil-settings-menu">
+                    <button type="button" onClick={() => openProfileCollection("curtidos")}>
+                      Curtidos
+                    </button>
+                    <button type="button" onClick={() => openProfileCollection("salvos")}>
+                      Posts salvos
+                    </button>
+                    <button type="button" onClick={() => openProfileCollection("republicados")}>
+                      Republicados
+                    </button>
+                    <button type="button" className="danger" onClick={logout}>
+                      Sair da conta
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -733,12 +774,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
             )}
           </div>
         </div>
-
-        {isOwnProfile && (
-          <button className="logout-bottom" onClick={logout}>
-            Sair da conta
-          </button>
-        )}
 
         {isOwnProfile && editando && createPortal(
           <div className="overlay">

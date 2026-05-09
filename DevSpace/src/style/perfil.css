@@ -60,7 +60,6 @@
 .avaliacao {
   display: flex;
   gap: 5px;
-  margin-right: 20px;
 }
 
 .star {
@@ -70,6 +69,70 @@
 
 .star.ativa {
   color: gold;
+}
+
+.topo-perfil-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.perfil-settings-wrap {
+  position: relative;
+}
+
+.perfil-settings-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #f5f5f5;
+  font-size: 24px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.perfil-settings-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.perfil-settings-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 190px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45);
+  z-index: 30;
+}
+
+.perfil-settings-menu button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #e8e8e8;
+  text-align: left;
+  padding: 11px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.perfil-settings-menu button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.perfil-settings-menu button.danger {
+  color: #ff8d8d;
 }
 
 /* ========================= */
@@ -241,6 +304,17 @@ button.foto:focus-visible {
   gap: 16px;
 }
 
+button.perfil-post-card {
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.perfil-post-card:hover {
+  background: #151515;
+}
+
 .perfil-post-avatar-card {
   width: 52px;
   height: 52px;
@@ -338,6 +412,22 @@ button.foto:focus-visible {
   border-radius: 14px;
 }
 
+.collection-top h3 {
+  left: 62px;
+}
+
+.profile-collection-page {
+  padding: 28px 30px 40px;
+}
+
+.collection-posts-list {
+  max-height: none;
+}
+
+.collection-post-card {
+  align-items: flex-start;
+}
+
 /* ========================= */
 /* LOGOUT */
 /* ========================= */
@@ -375,22 +465,6 @@ button.foto:focus-visible {
 }
 
 .logout-top:hover {
-  background: darkred;
-}
-
-.logout-bottom {
-  width: calc(100% - 60px);
-  margin: 20px 30px 40px;
-  padding: 12px 18px;
-  border: none;
-  border-radius: 20px;
-  background: red;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.logout-bottom:hover {
   background: darkred;
 }
 
