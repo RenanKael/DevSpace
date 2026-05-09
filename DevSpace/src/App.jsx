@@ -159,6 +159,7 @@ function App() {
           likedBy: Array.isArray(post.likedBy) ? post.likedBy : [],
           savedBy: Array.isArray(post.savedBy) ? post.savedBy : [],
           repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
+          downloadedBy: Array.isArray(post.downloadedBy) ? post.downloadedBy : [],
         };
       });
 

@@ -88,7 +88,11 @@ body {
 /* MAIN */
 .main {
   margin-left: 250px;
-  width: 100%;
+  width: calc(100% - 250px);
+  min-height: 100vh;
+  display: flex;
+  justify-content: flex-start;
+  overflow: hidden;
 }
 
 /* TOPBAR */
@@ -170,9 +174,120 @@ body {
 }
 
 /* FEED */
+.feed-layout {
+  width: 100%;
+  height: 100vh;
+  padding-left: clamp(28px, 5vw, 90px);
+  padding-right: 24px;
+  display: grid;
+  grid-template-columns: minmax(420px, 590px) minmax(280px, 360px);
+  gap: clamp(28px, 4vw, 58px);
+  align-items: start;
+}
+
 .feed {
+  width: 100%;
+  height: calc(100vh - 70px);
   margin-top: 70px;
-  padding: 20px;
+  padding: 20px 0;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-padding: 20px;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+.suggestions-sidebar {
+  height: calc(100vh - 96px);
+  margin-top: 86px;
+  overflow-y: auto;
+  padding: 4px 4px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+
+.suggestions-sidebar h3 {
+  margin: 0 0 18px;
+  color: #f4f4f5;
+  font-size: 1.05rem;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.suggestion-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.suggestion-avatar {
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+  background: #222;
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.suggestion-info {
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggestion-info strong,
+.suggestion-info span,
+.suggestion-info small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-info strong {
+  color: #f4f4f5;
+  font-size: 0.98rem;
+}
+
+.suggestion-info span {
+  color: #9aa0a6;
+  font-size: 0.88rem;
+  margin-top: 2px;
+}
+
+.suggestion-info small {
+  color: #8e949c;
+  font-size: 0.78rem;
+  margin-top: 3px;
+}
+
+.suggestion-follow {
+  border: none;
+  background: transparent;
+  color: #7aa2ff;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+
+.suggestion-follow:hover {
+  color: #a7c0ff;
 }
 
 /* POSTS FAKE */
@@ -185,17 +300,40 @@ body {
 
 .post-card {
   background: #111;
-  border-radius: 16px;
-  padding: 18px;
-  margin-bottom: 18px;
+  border-radius: 14px;
+  padding: 16px;
   box-shadow: 0 0 0 1px rgba(255,255,255,0.03);
+  min-height: calc(100vh - 110px);
+  max-height: calc(100vh - 110px);
+  display: flex;
+  flex-direction: column;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+}
+
+.post-card.text-only {
+  min-height: 180px;
+  max-height: 260px;
+  height: auto;
+  padding: 18px;
+  overflow: hidden;
+}
+
+.post-card.text-only .post-card-text {
+  -webkit-line-clamp: 4;
+  margin-bottom: 18px;
+}
+
+.post-card.text-only .post-card-actions {
+  margin-top: auto;
 }
 
 .post-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   position: relative;
 }
 
@@ -221,8 +359,8 @@ body {
 }
 
 .post-card-avatar {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: #333;
   background-size: cover;
@@ -241,9 +379,14 @@ body {
 }
 
 .post-card-text {
-  margin: 0 0 16px;
-  line-height: 1.6;
+  margin: 0 0 12px;
+  line-height: 1.45;
   color: #ddd;
+  font-size: 0.95rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .post-card-handle {
@@ -255,16 +398,20 @@ body {
 .post-card-window {
   background: #101214;
   border: 1px solid #2b2e33;
-  border-radius: 24px;
+  border-radius: 16px;
   overflow: hidden;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  flex: 1 1 180px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .post-card-window-top {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: #16181c;
 }
 
@@ -288,8 +435,9 @@ body {
 }
 
 .post-card-window-body {
-  background: white;
-  min-height: 220px;
+  background: #050505;
+  min-height: 0;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,54 +446,136 @@ body {
 
 .post-card-window-body img {
   width: 100%;
-  max-height: 320px;
-  object-fit: cover;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
   display: block;
 }
 
 .post-card-actions {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
+  align-items: center;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .post-card-actions button {
-  border: 1px solid #2b2e33;
-  background: rgba(255,255,255,0.04);
-  color: #eee;
-  border-radius: 14px;
-  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  border-radius: 50%;
+  padding: 0;
+  min-width: 36px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: color 0.22s ease, transform 0.22s ease, filter 0.22s ease;
 }
 
 .post-card-actions button:hover {
-  background: rgba(255,255,255,0.08);
-  transform: translateY(-1px);
+  background: transparent;
+  transform: translateY(-1px) scale(1.08);
 }
 
 .post-card-actions button span {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: currentColor;
+  font-size: 21px;
+  line-height: 1;
+  transition: color 0.22s ease, filter 0.22s ease, transform 0.22s ease;
+}
+
+.post-card-actions button span {
+  font-size: 0;
+}
+
+.post-card-actions button span::before {
+  content: "";
+  font-size: 22px;
+  line-height: 1;
+  color: currentColor;
+}
+
+.post-card-actions button[aria-label="Comentarios"] span::before {
+  content: "◌";
+}
+
+.post-card-actions button[aria-label="Repost"] span::before {
+  content: "↻";
+}
+
+.post-card-actions button[aria-label="Curtir"] span::before {
+  content: "♡";
+}
+
+.post-card-actions button[aria-label="Salvar"] span::before {
+  content: "▱";
+}
+
+.post-card-actions button[aria-label="Baixar"] span::before {
+  content: "⇩";
 }
 
 .post-card-actions button strong {
-  font-size: 0.95rem;
+  color: #aaa;
+  font-size: 0.86rem;
+  font-weight: 700;
+  min-width: 1ch;
 }
 
 .post-card-actions button.active {
-  border-color: #4a90e2;
-  background: rgba(74, 144, 226, 0.18);
+  color: #4a90e2;
+  background: transparent;
+}
+
+.post-card-actions button.active span {
+  filter: none;
+}
+
+.post-card-actions button[aria-label="Repost"].active {
+  color: #39d98a;
+}
+
+.post-card-actions button[aria-label="Salvar"].active {
+  color: #f8d66d;
+}
+
+.post-card-actions button[aria-label="Baixar"].active {
+  color: #60a5fa;
+}
+
+.post-card-actions button[aria-label="Curtir"].active {
+  color: #ff385c;
+}
+
+.post-card-actions button[aria-label="Curtir"].active span::before {
+  content: "❤";
+}
+
+.post-card-actions button[aria-label="Salvar"].active span::before {
+  content: "▰";
+}
+
+.post-card-actions button[aria-label="Curtir"].active span {
+  animation: likeTurnsRed 0.38s ease;
+  filter: none;
+  text-shadow: 0 0 18px rgba(255, 56, 92, 0.45);
 }
 
 .post-card-actions button.pulse {
-  animation: actionPulse 0.28s ease;
+  animation: iconButtonPulse 0.28s ease;
 }
 
-@keyframes actionPulse {
+@keyframes iconButtonPulse {
   0% {
     transform: scale(1);
   }
@@ -357,8 +587,35 @@ body {
   }
 }
 
+@keyframes likeTurnsRed {
+  0% {
+    color: #fff;
+    filter: grayscale(1) brightness(2.8);
+    transform: scale(0.78);
+  }
+  55% {
+    color: #ff385c;
+    filter: none;
+    transform: scale(1.32);
+  }
+  100% {
+    color: #ff385c;
+    filter: none;
+    transform: scale(1);
+  }
+}
+
 .post-comments-section {
   overflow: hidden;
+  flex-shrink: 0;
+  max-height: 0;
+}
+
+.post-comments-section.expanded {
+  max-height: min(230px, 34vh);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
 }
 
 .post-comments-container {
@@ -400,6 +657,7 @@ body {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  min-width: 0;
 }
 
 .comment-avatar {
@@ -415,6 +673,7 @@ body {
 
 .comment-content {
   flex: 1;
+  min-width: 0;
 }
 
 .comment-delete-btn {
@@ -443,6 +702,9 @@ body {
 .comment-text {
   margin: 6px 0;
   color: #f2f2f2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .load-more-comments {
@@ -905,4 +1167,60 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Icones de acoes desenhados em CSS para nao depender de emoji/fonte do sistema. */
+.post-card-actions button span {
+  position: relative;
+  font-size: 0 !important;
+}
+
+.post-card-actions button span::before {
+  content: "" !important;
+  width: 24px;
+  height: 24px;
+  display: block;
+  background: currentColor;
+  line-height: 1;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.post-card-actions button[aria-label="Comentarios"] span::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z'/%3E%3C/svg%3E");
+}
+
+.post-card-actions button[aria-label="Repost"] span::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 1l4 4-4 4'/%3E%3Cpath d='M3 11V9a4 4 0 0 1 4-4h14'/%3E%3Cpath d='M7 23l-4-4 4-4'/%3E%3Cpath d='M21 13v2a4 4 0 0 1-4 4H3'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 1l4 4-4 4'/%3E%3Cpath d='M3 11V9a4 4 0 0 1 4-4h14'/%3E%3Cpath d='M7 23l-4-4 4-4'/%3E%3Cpath d='M21 13v2a4 4 0 0 1-4 4H3'/%3E%3C/svg%3E");
+}
+
+.post-card-actions button[aria-label="Curtir"] span::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z'/%3E%3C/svg%3E");
+}
+
+.post-card-actions button[aria-label="Salvar"] span::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
+}
+
+.post-card-actions button[aria-label="Baixar"] span::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12'/%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3Cpath d='M5 21h14'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12'/%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3Cpath d='M5 21h14'/%3E%3C/svg%3E");
+}
+
+.post-card-actions button[aria-label="Curtir"].active span::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z'/%3E%3C/svg%3E");
+}
+
+.post-card-actions button[aria-label="Salvar"].active span::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
 }

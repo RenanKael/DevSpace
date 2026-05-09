@@ -20,8 +20,90 @@ const FAKE_COMMENT_POOL = [
   { username: "Duda Product", handle: "dudaproduct", texto: "Esse fluxo ficou muito mais intuitivo." },
 ];
 
+const SUGGESTED_PROFILE_POOL = [
+  { username: "Joao Gabriel", handle: "joaogabriel", bio: "Front-end, treino e interfaces limpas." },
+  { username: "Rockstar Games", handle: "rockstargames", bio: "Projetos, games e bastidores criativos." },
+  { username: "Pedro Zauristak", handle: "pedrozauristak", bio: "Fotografia, design e pequenos projetos." },
+  { username: "o terror dos profs", handle: "terrordosprofs", bio: "Codando e testando ideias no DevSpace." },
+  { username: "dieli", handle: "dieli", bio: "UI, rotina e estudos." },
+  { username: "Maya Dev", handle: "mayadev", bio: "React, produto e cafe." },
+  { username: "Lucas Motion", handle: "lucasmotion", bio: "Animacoes e microinteracoes." },
+  { username: "Sofia UX", handle: "sofiaux", bio: "Experiencias simples para problemas chatos." },
+  { username: "Nicolas Code", handle: "nicolascode", bio: "Back-end curioso com alma de front." },
+  { username: "Clara Pixel", handle: "clarapixel", bio: "Design visual e posts com referencias." },
+  { username: "Mateus Stack", handle: "mateusstack", bio: "APIs, bancos e deploys sem drama." },
+  { username: "Lara Studio", handle: "larastudio", bio: "Branding, telas e experimentos." },
+  { username: "Gui Mobile", handle: "guimobile", bio: "Apps, prototipos e performance." },
+  { username: "Bia Product", handle: "biaproduct", bio: "Produto digital e pesquisa." },
+  { username: "Rafa Cloud", handle: "rafacloud", bio: "Infra, automacao e observabilidade." },
+  { username: "Iris Data", handle: "irisdata", bio: "Dados, dashboards e historias." },
+  { username: "Theo Games", handle: "theogames", bio: "Gameplay, level design e Unity." },
+  { username: "Manu CSS", handle: "manucss", bio: "CSS, layout e componentes." },
+  { username: "Enzo AI", handle: "enzoai", bio: "IA aplicada em produtos pequenos." },
+  { username: "Helena QA", handle: "helenaqa", bio: "Testes, bugs e qualidade." },
+];
+
+const COMMUNITY_FEED_SEED = [
+  { id: 9101, username: "Maya Dev", handle: "mayadev", texto: "Refatorei um componente hoje e finalmente ficou legivel. Pequenas vitorias contam muito.", imagem: "" },
+  { id: 9102, username: "Clara Pixel", handle: "clarapixel", texto: "Moodboard novo para um dashboard escuro com contraste melhor.", imagem: "https://picsum.photos/seed/devspace-ui-board/900/700" },
+  { id: 9103, username: "Lucas Motion", handle: "lucasmotion", texto: "Microanimacao boa e aquela que quase ninguem percebe, mas todo mundo sente.", imagem: "" },
+  { id: 9104, username: "Sofia UX", handle: "sofiaux", texto: "Testei um fluxo de cadastro com menos campos. A sensacao ficou bem mais leve.", imagem: "https://picsum.photos/seed/devspace-flow/900/650" },
+  { id: 9105, username: "Nicolas Code", handle: "nicolascode", texto: "Uma API bem documentada economiza uma tarde inteira de confusao.", imagem: "" },
+  { id: 9106, username: "Lara Studio", handle: "larastudio", texto: "Experimentando capas de perfil com mais personalidade.", imagem: "https://picsum.photos/seed/devspace-cover-study/900/700" },
+  { id: 9107, username: "Mateus Stack", handle: "mateusstack", texto: "Deploy de sexta sem susto: checklist, variaveis conferidas e logs abertos.", imagem: "" },
+  { id: 9108, username: "Bia Product", handle: "biaproduct", texto: "Ideia do dia: salvar feedback bruto antes de tentar transformar tudo em feature.", imagem: "" },
+  { id: 9109, username: "Theo Games", handle: "theogames", texto: "Prototipo de cena com luz mais dramatica. Ainda simples, mas ja deu clima.", imagem: "https://picsum.photos/seed/devspace-game-scene/900/700" },
+  { id: 9110, username: "Manu CSS", handle: "manucss", texto: "Grid resolveu em cinco linhas o layout que eu estava complicando com vinte.", imagem: "https://picsum.photos/seed/devspace-css-grid/900/650" },
+];
+
 function fakeAvatar(handle) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle)}`;
+}
+
+function fakeCover(handle) {
+  return `https://picsum.photos/seed/${encodeURIComponent(handle + "-cover")}/1200/320`;
+}
+
+function buildSuggestedUser(profile) {
+  const handle = normalizeHandle(profile.handle || profile.username);
+  return {
+    username: profile.username,
+    handle,
+    email: `${handle}@devspace.fake`,
+    senha: "123456",
+    criadoEm: new Date(Date.now() - 86400000).toISOString(),
+    bio: profile.bio || "Perfil da comunidade DevSpace.",
+    fotoPerfil: fakeAvatar(handle),
+    fotoCapa: fakeCover(handle),
+    estrelas: 1,
+    projetos: [],
+    seguidores: 0,
+    seguindo: [],
+    comments: 0,
+    isAdmin: false,
+  };
+}
+
+function buildCommunityPost(seed, index) {
+  const handle = normalizeHandle(seed.handle || seed.username);
+  return {
+    ...seed,
+    handle,
+    email: `${handle}@devspace.fake`,
+    fotoPerfil: fakeAvatar(handle),
+    comments: (index % 3) + 1,
+    commentsList: buildFakeComments(seed.id, (index % 3) + 1),
+    isSeedFake: true,
+    shares: index % 4,
+    likes: 6 + index * 2,
+    bookmarks: index % 3,
+    downloads: index % 2,
+    likedBy: [],
+    savedBy: [],
+    repostedBy: [],
+    downloadedBy: [],
+    criadoEm: new Date(Date.now() - index * 2700000).toISOString(),
+  };
 }
 
 function buildFakeComments(postId, count) {
@@ -61,6 +143,7 @@ const ACTION_OWNER_FIELDS = {
   shares: "repostedBy",
   likes: "likedBy",
   bookmarks: "savedBy",
+  downloads: "downloadedBy",
 };
 
 function findUserProfile(item, users) {
@@ -109,7 +192,16 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
     setUsuario(localUser || sessionUser);
     const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
-    setUsuarios(Array.isArray(savedUsers) ? savedUsers : []);
+    const usersList = Array.isArray(savedUsers) ? savedUsers : [];
+    const knownHandles = new Set(usersList.map((u) => normalizeHandle(u.handle || u.username)));
+    const suggestedUsers = SUGGESTED_PROFILE_POOL
+      .filter((profile) => !knownHandles.has(normalizeHandle(profile.handle || profile.username)))
+      .map(buildSuggestedUser);
+    const nextUsers = [...usersList, ...suggestedUsers];
+    if (suggestedUsers.length > 0) {
+      localStorage.setItem("usuarios", JSON.stringify(nextUsers));
+    }
+    setUsuarios(nextUsers);
   }, []);
 
   const [posts, setPosts] = useState([]);
@@ -409,20 +501,24 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           },
         ]
       : [];
+    const communitySeed = COMMUNITY_FEED_SEED.map(buildCommunityPost);
+    const seedPosts = [...communitySeed, ...fakeSeed];
 
     if (!Array.isArray(saved) || saved.length === 0) {
-      if (isAdmin) {
-        salvarPosts(fakeSeed);
-        localStorage.setItem("adminSeedInitialized", "true");
-        setPosts(fakeSeed);
-      } else {
-        setPosts(saved);
-      }
+      salvarPosts(seedPosts);
+      localStorage.setItem("communitySeedInitialized", "true");
+      if (isAdmin) localStorage.setItem("adminSeedInitialized", "true");
+      setPosts(seedPosts);
     } else {
       const hasLegacySeed = saved.some((post) => post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com"));
-      const savedWithRecoveredSeed = isAdmin && !hasLegacySeed
-        ? [...fakeSeed, ...saved]
+      const savedIds = new Set(saved.map((post) => Number(post.id)));
+      const missingCommunitySeed = communitySeed.filter((post) => !savedIds.has(Number(post.id)));
+      const savedWithCommunitySeed = missingCommunitySeed.length > 0
+        ? [...missingCommunitySeed, ...saved]
         : saved;
+      const savedWithRecoveredSeed = isAdmin && !hasLegacySeed
+        ? [...fakeSeed, ...savedWithCommunitySeed]
+        : savedWithCommunitySeed;
 
       if (savedWithRecoveredSeed !== saved) {
         salvarPosts(savedWithRecoveredSeed);
@@ -472,6 +568,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           likedBy: Array.isArray(post.likedBy) ? post.likedBy : [],
           savedBy: Array.isArray(post.savedBy) ? post.savedBy : [],
           repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
+          downloadedBy: Array.isArray(post.downloadedBy) ? post.downloadedBy : [],
         };
         const storageComments = commentsList.map((comment) => {
           const commentProfile = isFakeIdentity(comment) ? null : findUserProfile(comment, usersList);
@@ -621,6 +718,79 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     return [...dedupedMap.values()];
   })();
 
+  const suggestedProfiles = (() => {
+    const currentHandle = normalizeHandle(usuario?.handle || usuario?.username || "");
+    const following = new Set((Array.isArray(usuario?.seguindo) ? usuario.seguindo : []).map(normalizeHandle));
+    const merged = [...usuarios, ...SUGGESTED_PROFILE_POOL.map(buildSuggestedUser)];
+    const dedupedMap = new Map();
+
+    merged.forEach((profile) => {
+      const handle = normalizeHandle(profile.handle || profile.username);
+      if (!handle || handle === currentHandle || following.has(handle)) return;
+      if (!dedupedMap.has(handle)) {
+        dedupedMap.set(handle, {
+          ...profile,
+          handle,
+          fotoPerfil: profile.fotoPerfil || fakeAvatar(handle),
+          bio: profile.bio || "Perfil da comunidade DevSpace.",
+        });
+      }
+    });
+
+    return [...dedupedMap.values()].slice(0, 24);
+  })();
+
+  function followSuggestedProfile(profile) {
+    if (!usuario || !profile) return;
+
+    const target = buildSuggestedUser(profile);
+    const targetHandle = normalizeHandle(target.handle || target.username);
+    const loggedEmail = (usuario.email || "").toLowerCase();
+    const loggedHandle = normalizeHandle(usuario.handle || usuario.username);
+    const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const usersList = Array.isArray(savedUsers) ? savedUsers : [];
+    const hasTarget = usersList.some((u) => normalizeHandle(u.handle || u.username) === targetHandle);
+    const baseUsers = hasTarget ? usersList : [...usersList, target];
+
+    const nextUsers = baseUsers.map((u) => {
+      const userEmail = (u.email || "").toLowerCase();
+      const userHandle = normalizeHandle(u.handle || u.username);
+
+      if ((loggedEmail && userEmail === loggedEmail) || (loggedHandle && userHandle === loggedHandle)) {
+        const seguindo = Array.isArray(u.seguindo) ? u.seguindo.map(normalizeHandle) : [];
+        return {
+          ...u,
+          seguindo: [...new Set([...seguindo, targetHandle])],
+        };
+      }
+
+      if (userHandle === targetHandle) {
+        return {
+          ...u,
+          seguidores: Number(u.seguidores || 0) + 1,
+        };
+      }
+
+      return u;
+    });
+
+    const nextLogged = nextUsers.find((u) => {
+      const userEmail = (u.email || "").toLowerCase();
+      const userHandle = normalizeHandle(u.handle || u.username);
+      return (loggedEmail && userEmail === loggedEmail) || (loggedHandle && userHandle === loggedHandle);
+    }) || usuario;
+
+    localStorage.setItem("usuarios", JSON.stringify(nextUsers));
+    if (localStorage.getItem("usuarioLogado")) {
+      localStorage.setItem("usuarioLogado", JSON.stringify(nextLogged));
+    }
+    if (sessionStorage.getItem("usuarioLogado")) {
+      sessionStorage.setItem("usuarioLogado", JSON.stringify(nextLogged));
+    }
+    setUsuarios(nextUsers);
+    setUsuario(nextLogged);
+  }
+
   const selectedPostData = selectedPost
     ? posts.find((post) => post.id === selectedPost.id) || selectedPost
     : null;
@@ -632,6 +802,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       <div className="main">
         <Topbar visible={showTopbar} usuario={usuario} onSearch={setSearchQuery} />
 
+        <div className="feed-layout">
         <div className="feed">
           {loading && <p>Carregando...</p>}
           {!loading && filteredPosts.length === 0 && profileOnlyResults.length === 0 && (
@@ -667,7 +838,11 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           )}
 
           {filteredPosts.map((post) => (
-            <div key={post.id} className="post-card" onClick={() => setSelectedPost(post)}>
+            <div
+              key={post.id}
+              className={post.imagem ? "post-card has-image" : "post-card text-only"}
+              onClick={() => setSelectedPost(post)}
+            >
               <div className="post-card-header">
                 <div
                   className="post-card-avatar"
@@ -783,6 +958,39 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
               />
             </div>
           ))}
+        </div>
+        <aside className="suggestions-sidebar" aria-label="Sugestoes de perfis">
+          <h3>Sugestões para você</h3>
+          <div className="suggestions-list">
+            {suggestedProfiles.map((profile) => (
+              <div key={profile.email || profile.handle} className="suggestion-card">
+                <button
+                  type="button"
+                  className="suggestion-avatar"
+                  style={{ backgroundImage: profile.fotoPerfil ? `url(${profile.fotoPerfil})` : "none" }}
+                  onClick={() => onOpenUserProfile?.(profile)}
+                  aria-label={`Abrir perfil de ${profile.username}`}
+                />
+                <button
+                  type="button"
+                  className="suggestion-info"
+                  onClick={() => onOpenUserProfile?.(profile)}
+                >
+                  <strong>{profile.username}</strong>
+                  <span>@{profile.handle || profile.username}</span>
+                  <small>{profile.bio || "Perfil da comunidade DevSpace."}</small>
+                </button>
+                <button
+                  type="button"
+                  className="suggestion-follow"
+                  onClick={() => followSuggestedProfile(profile)}
+                >
+                  Seguir
+                </button>
+              </div>
+            ))}
+          </div>
+        </aside>
         </div>
       </div>
 
