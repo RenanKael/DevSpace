@@ -14,6 +14,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const [editingPost, setEditingPost] = useState(null);
   const [editingText, setEditingText] = useState("");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
+  const [adminOverrideStars, setAdminOverrideStars] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const [editandoImagem, setEditandoImagem] = useState(null);
 
@@ -194,6 +197,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       usuarioLogado.handle.toLowerCase() === usuario.handle.toLowerCase();
     return !!(emailMatch || handleMatch);
   }, [usuario, usuarioLogado]);
+
+  const isAdmin = usuarioLogado?.email === "renan.kael@gmail.com";
 
   useEffect(() => {
     if (!usuario) return;
@@ -624,9 +629,10 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   }, [usuario.avaliacao, usuario.estrelas, isRenan, previousActiveStars]);
 
   const isRenan = usuario.email === "renan.kael@gmail.com";
-  const starCount = isRenan ? 6 : 5;
-  const activeStars = isRenan ? 6 : Number(usuario.avaliacao || usuario.estrelas || 0);
-  const criadoEm = isRenan ? "26/06/206" : new Date(usuario.criadoEm).toLocaleDateString();
+  const starCount = 5;
+  const activeStars = Number(usuario.avaliacao || usuario.estrelas || 0);
+  const displayActiveStars = adminOverrideStars !== null ? adminOverrideStars : activeStars;
+  const criadoEm = new Date(usuario.criadoEm).toLocaleDateString();
 
   return (
     <div className="home">
@@ -644,7 +650,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
             <div className="avaliacao">
               {Array.from({ length: starCount }, (_, index) => {
                 const n = index + 1;
-                const isActive = n <= activeStars;
+                const isActive = n <= displayActiveStars;
                 const isGaining = n === animatingStar;
                 return (
                   <span key={n} className={`star ${isActive ? "ativa" : ""} ${isGaining ? "gaining" : ""}`}>★</span>
@@ -675,6 +681,11 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                     <button type="button" onClick={() => openProfileCollection("republicados")}>
                       Republicados
                     </button>
+                    {isAdmin && (
+                      <button type="button" onClick={() => { setAdminMode(true); setProfileMenuOpen(false); }}>
+                        Admin Tools
+                      </button>
+                    )}
                     <button type="button" className="danger" onClick={logout}>
                       Sair da conta
                     </button>
@@ -778,17 +789,26 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                     <div className="perfil-post-text">{post.texto || "Post sem texto"}</div>
                     {post.salvo && <div className="perfil-post-saved">Salvo</div>}
 
-                    {isOwnProfile && activeMenuPostId === post.id && (
+                    {(isOwnProfile || isAdmin) && activeMenuPostId === post.id && (
                       <div className="perfil-post-menu">
-                        <button type="button" onClick={() => toggleSavePost(post)}>
-                          {post.salvo ? "Desfazer salvar" : "Salvar post"}
-                        </button>
-                        <button type="button" onClick={() => editPost(post)}>
-                          Editar post
-                        </button>
-                        <button type="button" onClick={() => deletePost(post.id)}>
-                          Excluir post
-                        </button>
+                        {isOwnProfile && (
+                          <>
+                            <button type="button" onClick={() => toggleSavePost(post)}>
+                              {post.salvo ? "Desfazer salvar" : "Salvar post"}
+                            </button>
+                            <button type="button" onClick={() => editPost(post)}>
+                              Editar post
+                            </button>
+                            <button type="button" onClick={() => deletePost(post.id)}>
+                              Excluir post
+                            </button>
+                          </>
+                        )}
+                        {isAdmin && !isOwnProfile && (
+                          <button type="button" className="danger" onClick={() => setDeleteConfirm(post.id)}>
+                            Delete Post (Admin)
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -885,6 +905,59 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
               <div className="popup-btns">
                 <button onClick={savePostEdit}>Salvar</button>
                 <button onClick={() => setEditingPost(null)}>Cancelar</button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {isAdmin && adminMode && createPortal(
+          <div className="overlay">
+            <div className="popup">
+              <button className="close-btn" onClick={() => { setAdminMode(false); setAdminOverrideStars(null); setAnimatingStar(null); }}>x</button>
+              <h2>Admin Tools</h2>
+
+              <h3>Star Verification</h3>
+              <div className="avaliacao admin-stars">
+                {Array.from({ length: starCount }, (_, index) => {
+                  const n = index + 1;
+                  const isActive = n <= (adminOverrideStars !== null ? adminOverrideStars : activeStars);
+                  const isGaining = n === animatingStar;
+                  return (
+                    <span
+                      key={n}
+                      className={`star ${isActive ? "ativa" : ""} ${isGaining ? "gaining" : ""}`}
+                      onClick={() => {
+                        setAdminOverrideStars(n);
+                        setAnimatingStar(n);
+                        setTimeout(() => setAnimatingStar(null), 1000);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      ★
+                    </span>
+                  );
+                })}
+              </div>
+              <p>Click on a star to simulate gaining that star level.</p>
+
+              <div className="popup-btns">
+                <button onClick={() => { setAdminMode(false); setAdminOverrideStars(null); setAnimatingStar(null); }}>Close</button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {deleteConfirm && createPortal(
+          <div className="overlay">
+            <div className="popup">
+              <button className="close-btn" onClick={() => setDeleteConfirm(null)}>x</button>
+              <h2>Confirm Delete</h2>
+              <p>Are you sure you want to delete this post as admin? This action cannot be undone.</p>
+              <div className="popup-btns">
+                <button className="danger" onClick={() => { deletePost(deleteConfirm); setDeleteConfirm(null); }}>Delete</button>
+                <button onClick={() => setDeleteConfirm(null)}>Cancel</button>
               </div>
             </div>
           </div>,
