@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
+import { recordUserCommentProgress, syncUsersStarProgress } from "../utils/starProgress";
 import "../style/home.css";
 
 const FAKE_COMMENT_POOL = [
@@ -43,17 +44,78 @@ const SUGGESTED_PROFILE_POOL = [
   { username: "Helena QA", handle: "helenaqa", bio: "Testes, bugs e qualidade." },
 ];
 
+function escapeSvgText(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function codeShot(title, subtitle, lines) {
+  const codeRows = lines.map((line, index) => {
+    const y = 150 + index * 34;
+    const color = line.color || "#d7dce2";
+    return `<text x="82" y="${y}" fill="${color}" font-size="20" font-family="Consolas, monospace">${escapeSvgText(line.text)}</text>`;
+  }).join("");
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650">
+      <rect width="900" height="650" fill="#080a0d"/>
+      <rect x="46" y="42" width="808" height="566" rx="22" fill="#111418" stroke="#2b2f36"/>
+      <rect x="46" y="42" width="808" height="58" rx="22" fill="#171b21"/>
+      <circle cx="82" cy="72" r="9" fill="#ff5f57"/>
+      <circle cx="112" cy="72" r="9" fill="#ffbd2e"/>
+      <circle cx="142" cy="72" r="9" fill="#28c840"/>
+      <text x="180" y="78" fill="#aab2bf" font-size="18" font-family="Inter, Arial, sans-serif">${escapeSvgText(title)}</text>
+      <text x="70" y="126" fill="#7aa2ff" font-size="17" font-family="Inter, Arial, sans-serif">${escapeSvgText(subtitle)}</text>
+      <rect x="66" y="138" width="768" height="430" rx="14" fill="#0b0e12" stroke="#20242c"/>
+      ${codeRows}
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+const FAKE_CODE_IMAGES = {
+  9102: codeShot("dashboard-theme.css", "dark dashboard moodboard", [
+    { text: ":root { --bg: #090b10; --panel: #151922; }", color: "#d7dce2" },
+    { text: ".metric { color: #f4f7fb; border-color: #2c3442; }", color: "#93c5fd" },
+    { text: ".alert { color: #f8d66d; background: rgba(248,214,109,.12); }", color: "#fbbf24" },
+  ]),
+  9104: codeShot("signup-flow.jsx", "shorter signup flow", [
+    { text: "const fields = ['email', 'password'];", color: "#d7dce2" },
+    { text: "const optional = ['company', 'role'];", color: "#9ca3af" },
+    { text: "return <SignupForm fields={fields} next='profile' />;", color: "#93c5fd" },
+  ]),
+  9106: codeShot("cover-studio.jsx", "profile cover experiments", [
+    { text: "const cover = createGradient(['#111827', '#7aa2ff']);", color: "#d7dce2" },
+    { text: "cover.addLayer('grid', { opacity: .16 });", color: "#93c5fd" },
+    { text: "export default <ProfileCover art={cover} />;", color: "#c084fc" },
+  ]),
+  9109: codeShot("scene-lighting.cs", "dramatic prototype scene", [
+    { text: "sun.intensity = 0.45f;", color: "#d7dce2" },
+    { text: "fog.color = new Color(0.08f, 0.10f, 0.14f);", color: "#93c5fd" },
+    { text: "playerSpawn.SetMood('quiet-night');", color: "#c084fc" },
+  ]),
+  9110: codeShot("layout-grid.css", "five-line grid solution", [
+    { text: ".board { display: grid; gap: 12px; }", color: "#d7dce2" },
+    { text: "grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));", color: "#93c5fd" },
+    { text: ".panel { min-width: 0; }", color: "#86efac" },
+  ]),
+};
+
 const COMMUNITY_FEED_SEED = [
   { id: 9101, username: "Maya Dev", handle: "mayadev", texto: "Refatorei um componente hoje e finalmente ficou legivel. Pequenas vitorias contam muito.", imagem: "" },
-  { id: 9102, username: "Clara Pixel", handle: "clarapixel", texto: "Moodboard novo para um dashboard escuro com contraste melhor.", imagem: "https://picsum.photos/seed/devspace-ui-board/900/700" },
+  { id: 9102, username: "Clara Pixel", handle: "clarapixel", texto: "Moodboard novo para um dashboard escuro com contraste melhor.", imagem: FAKE_CODE_IMAGES[9102] },
   { id: 9103, username: "Lucas Motion", handle: "lucasmotion", texto: "Microanimacao boa e aquela que quase ninguem percebe, mas todo mundo sente.", imagem: "" },
-  { id: 9104, username: "Sofia UX", handle: "sofiaux", texto: "Testei um fluxo de cadastro com menos campos. A sensacao ficou bem mais leve.", imagem: "https://picsum.photos/seed/devspace-flow/900/650" },
+  { id: 9104, username: "Sofia UX", handle: "sofiaux", texto: "Testei um fluxo de cadastro com menos campos. A sensacao ficou bem mais leve.", imagem: FAKE_CODE_IMAGES[9104] },
   { id: 9105, username: "Nicolas Code", handle: "nicolascode", texto: "Uma API bem documentada economiza uma tarde inteira de confusao.", imagem: "" },
-  { id: 9106, username: "Lara Studio", handle: "larastudio", texto: "Experimentando capas de perfil com mais personalidade.", imagem: "https://picsum.photos/seed/devspace-cover-study/900/700" },
+  { id: 9106, username: "Lara Studio", handle: "larastudio", texto: "Experimentando capas de perfil com mais personalidade.", imagem: FAKE_CODE_IMAGES[9106] },
   { id: 9107, username: "Mateus Stack", handle: "mateusstack", texto: "Deploy de sexta sem susto: checklist, variaveis conferidas e logs abertos.", imagem: "" },
   { id: 9108, username: "Bia Product", handle: "biaproduct", texto: "Ideia do dia: salvar feedback bruto antes de tentar transformar tudo em feature.", imagem: "" },
-  { id: 9109, username: "Theo Games", handle: "theogames", texto: "Prototipo de cena com luz mais dramatica. Ainda simples, mas ja deu clima.", imagem: "https://picsum.photos/seed/devspace-game-scene/900/700" },
-  { id: 9110, username: "Manu CSS", handle: "manucss", texto: "Grid resolveu em cinco linhas o layout que eu estava complicando com vinte.", imagem: "https://picsum.photos/seed/devspace-css-grid/900/650" },
+  { id: 9109, username: "Theo Games", handle: "theogames", texto: "Prototipo de cena com luz mais dramatica. Ainda simples, mas ja deu clima.", imagem: FAKE_CODE_IMAGES[9109] },
+  { id: 9110, username: "Manu CSS", handle: "manucss", texto: "Grid resolveu em cinco linhas o layout que eu estava complicando com vinte.", imagem: FAKE_CODE_IMAGES[9110] },
 ];
 
 function fakeAvatar(handle) {
@@ -75,7 +137,13 @@ function buildSuggestedUser(profile) {
     bio: profile.bio || "Perfil da comunidade DevSpace.",
     fotoPerfil: fakeAvatar(handle),
     fotoCapa: fakeCover(handle),
-    estrelas: 1,
+    estrelas: 0,
+    avaliacao: 0,
+    starStats: {
+      postsCreated: 0,
+      commentsMade: 0,
+      firstPostAwarded: false,
+    },
     projetos: [],
     seguidores: 0,
     seguindo: [],
@@ -158,7 +226,6 @@ function findUserProfile(item, users) {
   if (byEmail) return byEmail;
 
   return users.find((user) => {
-    const userEmail = (user.email || "").toLowerCase();
     const userHandle = normalizeHandle(user.handle || user.username || "");
     const userName = (user.username || "").toLowerCase();
 
@@ -212,7 +279,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   const [activeActions, setActiveActions] = useState({});
   const [syncToast, setSyncToast] = useState(false);
 
-  useOverlayClose(!!selectedPost, () => setSelectedPost(null));
+  useOverlayClose(!!selectedPost && !commentsPostId, () => setSelectedPost(null));
   useOverlayClose(!!imagePreview, () => setImagePreview(null));
   useOverlayClose(!!commentsPostId, () => setCommentsPostId(null));
 
@@ -290,6 +357,20 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
     const usuarioAtualizado = findUserProfile(usuario, usuarios) || usuario;
     const commentHandle = (usuarioAtualizado.handle || usuarioAtualizado.username || "usuario").replace(/\s+/g, "").toLowerCase();
+    const { updatedUser } = recordUserCommentProgress(usuarioAtualizado);
+    setUsuario(updatedUser);
+    setUsuarios((prev) => {
+      let found = false;
+      const next = prev.map((item) => {
+        const sameEmail = updatedUser.email && item.email &&
+          item.email.toLowerCase() === updatedUser.email.toLowerCase();
+        const sameHandle = (updatedUser.handle || updatedUser.username || "").toLowerCase() ===
+          (item.handle || item.username || "").toLowerCase();
+        if (sameEmail || sameHandle) found = true;
+        return sameEmail || sameHandle ? updatedUser : item;
+      });
+      return found ? next : [...next, updatedUser];
+    });
 
     setPosts((prevPosts) => {
       const updatedPosts = prevPosts.map((post) => {
@@ -506,6 +587,12 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       salvarPosts(seedPosts);
       localStorage.setItem("communitySeedInitialized", "true");
       if (isAdmin) localStorage.setItem("adminSeedInitialized", "true");
+      const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+      const progressedUsers = syncUsersStarProgress(savedUsers, seedPosts);
+      if (JSON.stringify(progressedUsers) !== JSON.stringify(savedUsers)) {
+        localStorage.setItem("usuarios", JSON.stringify(progressedUsers));
+        setUsuarios(progressedUsers);
+      }
       setPosts(seedPosts);
     } else {
       const hasLegacySeed = saved.some((post) => post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com"));
@@ -554,12 +641,14 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         const normalizedComments = isLegacyFake
           ? commentsList.length
           : rawComments.length;
+        const fakeCodeImage = FAKE_CODE_IMAGES[Number(post.id)];
         const normalizedPost = {
           ...post,
           username: postProfile?.username || post.username,
           handle: postProfile?.handle || post.handle,
           email: postProfile?.email || post.email,
           fotoPerfil: postProfile?.fotoPerfil || post.fotoPerfil || (isLegacyFake ? fakeAvatar(postHandle) : ""),
+          imagem: isLegacyFake ? (fakeCodeImage || "") : post.imagem,
           commentsList,
           comments: normalizedComments,
           isSeedFake: isLegacyFake,
@@ -584,6 +673,11 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       });
       if (JSON.stringify(postsParaSalvar) !== JSON.stringify(saved)) {
         salvarPosts(postsParaSalvar);
+      }
+      const progressedUsers = syncUsersStarProgress(usersList, postsParaSalvar);
+      if (JSON.stringify(progressedUsers) !== JSON.stringify(usersList)) {
+        localStorage.setItem("usuarios", JSON.stringify(progressedUsers));
+        setUsuarios(progressedUsers);
       }
       setPosts(normalizedPosts);
     }

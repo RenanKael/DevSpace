@@ -5,6 +5,11 @@ import Perfil from "./paginas/Perfil";
 import PerfilColecao from "./paginas/PerfilColecao";
 import Explorar from "./paginas/explorar";
 import PostModal from "./components/PostModal";
+import {
+  isSameUser,
+  recordUserPostProgress,
+  syncUsersStarProgress,
+} from "./utils/starProgress";
 
 function fakeAvatar(handle) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle || "usuario")}`;
@@ -26,6 +31,28 @@ function scoreUser(user) {
     (user?.fotoCapa ? 2 : 0) +
     (user?.email ? 1 : 0) +
     (user?.username ? 1 : 0)
+  );
+}
+
+function StarAchievement({ open, stars }) {
+  if (!open) return null;
+  const count = Math.max(1, Math.min(5, Number(stars || 1)));
+
+  return (
+    <div className="achievement-overlay" aria-live="polite">
+      <div className="achievement-card">
+        <div className="achievement-label">Conquista desbloqueada</div>
+        <h2>{count === 1 ? "Primeiro post publicado" : `Nivel ${count} alcancado`}</h2>
+        <p>Seu perfil ganhou {count === 1 ? "a primeira estrela" : `${count} estrelas`}.</p>
+        <div className="achievement-stars" aria-label={`${count} de 5 estrelas`}>
+          {Array.from({ length: 5 }, (_, index) => (
+            <span key={index} className={index < count ? "achievement-star earned" : "achievement-star"}>
+              &#9733;
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -104,7 +131,13 @@ function createCommunityUser(user) {
     bio: user.bio || "Perfil da comunidade DevSpace.",
     fotoPerfil: user.fotoPerfil || fakeAvatar(handle),
     fotoCapa: user.fotoCapa || fakeCover(handle),
-    estrelas: 1,
+    estrelas: 0,
+    avaliacao: 0,
+    starStats: {
+      postsCreated: 0,
+      commentsMade: 0,
+      firstPostAwarded: false,
+    },
     projetos: [],
     seguidores: 0,
     seguindo: [],
@@ -119,6 +152,7 @@ function App() {
   const [usuario, setUsuario] = useState(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postRefresh, setPostRefresh] = useState(0);
+  const [achievementStars, setAchievementStars] = useState(0);
   const pagina = route.pagina;
   const perfilAlvo = route.perfilAlvo;
   const perfilCollection = route.perfilCollection;
@@ -206,7 +240,13 @@ function App() {
             bio: "Perfil da comunidade DevSpace.",
             fotoPerfil: post.fotoPerfil || fakeAvatar(handle),
             fotoCapa: fakeCover(handle),
-            estrelas: 1,
+            estrelas: 0,
+            avaliacao: 0,
+            starStats: {
+              postsCreated: 0,
+              commentsMade: 0,
+              firstPostAwarded: false,
+            },
             projetos: [],
             seguidores: 0,
             seguindo: [],
@@ -229,7 +269,13 @@ function App() {
               bio: "Pessoa da comunidade DevSpace.",
               fotoPerfil: comment.fotoPerfil || fakeAvatar(cHandle),
               fotoCapa: fakeCover(cHandle),
-              estrelas: 1,
+              estrelas: 0,
+              avaliacao: 0,
+              starStats: {
+                postsCreated: 0,
+                commentsMade: 0,
+                firstPostAwarded: false,
+              },
               projetos: [],
               seguidores: 0,
               seguindo: [],
@@ -288,8 +334,14 @@ function App() {
         dedupedMap.set(key, keepCurrent ? u : prev);
       });
 
-      const dedupedUsers = [...dedupedMap.values()];
+      const dedupedUsers = syncUsersStarProgress([...dedupedMap.values()], postsMigrados);
       localStorage.setItem("usuarios", JSON.stringify(dedupedUsers));
+      const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+      const syncedLocal = localUser && dedupedUsers.find((user) => isSameUser(user, localUser));
+      const syncedSession = sessionUser && dedupedUsers.find((user) => isSameUser(user, sessionUser));
+      if (syncedLocal) localStorage.setItem("usuarioLogado", JSON.stringify(syncedLocal));
+      if (syncedSession) sessionStorage.setItem("usuarioLogado", JSON.stringify(syncedSession));
     } catch (error) {
       console.warn("Erro ao limpar posts:", error);
     }
@@ -366,13 +418,38 @@ function App() {
     const byHandle = !byEmail
       ? usuarios.find((u) => (u.handle || "").toLowerCase() === (userRef.handle || "").toLowerCase())
       : null;
-    const alvo = byEmail || byHandle || userRef;
+    const storedUser = byEmail || byHandle || null;
+    const handle = (userRef.handle || storedUser?.handle || userRef.username || storedUser?.username || "usuario")
+      .replace(/\s+/g, "")
+      .toLowerCase();
+    const mergedUser = {
+      ...(storedUser || {}),
+      ...userRef,
+      handle,
+      bio: userRef.bio || storedUser?.bio || "Perfil da comunidade DevSpace.",
+      fotoPerfil: userRef.fotoPerfil || storedUser?.fotoPerfil || (isFakeCommunityUser(userRef) ? fakeAvatar(handle) : ""),
+      fotoCapa: userRef.fotoCapa || storedUser?.fotoCapa || (isFakeCommunityUser(userRef) ? fakeCover(handle) : ""),
+    };
+    const alvo = mergedUser;
+
+    if (storedUser) {
+      const updatedUsers = usuarios.map((u) => {
+        const sameEmail = alvo.email && u.email && u.email.toLowerCase() === alvo.email.toLowerCase();
+        const sameHandle = handle && (u.handle || "").toLowerCase() === handle;
+        return sameEmail || sameHandle ? { ...u, ...alvo } : u;
+      });
+      localStorage.setItem("usuarios", JSON.stringify(updatedUsers));
+    } else if (isFakeCommunityUser(alvo)) {
+      localStorage.setItem("usuarios", JSON.stringify([...usuarios, alvo]));
+    }
+
     navigate({ pagina: "perfil", perfilAlvo: alvo });
   }
 
   function handlePostCreated(post) {
     try {
       const posts = JSON.parse(localStorage.getItem("posts")) || [];
+      const currentUser = usuario || JSON.parse(localStorage.getItem("usuarioLogado")) || JSON.parse(sessionStorage.getItem("usuarioLogado"));
       const novoPost = {
         ...post,
         comments: Number(post.comments || 0),
@@ -381,6 +458,17 @@ function App() {
       };
       const novos = [novoPost, ...posts];
       localStorage.setItem("posts", JSON.stringify(novos));
+
+      if (currentUser) {
+        const { updatedUser, previousStars, newStars } = recordUserPostProgress(currentUser);
+        setUsuario(updatedUser);
+
+        if (newStars > previousStars) {
+          setAchievementStars(newStars);
+          window.setTimeout(() => setAchievementStars(0), 4600);
+        }
+      }
+
       setPostRefresh((value) => value + 1);
       setIsPostModalOpen(false);
     } catch (error) {
@@ -414,6 +502,7 @@ function App() {
           usuario={usuario}
           onPostSaved={handlePostCreated}
         />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
       </>
     );
   }
@@ -436,6 +525,7 @@ function App() {
           usuario={usuario}
           onPostSaved={handlePostCreated}
         />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
       </>
     );
   }
@@ -456,6 +546,7 @@ function App() {
           usuario={usuario}
           onPostSaved={handlePostCreated}
         />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
       </>
     );
   }
@@ -476,6 +567,7 @@ function App() {
         usuario={usuario}
         onPostSaved={handlePostCreated}
       />
+      <StarAchievement open={achievementStars > 0} stars={achievementStars} />
     </>
   );
 }

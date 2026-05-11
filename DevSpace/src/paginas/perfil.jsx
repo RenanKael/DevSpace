@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import { createPortal } from "react-dom";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
+import { syncUsersStarProgress } from "../utils/starProgress";
 
 export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection }) {
   const [usuario, setUsuario] = useState(null);
@@ -36,8 +37,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const [editPosCapa, setEditPosCapa] = useState({ x: 50, y: 50 });
   const [editZoomPerfil, setEditZoomPerfil] = useState(100);
   const [editZoomCapa, setEditZoomCapa] = useState(100);
-
-  const [avaliacao, setAvaliacao] = useState(0);
 
   const [reloadImg, setReloadImg] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -76,9 +75,14 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
     const logado = localUser || sessionUser;
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    const syncedUsers = syncUsersStarProgress(usuarios, savedPosts);
+    if (JSON.stringify(syncedUsers) !== JSON.stringify(usuarios)) {
+      localStorage.setItem("usuarios", JSON.stringify(syncedUsers));
+    }
     const baseUser = viewedUser || logado;
     const user = baseUser
-      ? usuarios.find((u) => {
+      ? syncedUsers.find((u) => {
           const byEmail = baseUser.email && u.email &&
             u.email.toLowerCase() === baseUser.email.toLowerCase();
           const byHandle = baseUser.handle && u.handle &&
@@ -100,8 +104,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       setUsuarioLogado(logado || null);
       setUsuario(normalized);
       setForm(normalized);
-      setAvaliacao(normalized.avaliacao || 0);
-
       setPosPerfil(normalized.posPerfil || { x: 50, y: 50 });
       setPosCapa(normalized.posCapa || { x: 50, y: 50 });
       setZoomPerfil(Number(normalized.zoomPerfil || 100));
@@ -116,10 +118,15 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
       const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
       const logado = localUser || sessionUser;
-      const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-      const baseUser = viewedUser || logado;
-      const user = baseUser
-        ? usuarios.find((u) => {
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    const syncedUsers = syncUsersStarProgress(usuarios, savedPosts);
+    if (JSON.stringify(syncedUsers) !== JSON.stringify(usuarios)) {
+      localStorage.setItem("usuarios", JSON.stringify(syncedUsers));
+    }
+    const baseUser = viewedUser || logado;
+    const user = baseUser
+        ? syncedUsers.find((u) => {
             const byEmail = baseUser.email && u.email &&
               u.email.toLowerCase() === baseUser.email.toLowerCase();
             const byHandle = baseUser.handle && u.handle &&
@@ -340,7 +347,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
     atualizado.fotoPerfil = usuario.fotoPerfil;
     atualizado.fotoCapa = usuario.fotoCapa;
-    atualizado.avaliacao = avaliacao;
+    atualizado.avaliacao = usuario.avaliacao || 0;
+    atualizado.estrelas = usuario.estrelas || usuario.avaliacao || 0;
+    atualizado.starStats = usuario.starStats;
 
     usuarios = usuarios.map((u) =>
       u.email === usuario.email ? atualizado : u
@@ -604,7 +613,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
   const isRenan = usuario.email === "renan.kael@gmail.com";
   const starCount = isRenan ? 6 : 5;
-  const activeStars = isRenan ? 6 : avaliacao;
+  const activeStars = isRenan ? 6 : Number(usuario.avaliacao || usuario.estrelas || 0);
   const criadoEm = isRenan ? "26/06/206" : new Date(usuario.criadoEm).toLocaleDateString();
 
   return (
