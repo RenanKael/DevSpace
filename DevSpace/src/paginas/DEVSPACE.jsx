@@ -53,7 +53,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   });
 
   const [animatingStar, setAnimatingStar] = useState(null);
-  const [previousActiveStars, setPreviousActiveStars] = useState(0);
+  const previousActiveStarsRef = useRef(0);
 
   function normalizeProfileKey(value) {
     return String(value || "").replace(/^@+/, "").replace(/\s+/g, "").toLowerCase().trim();
@@ -623,12 +623,18 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     if (!usuario) return;
 
     const currentActiveStars = isRenan ? 6 : Number(usuario.avaliacao || usuario.estrelas || 0);
+    const previousActiveStars = previousActiveStarsRef.current;
+    previousActiveStarsRef.current = currentActiveStars;
+
     if (currentActiveStars > previousActiveStars) {
-      setAnimatingStar(currentActiveStars);
-      setTimeout(() => setAnimatingStar(null), 1000);
+      const startAnimationId = setTimeout(() => setAnimatingStar(currentActiveStars), 0);
+      const clearAnimationId = setTimeout(() => setAnimatingStar(null), 1000);
+      return () => {
+        clearTimeout(startAnimationId);
+        clearTimeout(clearAnimationId);
+      };
     }
-    setPreviousActiveStars(currentActiveStars);
-  }, [usuario, isRenan, previousActiveStars]);
+  }, [usuario, isRenan]);
 
   if (!usuario) return <h1>Carregando...</h1>;
 
