@@ -49,6 +49,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     baseY: 50,
   });
 
+  const [animatingStar, setAnimatingStar] = useState(null);
+  const [previousActiveStars, setPreviousActiveStars] = useState(0);
+
   function normalizeProfileKey(value) {
     return String(value || "").replace(/^@+/, "").replace(/\s+/g, "").toLowerCase().trim();
   }
@@ -611,6 +614,15 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
   if (!usuario) return <h1>Carregando...</h1>;
 
+  useEffect(() => {
+    const currentActiveStars = isRenan ? 6 : Number(usuario.avaliacao || usuario.estrelas || 0);
+    if (currentActiveStars > previousActiveStars) {
+      setAnimatingStar(currentActiveStars);
+      setTimeout(() => setAnimatingStar(null), 1000);
+    }
+    setPreviousActiveStars(currentActiveStars);
+  }, [usuario.avaliacao, usuario.estrelas, isRenan, previousActiveStars]);
+
   const isRenan = usuario.email === "renan.kael@gmail.com";
   const starCount = isRenan ? 6 : 5;
   const activeStars = isRenan ? 6 : Number(usuario.avaliacao || usuario.estrelas || 0);
@@ -632,8 +644,10 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
             <div className="avaliacao">
               {Array.from({ length: starCount }, (_, index) => {
                 const n = index + 1;
+                const isActive = n <= activeStars;
+                const isGaining = n === animatingStar;
                 return (
-                  <span key={n} className={n <= activeStars ? "star ativa" : "star"}>★</span>
+                  <span key={n} className={`star ${isActive ? "ativa" : ""} ${isGaining ? "gaining" : ""}`}>★</span>
                 );
               })}
             </div>
