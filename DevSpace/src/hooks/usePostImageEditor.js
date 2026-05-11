@@ -19,6 +19,7 @@ function loadImage(src) {
 
 const MAX_IMAGE_SIZE = 1280;
 const IMAGE_QUALITY = 0.86;
+const POST_IMAGE_RATIO = 16 / 10;
 
 export function usePostImageEditor(initialImage = "") {
   const [image, setImage] = useState(initialImage);
@@ -80,11 +81,12 @@ export function usePostImageEditor(initialImage = "") {
 
   const imageStyle = useMemo(() => {
     const scale = zoom / 100;
-    const translateX = (50 - editPos.x) * (scale - 1);
-    const translateY = (50 - editPos.y) * (scale - 1);
 
     return {
-      transform: `translate(${translateX}%, ${translateY}%) scale(${scale})`,
+      objectFit: "cover",
+      objectPosition: `${editPos.x}% ${editPos.y}%`,
+      transform: `scale(${scale})`,
+      transformOrigin: `${editPos.x}% ${editPos.y}%`,
       cursor: dragging ? "grabbing" : "grab",
     };
   }, [editPos, zoom, dragging]);
@@ -104,19 +106,19 @@ export function usePostImageEditor(initialImage = "") {
       const canvas = document.createElement("canvas");
       const width = loadedImage.naturalWidth || loadedImage.width;
       const height = loadedImage.naturalHeight || loadedImage.height;
-      const outputRatio = Math.min(1, MAX_IMAGE_SIZE / Math.max(width, height));
-      const outputWidth = Math.round(width * outputRatio);
-      const outputHeight = Math.round(height * outputRatio);
-      const scale = zoom / 100;
-      const drawWidth = outputWidth * scale;
-      const drawHeight = outputHeight * scale;
+      const outputWidth = MAX_IMAGE_SIZE;
+      const outputHeight = Math.round(MAX_IMAGE_SIZE / POST_IMAGE_RATIO);
+      const baseScale = Math.max(outputWidth / width, outputHeight / height);
+      const scale = baseScale * (zoom / 100);
+      const drawWidth = width * scale;
+      const drawHeight = height * scale;
       const drawX = (outputWidth - drawWidth) * (editPos.x / 100);
       const drawY = (outputHeight - drawHeight) * (editPos.y / 100);
       const context = canvas.getContext("2d");
 
       canvas.width = outputWidth;
       canvas.height = outputHeight;
-      context.fillStyle = "#ffffff";
+      context.fillStyle = "#050505";
       context.fillRect(0, 0, outputWidth, outputHeight);
       context.drawImage(loadedImage, drawX, drawY, drawWidth, drawHeight);
       setImage(canvas.toDataURL("image/jpeg", IMAGE_QUALITY));

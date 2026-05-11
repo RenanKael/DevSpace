@@ -3,7 +3,14 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
-import { recordUserCommentProgress, syncUsersStarProgress } from "../utils/starProgress";
+import {
+  recordUserCommentProgress,
+  recordUserDownloadProgress,
+  recordUserLikeProgress,
+  recordUserRepostProgress,
+  recordUserSaveProgress,
+  syncUsersStarProgress,
+} from "../utils/starProgress";
 import "../style/home.css";
 
 const FAKE_COMMENT_POOL = [
@@ -214,6 +221,13 @@ const ACTION_OWNER_FIELDS = {
   downloads: "downloadedBy",
 };
 
+const ACTION_PROGRESS_RECORDERS = {
+  shares: recordUserRepostProgress,
+  likes: recordUserLikeProgress,
+  bookmarks: recordUserSaveProgress,
+  downloads: recordUserDownloadProgress,
+};
+
 function findUserProfile(item, users) {
   const email = (item?.email || "").toLowerCase();
   const handle = normalizeHandle(item?.handle || "");
@@ -249,7 +263,7 @@ function isFakeIdentity(item) {
   );
 }
 
-export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile }) {
+export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
@@ -278,6 +292,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   const [commentsPostId, setCommentsPostId] = useState(null);
   const [activeActions, setActiveActions] = useState({});
   const [syncToast, setSyncToast] = useState(false);
+  const [visibleSuggestionHandles, setVisibleSuggestionHandles] = useState(null);
 
   useOverlayClose(!!selectedPost && !commentsPostId, () => setSelectedPost(null));
   useOverlayClose(!!imagePreview, () => setImagePreview(null));
@@ -292,6 +307,35 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       setSyncToast(true);
       return false;
     }
+  }
+
+  function updateUserInState(updatedUser) {
+    setUsuario(updatedUser);
+    setUsuarios((prev) => {
+      let found = false;
+      const next = prev.map((item) => {
+        const sameEmail = updatedUser.email && item.email &&
+          item.email.toLowerCase() === updatedUser.email.toLowerCase();
+        const sameHandle = (updatedUser.handle || updatedUser.username || "").toLowerCase() ===
+          (item.handle || item.username || "").toLowerCase();
+        if (sameEmail || sameHandle) found = true;
+        return sameEmail || sameHandle ? updatedUser : item;
+      });
+      return found ? next : [...next, updatedUser];
+    });
+  }
+
+  function commitStarProgress(baseUser, recordProgress) {
+    if (!baseUser || typeof recordProgress !== "function") return null;
+
+    const { updatedUser, previousStars, newStars } = recordProgress(baseUser);
+    updateUserInState(updatedUser);
+
+    if (newStars > previousStars) {
+      onStarAchievement?.(newStars);
+    }
+
+    return updatedUser;
   }
 
   function deletePost(postId) {
@@ -319,6 +363,12 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       : !!activeActions[postId]?.[action];
     const nextValue = !isActive;
     const ownerKey = userKeys[0];
+
+    if (nextValue) {
+      const recorder = ACTION_PROGRESS_RECORDERS[action];
+      const usuarioAtualizado = findUserProfile(usuario, usuarios) || usuario;
+      commitStarProgress(usuarioAtualizado, recorder);
+    }
 
     setActiveActions((prev) => ({
       ...prev,
@@ -357,20 +407,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
     const usuarioAtualizado = findUserProfile(usuario, usuarios) || usuario;
     const commentHandle = (usuarioAtualizado.handle || usuarioAtualizado.username || "usuario").replace(/\s+/g, "").toLowerCase();
-    const { updatedUser } = recordUserCommentProgress(usuarioAtualizado);
-    setUsuario(updatedUser);
-    setUsuarios((prev) => {
-      let found = false;
-      const next = prev.map((item) => {
-        const sameEmail = updatedUser.email && item.email &&
-          item.email.toLowerCase() === updatedUser.email.toLowerCase();
-        const sameHandle = (updatedUser.handle || updatedUser.username || "").toLowerCase() ===
-          (item.handle || item.username || "").toLowerCase();
-        if (sameEmail || sameHandle) found = true;
-        return sameEmail || sameHandle ? updatedUser : item;
-      });
-      return found ? next : [...next, updatedUser];
-    });
+    commitStarProgress(usuarioAtualizado, recordUserCommentProgress);
 
     setPosts((prevPosts) => {
       const updatedPosts = prevPosts.map((post) => {
@@ -818,7 +855,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
     merged.forEach((profile) => {
       const handle = normalizeHandle(profile.handle || profile.username);
-      if (!handle || handle === currentHandle || following.has(handle)) return;
+      if (!handle || handle === currentHandle) return;
       if (!dedupedMap.has(handle)) {
         dedupedMap.set(handle, {
           ...profile,
@@ -829,8 +866,27 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       }
     });
 
-    return [...dedupedMap.values()].slice(0, 24);
+    const allSuggestions = [...dedupedMap.values()];
+    if (!visibleSuggestionHandles) {
+      return allSuggestions.filter((profile) => !following.has(profile.handle)).slice(0, 24);
+    }
+
+    return allSuggestions
+      .filter((profile) => visibleSuggestionHandles.includes(profile.handle))
+      .slice(0, 24);
   })();
+
+  useEffect(() => {
+    if (!usuario || visibleSuggestionHandles) return;
+
+    setVisibleSuggestionHandles(suggestedProfiles.map((profile) => profile.handle));
+  }, [usuario, suggestedProfiles, visibleSuggestionHandles]);
+
+  function isFollowingSuggestion(profile) {
+    const targetHandle = normalizeHandle(profile?.handle || profile?.username);
+    const following = Array.isArray(usuario?.seguindo) ? usuario.seguindo.map(normalizeHandle) : [];
+    return following.includes(targetHandle);
+  }
 
   function followSuggestedProfile(profile) {
     if (!usuario || !profile) return;
@@ -843,6 +899,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     const usersList = Array.isArray(savedUsers) ? savedUsers : [];
     const hasTarget = usersList.some((u) => normalizeHandle(u.handle || u.username) === targetHandle);
     const baseUsers = hasTarget ? usersList : [...usersList, target];
+    const isAlreadyFollowing = isFollowingSuggestion(profile);
 
     const nextUsers = baseUsers.map((u) => {
       const userEmail = (u.email || "").toLowerCase();
@@ -852,14 +909,18 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         const seguindo = Array.isArray(u.seguindo) ? u.seguindo.map(normalizeHandle) : [];
         return {
           ...u,
-          seguindo: [...new Set([...seguindo, targetHandle])],
+          seguindo: isAlreadyFollowing
+            ? seguindo.filter((handle) => handle !== targetHandle)
+            : [...new Set([...seguindo, targetHandle])],
         };
       }
 
       if (userHandle === targetHandle) {
         return {
           ...u,
-          seguidores: Number(u.seguidores || 0) + 1,
+          seguidores: isAlreadyFollowing
+            ? Math.max(0, Number(u.seguidores || 0) - 1)
+            : Number(u.seguidores || 0) + 1,
         };
       }
 
@@ -1073,7 +1134,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
                   className="suggestion-follow"
                   onClick={() => followSuggestedProfile(profile)}
                 >
-                  Seguir
+                  {isFollowingSuggestion(profile) ? "Deixar de seguir" : "Seguir"}
                 </button>
               </div>
             ))}

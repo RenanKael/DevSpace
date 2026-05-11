@@ -3,6 +3,12 @@ import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import "../style/home.css";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
+import {
+  recordUserDownloadProgress,
+  recordUserLikeProgress,
+  recordUserRepostProgress,
+  recordUserSaveProgress,
+} from "../utils/starProgress";
 
 const COLLECTIONS = {
   curtidos: {
@@ -27,6 +33,13 @@ const ACTIONS = {
   likes: "likedBy",
   bookmarks: "savedBy",
   downloads: "downloadedBy",
+};
+
+const ACTION_PROGRESS_RECORDERS = {
+  shares: recordUserRepostProgress,
+  likes: recordUserLikeProgress,
+  bookmarks: recordUserSaveProgress,
+  downloads: recordUserDownloadProgress,
 };
 
 function normalizeKey(value) {
@@ -59,6 +72,7 @@ export default function PerfilColecao({
   irExplorar,
   onOpenPost,
   onOpenUserProfile,
+  onStarAchievement,
 }) {
   const [usuario, setUsuario] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -87,6 +101,20 @@ export default function PerfilColecao({
     const userKeys = getUserKeys(usuario);
     const ownerKey = userKeys[0];
     if (!field || !ownerKey) return;
+
+    const currentPost = posts.find((post) => post.id === postId);
+    const wasActive = currentPost ? postActionIsActive(currentPost, action, userKeys) : false;
+
+    if (!wasActive) {
+      const recorder = ACTION_PROGRESS_RECORDERS[action];
+      if (typeof recorder === "function") {
+        const { updatedUser, previousStars, newStars } = recorder(usuario);
+        setUsuario(updatedUser);
+        if (newStars > previousStars) {
+          onStarAchievement?.(newStars);
+        }
+      }
+    }
 
     const updatedPosts = posts.map((post) => {
       if (post.id !== postId) return post;

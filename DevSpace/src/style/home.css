@@ -295,8 +295,12 @@ body {
   color: #7aa2ff;
   font-weight: 700;
   cursor: pointer;
-  padding: 6px 2px;
+  width: 78px;
+  padding: 6px 0;
   font-size: 0.78rem;
+  line-height: 1.15;
+  text-align: right;
+  white-space: normal;
 }
 
 .suggestion-follow:hover {
@@ -1048,11 +1052,12 @@ body {
 
 .post-image-remove {
   position: absolute;
-  top: 10px;
+  top: 46px;
   right: 10px;
   width: 30px;
   height: 30px;
   border-radius: 50%;
+  z-index: 2;
 }
 
 .post-image-editor-overlay {
@@ -1067,14 +1072,42 @@ body {
   margin: 0 0 16px;
 }
 
-.post-editor-preview-box {
-  width: 100%;
+.post-compose-window {
+  position: relative;
+  margin: 14px 0 0;
+  flex: 0 0 auto;
+}
+
+.post-compose-window .post-card-window-body,
+.post-editor-window .post-card-window-body {
   aspect-ratio: 16 / 10;
+  flex: 0 0 auto;
+}
+
+.post-compose-window .post-card-window-body img,
+.post-editor-window .post-card-window-body img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.editor-header {
+  margin-bottom: 4px;
+}
+
+.post-editor-textarea {
+  min-height: 78px;
+  resize: vertical;
+}
+
+.post-editor-window {
+  width: 100%;
   margin-bottom: 16px;
-  border: 1px solid #333;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #111;
+  flex: 0 0 auto;
+}
+
+.post-editor-preview-box {
+  aspect-ratio: 16 / 10;
 }
 
 .post-editor-preview-img {

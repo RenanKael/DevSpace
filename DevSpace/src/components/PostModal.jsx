@@ -117,8 +117,15 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
           />
 
           {image && (
-            <div className="post-image-preview">
-              <img src={image} alt="Previa do post" />
+            <div className="post-card-window post-compose-window">
+              <div className="post-card-window-top">
+                <span className="window-dot red" />
+                <span className="window-dot yellow" />
+                <span className="window-dot green" />
+              </div>
+              <div className="post-card-window-body">
+                <img src={image} alt="Previa do post" />
+              </div>
               <button className="post-image-remove" type="button" onClick={removeImage} title="Remover imagem">
                 x
               </button>
@@ -160,16 +167,48 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
           <div className="popup post-image-editor-popup" onClick={(e) => e.stopPropagation()}>
             <h2>Editar Imagem</h2>
 
-            <div className="post-editor-preview-box">
-              <img
-                src={editingImage}
-                alt="Editar imagem do post"
-                className="post-editor-preview-img"
-                onMouseDown={beginDrag}
-                onTouchStart={beginDrag}
-                draggable={false}
-                style={imageStyle}
+            <div className="post-modal-header editor-header">
+              <div
+                className="post-modal-avatar"
+                style={{
+                  backgroundImage: usuario?.fotoPerfil ? `url(${usuario.fotoPerfil})` : "none",
+                  backgroundSize: "cover",
+                  backgroundPosition: usuario?.posPerfil
+                    ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%`
+                    : "center",
+                }}
               />
+
+              <div className="post-modal-user">
+                <span>{usuario?.username || "Usuario"}</span>
+                <small>@{usuario?.username || "usuario"}</small>
+              </div>
+            </div>
+
+            <textarea
+              className="post-textarea post-editor-textarea"
+              placeholder="Adicione uma descricao para o post"
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+            />
+
+            <div className="post-card-window post-editor-window">
+              <div className="post-card-window-top">
+                <span className="window-dot red" />
+                <span className="window-dot yellow" />
+                <span className="window-dot green" />
+              </div>
+              <div className="post-card-window-body post-editor-preview-box">
+                <img
+                  src={editingImage}
+                  alt="Editar imagem do post"
+                  className="post-editor-preview-img"
+                  onMouseDown={beginDrag}
+                  onTouchStart={beginDrag}
+                  draggable={false}
+                  style={imageStyle}
+                />
+              </div>
             </div>
 
             <label>Horizontal</label>

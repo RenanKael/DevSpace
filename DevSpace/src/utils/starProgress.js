@@ -109,28 +109,44 @@ function progressForUser(user, posts) {
       }
     });
 
-    const likesList = Array.isArray(post?.likes) ? post.likes : [];
+    const likesList = Array.isArray(post?.likedBy)
+      ? post.likedBy
+      : Array.isArray(post?.likes)
+        ? post.likes
+        : [];
     likesList.forEach((liker) => {
       if (isSameUser({ handle: liker }, user)) {
         stats.likesMade += 1;
       }
     });
 
-    const repostsList = Array.isArray(post?.reposts) ? post.reposts : [];
+    const repostsList = Array.isArray(post?.repostedBy)
+      ? post.repostedBy
+      : Array.isArray(post?.reposts)
+        ? post.reposts
+        : [];
     repostsList.forEach((reposter) => {
       if (isSameUser({ handle: reposter }, user)) {
         stats.repostsMade += 1;
       }
     });
 
-    const savesList = Array.isArray(post?.saves) ? post.saves : [];
+    const savesList = Array.isArray(post?.savedBy)
+      ? post.savedBy
+      : Array.isArray(post?.saves)
+        ? post.saves
+        : [];
     savesList.forEach((saver) => {
       if (isSameUser({ handle: saver }, user)) {
         stats.savesMade += 1;
       }
     });
 
-    const downloadsList = Array.isArray(post?.downloads) ? post.downloads : [];
+    const downloadsList = Array.isArray(post?.downloadedBy)
+      ? post.downloadedBy
+      : Array.isArray(post?.downloads)
+        ? post.downloads
+        : [];
     downloadsList.forEach((downloader) => {
       if (isSameUser({ handle: downloader }, user)) {
         stats.downloadsMade += 1;

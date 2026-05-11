@@ -476,6 +476,11 @@ function App() {
     }
   }
 
+  function showStarAchievement(stars) {
+    setAchievementStars(stars);
+    window.setTimeout(() => setAchievementStars(0), 4600);
+  }
+
   if (!logado) {
     return <Login onLogin={() => setLogado(true)} />;
   }
@@ -517,6 +522,7 @@ function App() {
           irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
           onOpenPost={handleOpenPost}
           onOpenUserProfile={abrirPerfilAlvo}
+          onStarAchievement={showStarAchievement}
         />
 
         <PostModal
@@ -559,6 +565,7 @@ function App() {
         onOpenPost={handleOpenPost}
         refreshFeed={postRefresh}
         onOpenUserProfile={abrirPerfilAlvo}
+        onStarAchievement={showStarAchievement}
       />
 
       <PostModal
