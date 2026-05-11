@@ -617,18 +617,21 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const perfilImageStyle = imageAdjustStyle(posPerfil, zoomPerfil);
   const capaImageStyle = imageAdjustStyle(posCapa, zoomCapa);
 
-  if (!usuario) return <h1>Carregando...</h1>;
+  const isRenan = usuario?.email === "renan.kael@gmail.com";
 
   useEffect(() => {
+    if (!usuario) return;
+
     const currentActiveStars = isRenan ? 6 : Number(usuario.avaliacao || usuario.estrelas || 0);
     if (currentActiveStars > previousActiveStars) {
       setAnimatingStar(currentActiveStars);
       setTimeout(() => setAnimatingStar(null), 1000);
     }
     setPreviousActiveStars(currentActiveStars);
-  }, [usuario.avaliacao, usuario.estrelas, isRenan, previousActiveStars]);
+  }, [usuario, isRenan, previousActiveStars]);
 
-  const isRenan = usuario.email === "renan.kael@gmail.com";
+  if (!usuario) return <h1>Carregando...</h1>;
+
   const starCount = 5;
   const activeStars = Number(usuario.avaliacao || usuario.estrelas || 0);
   const displayActiveStars = adminOverrideStars !== null ? adminOverrideStars : activeStars;
