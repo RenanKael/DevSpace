@@ -4,7 +4,6 @@ import "../style/perfil.css";
 import "../style/home.css";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
 import {
-  recordUserDownloadProgress,
   recordUserLikeProgress,
   recordUserRepostProgress,
   recordUserSaveProgress,
@@ -32,14 +31,12 @@ const ACTIONS = {
   shares: "repostedBy",
   likes: "likedBy",
   bookmarks: "savedBy",
-  downloads: "downloadedBy",
 };
 
 const ACTION_PROGRESS_RECORDERS = {
   shares: recordUserRepostProgress,
   likes: recordUserLikeProgress,
   bookmarks: recordUserSaveProgress,
-  downloads: recordUserDownloadProgress,
 };
 
 function normalizeKey(value) {
@@ -288,15 +285,6 @@ export default function PerfilColecao({
                 <span>🔖</span>
                 <strong>{selectedPost.bookmarks ?? 0}</strong>
               </button>
-              <button
-                type="button"
-                aria-label="Baixar"
-                className={postActionIsActive(selectedPost, "downloads", selectedPostUserKeys) ? "active" : ""}
-                onClick={() => togglePostAction(selectedPost.id, "downloads")}
-              >
-                <span>⬇️</span>
-                <strong>{selectedPost.downloads ?? 0}</strong>
-              </button>
             </div>
           </div>
         </div>
@@ -315,3 +303,4 @@ export default function PerfilColecao({
     </div>
   );
 }
+

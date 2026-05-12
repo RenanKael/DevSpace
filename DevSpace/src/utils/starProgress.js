@@ -5,7 +5,7 @@ const STAR_LEVELS = [
   { stars: 2, posts: 5, comments: 1 },
   { stars: 3, posts: 50, comments: 100, likes: 150, reposts: 70 },
   { stars: 4, posts: 500, comments: 700, likes: 1000, reposts: 500 },
-  { stars: 5, posts: 1500, comments: 200, likes: 4000, reposts: 300, saves: 10, downloads: 2 },
+  { stars: 5, posts: 1500, comments: 200, likes: 4000, reposts: 300, saves: 10 },
 ];
 
 export function normalizeUserKey(value) {
@@ -35,7 +35,6 @@ export function calculateStars(stats, user) {
     likesMade: Number(stats?.likesMade || 0),
     repostsMade: Number(stats?.repostsMade || 0),
     savesMade: Number(stats?.savesMade || 0),
-    downloadsMade: Number(stats?.downloadsMade || 0),
   };
 
   let stars = 0;
@@ -45,8 +44,7 @@ export function calculateStars(stats, user) {
     const hasLikes = progress.likesMade >= (level.likes || 0);
     const hasReposts = progress.repostsMade >= (level.reposts || 0);
     const hasSaves = progress.savesMade >= (level.saves || 0);
-    const hasDownloads = progress.downloadsMade >= (level.downloads || 0);
-    if (hasPosts && hasComments && hasLikes && hasReposts && hasSaves && hasDownloads) {
+    if (hasPosts && hasComments && hasLikes && hasReposts && hasSaves) {
       stars = level.stars;
     } else {
       break;
@@ -77,10 +75,6 @@ function mergeStats(currentStats, nextStats) {
       Number(currentStats?.savesMade || 0),
       Number(nextStats?.savesMade || 0)
     ),
-    downloadsMade: Math.max(
-      Number(currentStats?.downloadsMade || 0),
-      Number(nextStats?.downloadsMade || 0)
-    ),
     firstPostAwarded: !!currentStats?.firstPostAwarded || !!nextStats?.firstPostAwarded,
   };
 }
@@ -92,7 +86,6 @@ function progressForUser(user, posts) {
     likesMade: 0,
     repostsMade: 0,
     savesMade: 0,
-    downloadsMade: 0,
     firstPostAwarded: false,
   };
 
@@ -141,17 +134,6 @@ function progressForUser(user, posts) {
         stats.savesMade += 1;
       }
     });
-
-    const downloadsList = Array.isArray(post?.downloadedBy)
-      ? post.downloadedBy
-      : Array.isArray(post?.downloads)
-        ? post.downloads
-        : [];
-    downloadsList.forEach((downloader) => {
-      if (isSameUser({ handle: downloader }, user)) {
-        stats.downloadsMade += 1;
-      }
-    });
   });
 
   return stats;
@@ -168,7 +150,7 @@ export function applyStarProgress(user, nextStats) {
       starStats.commentsMade = Math.max(0, Number(starStats.commentsMade || 0) - (prevLevel.comments || 0));
       starStats.likesMade = Math.max(0, Number(starStats.likesMade || 0) - (prevLevel.likes || 0));
       starStats.repostsMade = Math.max(0, Number(starStats.repostsMade || 0) - (prevLevel.reposts || 0));
-      // saves e downloads não resetam
+      // saves nao resetam
     }
   }
 
@@ -289,17 +271,3 @@ export function recordUserSaveProgress(user) {
   };
 }
 
-export function recordUserDownloadProgress(user) {
-  const previousStars = Number(user?.avaliacao || user?.estrelas || 0);
-  const nextStats = {
-    ...user?.starStats,
-    downloadsMade: Number(user?.starStats?.downloadsMade || 0) + 1,
-  };
-  const updatedUser = updateStoredUser(applyStarProgress(user, nextStats));
-
-  return {
-    updatedUser,
-    previousStars,
-    newStars: Number(updatedUser.avaliacao || 0),
-  };
-}

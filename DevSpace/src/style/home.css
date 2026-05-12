@@ -505,7 +505,7 @@ body {
 
 .post-card-actions {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   align-items: center;
   margin-top: auto;
@@ -572,9 +572,6 @@ body {
   content: "▱";
 }
 
-.post-card-actions button[aria-label="Baixar"] span::before {
-  content: "⇩";
-}
 
 .post-card-actions button strong {
   color: #aaa;
@@ -600,9 +597,6 @@ body {
   color: #f8d66d;
 }
 
-.post-card-actions button[aria-label="Baixar"].active {
-  color: #60a5fa;
-}
 
 .post-card-actions button[aria-label="Curtir"].active {
   color: #ff385c;
@@ -1513,10 +1507,6 @@ body {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
 }
 
-.post-card-actions button[aria-label="Baixar"] span::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12'/%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3Cpath d='M5 21h14'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12'/%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3Cpath d='M5 21h14'/%3E%3C/svg%3E");
-}
 
 .post-card-actions button[aria-label="Curtir"].active span::before {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z'/%3E%3C/svg%3E");
@@ -1705,3 +1695,4 @@ body {
     margin-top: 0;
   }
 }
+

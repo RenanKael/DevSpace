@@ -5,7 +5,6 @@ import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import {
   recordUserCommentProgress,
-  recordUserDownloadProgress,
   recordUserLikeProgress,
   recordUserRepostProgress,
   recordUserSaveProgress,
@@ -172,11 +171,9 @@ function buildCommunityPost(seed, index) {
     shares: index % 4,
     likes: 6 + index * 2,
     bookmarks: index % 3,
-    downloads: index % 2,
     likedBy: [],
     savedBy: [],
     repostedBy: [],
-    downloadedBy: [],
     criadoEm: new Date(Date.now() - index * 2700000).toISOString(),
   };
 }
@@ -218,14 +215,12 @@ const ACTION_OWNER_FIELDS = {
   shares: "repostedBy",
   likes: "likedBy",
   bookmarks: "savedBy",
-  downloads: "downloadedBy",
 };
 
 const ACTION_PROGRESS_RECORDERS = {
   shares: recordUserRepostProgress,
   likes: recordUserLikeProgress,
   bookmarks: recordUserSaveProgress,
-  downloads: recordUserDownloadProgress,
 };
 
 function findUserProfile(item, users) {
@@ -502,7 +497,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
             shares: 1,
             likes: 5,
             bookmarks: 1,
-            downloads: 0,
             criadoEm: new Date().toISOString(),
           },
           {
@@ -541,7 +535,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
             shares: 2,
             likes: 8,
             bookmarks: 2,
-            downloads: 0,
             criadoEm: new Date().toISOString(),
           },
           {
@@ -587,7 +580,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
             shares: 1,
             likes: 11,
             bookmarks: 3,
-            downloads: 0,
             criadoEm: new Date().toISOString(),
           },
           {
@@ -612,7 +604,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
             shares: 0,
             likes: 7,
             bookmarks: 1,
-            downloads: 0,
             criadoEm: new Date().toISOString(),
           },
         ]
@@ -692,7 +683,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           likedBy: Array.isArray(post.likedBy) ? post.likedBy : [],
           savedBy: Array.isArray(post.savedBy) ? post.savedBy : [],
           repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
-          downloadedBy: Array.isArray(post.downloadedBy) ? post.downloadedBy : [],
         };
         const storageComments = commentsList.map((comment) => {
           const commentProfile = isFakeIdentity(comment) ? null : findUserProfile(comment, usersList);
@@ -1094,15 +1084,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
                   <span>🔖</span>
                   <strong>{post.bookmarks ?? 0}</strong>
                 </button>
-                <button
-                  type="button"
-                  aria-label="Baixar"
-                  className={activeActions[post.id]?.downloads ? "active pulse" : ""}
-                  onClick={() => togglePostAction(post.id, "downloads")}
-                >
-                  <span>⬇️</span>
-                  <strong>{post.downloads ?? 0}</strong>
-                </button>
               </div>
 
             </div>
@@ -1227,15 +1208,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
                 <span>🔖</span>
                 <strong>{selectedPostData.bookmarks ?? 0}</strong>
               </button>
-              <button
-                type="button"
-                aria-label="Baixar"
-                className={activeActions[selectedPostData.id]?.downloads ? "active pulse" : ""}
-                onClick={() => togglePostAction(selectedPostData.id, "downloads")}
-              >
-                <span>⬇️</span>
-                <strong>{selectedPostData.downloads ?? 0}</strong>
-              </button>
             </div>
           </div>
         </div>
@@ -1298,3 +1270,4 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     </div>
   );
 }
+

@@ -232,11 +232,9 @@ function App() {
           shares: Number(post.shares || 0),
           likes: Number(post.likes || 0),
           bookmarks: Number(post.bookmarks || 0),
-          downloads: Number(post.downloads || 0),
           likedBy: Array.isArray(post.likedBy) ? post.likedBy : [],
           savedBy: Array.isArray(post.savedBy) ? post.savedBy : [],
           repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
-          downloadedBy: Array.isArray(post.downloadedBy) ? post.downloadedBy : [],
         };
       });
 
