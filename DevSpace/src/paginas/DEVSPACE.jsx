@@ -416,7 +416,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                   username: atualizado.username,
                   handle: atualizado.handle,
                   email: atualizado.email,
-                  fotoPerfil: "",
+                  fotoPerfil: atualizado.fotoPerfil || comment.fotoPerfil || "",
                 }
               : comment
           )
@@ -429,7 +429,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
               username: atualizado.username,
               handle: atualizado.handle,
               email: atualizado.email,
-              fotoPerfil: "",
+              fotoPerfil: atualizado.fotoPerfil || post.fotoPerfil || "",
             }
           : {}),
         commentsList,

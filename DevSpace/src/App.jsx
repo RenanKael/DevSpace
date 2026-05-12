@@ -34,6 +34,32 @@ function scoreUser(user) {
   );
 }
 
+function mergeUserRecord(baseUser, nextUser) {
+  if (!baseUser) return nextUser;
+  if (!nextUser) return baseUser;
+
+  return {
+    ...baseUser,
+    ...nextUser,
+    username: nextUser.username || baseUser.username,
+    handle: nextUser.handle || baseUser.handle,
+    email: nextUser.email || baseUser.email,
+    bio: nextUser.bio || baseUser.bio,
+    fotoPerfil: nextUser.fotoPerfil || baseUser.fotoPerfil || "",
+    fotoCapa: nextUser.fotoCapa || baseUser.fotoCapa || "",
+    posPerfil: nextUser.posPerfil || baseUser.posPerfil,
+    posCapa: nextUser.posCapa || baseUser.posCapa,
+    zoomPerfil: nextUser.zoomPerfil || baseUser.zoomPerfil,
+    zoomCapa: nextUser.zoomCapa || baseUser.zoomCapa,
+    seguindo: Array.isArray(nextUser.seguindo) ? nextUser.seguindo : baseUser.seguindo,
+    seguidores: Math.max(Number(baseUser.seguidores || 0), Number(nextUser.seguidores || 0)),
+    starStats: {
+      ...(baseUser.starStats || {}),
+      ...(nextUser.starStats || {}),
+    },
+  };
+}
+
 function StarAchievement({ open, stars }) {
   if (!open) return null;
   const count = Math.max(1, Math.min(5, Number(stars || 1)));
@@ -169,6 +195,8 @@ function App() {
     try {
       const posts = JSON.parse(localStorage.getItem("posts")) || [];
       const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+      const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
       const postsValidos = posts.filter((post) => {
         return post && (post.email || post.username || post.handle);
       });
@@ -204,9 +232,20 @@ function App() {
         localStorage.setItem("posts", JSON.stringify(postsMigrados));
       }
 
-      const byEmail = new Set(usuarios.map((u) => (u.email || "").toLowerCase()));
-      const byHandle = new Set(usuarios.map((u) => (u.handle || "").toLowerCase()).filter(Boolean));
-      const novosUsuarios = usuarios.map((u) => {
+      const sessionCandidates = [localUser, sessionUser].filter(Boolean);
+      const usersWithSession = [...usuarios];
+      sessionCandidates.forEach((candidate) => {
+        const existingIndex = usersWithSession.findIndex((user) => isSameUser(user, candidate));
+        if (existingIndex >= 0) {
+          usersWithSession[existingIndex] = mergeUserRecord(usersWithSession[existingIndex], candidate);
+        } else {
+          usersWithSession.push(candidate);
+        }
+      });
+
+      const byEmail = new Set(usersWithSession.map((u) => (u.email || "").toLowerCase()));
+      const byHandle = new Set(usersWithSession.map((u) => (u.handle || "").toLowerCase()).filter(Boolean));
+      const novosUsuarios = usersWithSession.map((u) => {
         const handle = (u.handle || u.username || "usuario").replace(/\s+/g, "").toLowerCase();
         const isLikelyFake = isFakeCommunityUser(u);
         if (!isLikelyFake) return u;
@@ -331,13 +370,47 @@ function App() {
           return;
         }
         const keepCurrent = scoreUser(u) > scoreUser(prev);
-        dedupedMap.set(key, keepCurrent ? u : prev);
+        dedupedMap.set(key, mergeUserRecord(keepCurrent ? prev : u, keepCurrent ? u : prev));
       });
 
       const dedupedUsers = syncUsersStarProgress([...dedupedMap.values()], postsMigrados);
+      const repairedPosts = postsMigrados.map((post) => {
+        const postUser = dedupedUsers.find((user) => isSameUser(user, post));
+        const commentsList = Array.isArray(post.commentsList)
+          ? post.commentsList.map((comment) => {
+              const commentUser = dedupedUsers.find((user) => isSameUser(user, comment));
+              if (!commentUser) return comment;
+              return {
+                ...comment,
+                username: comment.username || commentUser.username,
+                handle: comment.handle || commentUser.handle,
+                email: comment.email || commentUser.email,
+                fotoPerfil: comment.fotoPerfil || commentUser.fotoPerfil || "",
+              };
+            })
+          : [];
+
+        if (!postUser) {
+          return {
+            ...post,
+            commentsList,
+          };
+        }
+
+        return {
+          ...post,
+          username: post.username || postUser.username,
+          handle: post.handle || postUser.handle,
+          email: post.email || postUser.email,
+          fotoPerfil: post.fotoPerfil || postUser.fotoPerfil || "",
+          commentsList,
+        };
+      });
+
       localStorage.setItem("usuarios", JSON.stringify(dedupedUsers));
-      const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
-      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+      if (JSON.stringify(repairedPosts) !== JSON.stringify(postsMigrados)) {
+        localStorage.setItem("posts", JSON.stringify(repairedPosts));
+      }
       const syncedLocal = localUser && dedupedUsers.find((user) => isSameUser(user, localUser));
       const syncedSession = sessionUser && dedupedUsers.find((user) => isSameUser(user, sessionUser));
       if (syncedLocal) localStorage.setItem("usuarioLogado", JSON.stringify(syncedLocal));
