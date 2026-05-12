@@ -34,9 +34,23 @@ function scoreUser(user) {
   );
 }
 
+function userImageBackupKey(user) {
+  return String(user?.email || user?.handle || user?.username || "").toLowerCase();
+}
+
+function getUserImageBackup(user) {
+  try {
+    const backups = JSON.parse(localStorage.getItem("profileImageBackups")) || {};
+    return backups[userImageBackupKey(user)] || null;
+  } catch {
+    return null;
+  }
+}
+
 function mergeUserRecord(baseUser, nextUser) {
   if (!baseUser) return nextUser;
   if (!nextUser) return baseUser;
+  const backup = getUserImageBackup(nextUser) || getUserImageBackup(baseUser);
 
   return {
     ...baseUser,
@@ -45,12 +59,12 @@ function mergeUserRecord(baseUser, nextUser) {
     handle: nextUser.handle || baseUser.handle,
     email: nextUser.email || baseUser.email,
     bio: nextUser.bio || baseUser.bio,
-    fotoPerfil: nextUser.fotoPerfil || baseUser.fotoPerfil || "",
-    fotoCapa: nextUser.fotoCapa || baseUser.fotoCapa || "",
-    posPerfil: nextUser.posPerfil || baseUser.posPerfil,
-    posCapa: nextUser.posCapa || baseUser.posCapa,
-    zoomPerfil: nextUser.zoomPerfil || baseUser.zoomPerfil,
-    zoomCapa: nextUser.zoomCapa || baseUser.zoomCapa,
+    fotoPerfil: nextUser.fotoPerfil || baseUser.fotoPerfil || backup?.fotoPerfil || "",
+    fotoCapa: nextUser.fotoCapa || baseUser.fotoCapa || backup?.fotoCapa || "",
+    posPerfil: nextUser.posPerfil || baseUser.posPerfil || backup?.posPerfil,
+    posCapa: nextUser.posCapa || baseUser.posCapa || backup?.posCapa,
+    zoomPerfil: nextUser.zoomPerfil || baseUser.zoomPerfil || backup?.zoomPerfil,
+    zoomCapa: nextUser.zoomCapa || baseUser.zoomCapa || backup?.zoomCapa,
     seguindo: Array.isArray(nextUser.seguindo) ? nextUser.seguindo : baseUser.seguindo,
     seguidores: Math.max(Number(baseUser.seguidores || 0), Number(nextUser.seguidores || 0)),
     starStats: {
@@ -88,6 +102,7 @@ const LEGACY_COMMUNITY_USERS = [
   { username: "Nina Correa", handle: "ninacorrea", email: "nina.correa@dev.com", bio: "Aprendendo front-end, animacoes e interfaces mais fluidas." },
   { username: "Arthur Silva", handle: "arthursilva", email: "arthur.silva@dev.com", bio: "Design, produto e detalhes que deixam apps melhores." },
   { username: "Xande", handle: "xande", email: "xande@dev.com", bio: "Conta antiga da comunidade DevSpace." },
+  { username: "Xande7", handle: "xande7", email: "xande7@devspace.fake", bio: "Perfil da comunidade DevSpace." },
   { username: "Maria Silva", handle: "mariasilva", email: "mariasilva@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
   { username: "Carlos Devs", handle: "carlosdevs", email: "carlosdevs@devspace.fake", bio: "Pessoa da comunidade DevSpace." },
   { username: "Ana Tech", handle: "anatech", email: "anatech@devspace.fake", bio: "Pessoa da comunidade DevSpace." },

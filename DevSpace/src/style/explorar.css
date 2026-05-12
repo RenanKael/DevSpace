@@ -68,6 +68,16 @@
   gap: 14px;
 }
 
+.explore-profile-results {
+  border-bottom: 1px solid #20242b;
+  padding-bottom: 18px;
+}
+
+.explore-profile-results h3 {
+  margin-bottom: 12px;
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+}
+
 .group-card {
   border-bottom: 1px solid #1f1f1f;
   padding-bottom: 14px;

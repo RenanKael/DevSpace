@@ -57,6 +57,10 @@ const GROUPS = [
 
 const HOT_LANGS = ["TypeScript", "Python", "Go", "Rust", "JavaScript"];
 
+const KNOWN_PROFILES = [
+  { username: "Xande7", handle: "xande7", email: "xande7@devspace.fake", bio: "Perfil da comunidade DevSpace." },
+];
+
 function userAvatar(handle) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle)}`;
 }
@@ -86,7 +90,8 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
 
   const exploreData = useMemo(() => {
     const posts = JSON.parse(localStorage.getItem("posts")) || [];
-    const users = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const users = [...(Array.isArray(savedUsers) ? savedUsers : []), ...KNOWN_PROFILES];
     const currentUser =
       JSON.parse(localStorage.getItem("usuarioLogado")) ||
       JSON.parse(sessionStorage.getItem("usuarioLogado"));
@@ -115,6 +120,40 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
       profiles: recommendedProfiles,
     };
   }, [tab]);
+
+  const filteredProfiles = useMemo(() => {
+    const q = normalizeHandle(search);
+    if (!q) return [];
+
+    const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const postAuthors = (JSON.parse(localStorage.getItem("posts")) || []).map((post) => ({
+      username: post.username,
+      handle: post.handle || post.username,
+      email: post.email,
+      bio: post.bio,
+      fotoPerfil: post.fotoPerfil,
+      fotoCapa: post.fotoCapa,
+    }));
+    const profiles = [...(Array.isArray(savedUsers) ? savedUsers : []), ...postAuthors, ...KNOWN_PROFILES];
+    const deduped = new Map();
+
+    profiles.forEach((profile) => {
+      const handle = normalizeHandle(profile?.handle || profile?.username);
+      const username = String(profile?.username || "").toLowerCase();
+      if (!handle && !username) return;
+      if (!handle.includes(q) && !username.includes(q)) return;
+      if (!deduped.has(handle)) {
+        deduped.set(handle, {
+          ...profile,
+          handle,
+          fotoPerfil: profile.fotoPerfil || userAvatar(handle),
+          fotoCapa: profile.fotoCapa || fakeCover(handle),
+        });
+      }
+    });
+
+    return [...deduped.values()].slice(0, 12);
+  }, [search]);
 
   const filteredGroups = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -154,6 +193,36 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
 
           {tab === "momento" && !selectedGroup && (
             <div className="explore-groups">
+              {filteredProfiles.length > 0 && (
+                <div className="explore-profile-results">
+                  <h3>Perfis encontrados</h3>
+                  <div className="for-you-profiles">
+                    {filteredProfiles.map((profile) => (
+                      <button
+                        type="button"
+                        key={profile.email || profile.handle}
+                        className="profile-mini-card"
+                        onClick={() => onOpenUserProfile?.(profile)}
+                      >
+                        <div
+                          className="profile-mini-cover"
+                          style={{ backgroundImage: `url(${profile.fotoCapa || fakeCover(profile.handle)})` }}
+                        />
+                        <div className="profile-mini-body">
+                          <span
+                            className="profile-mini-avatar"
+                            style={{ backgroundImage: `url(${profile.fotoPerfil || userAvatar(profile.handle)})` }}
+                          />
+                          <strong>{profile.username || "Usuario"}</strong>
+                          <small>@{profile.handle}</small>
+                          <p>{profile.bio || "Perfil da comunidade DevSpace."}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {filteredGroups.map((group) => (
                 <button key={group.id} className="group-card group-clickable" onClick={() => setSelectedGroupId(group.id)}>
                   <h3>{group.title}</h3>
@@ -162,7 +231,7 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
                 </button>
               ))}
 
-              {filteredGroups.length === 0 && <p className="explore-empty">Nenhum assunto encontrado.</p>}
+              {filteredGroups.length === 0 && filteredProfiles.length === 0 && <p className="explore-empty">Nenhum assunto ou perfil encontrado.</p>}
             </div>
           )}
 

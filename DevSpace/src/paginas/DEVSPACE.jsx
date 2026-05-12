@@ -76,6 +76,61 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     );
   }
 
+  function imageBackupKey(user) {
+    return String(user?.email || user?.handle || user?.username || "").toLowerCase();
+  }
+
+  function getProfileImageBackup(user) {
+    try {
+      const backups = JSON.parse(localStorage.getItem("profileImageBackups")) || {};
+      return backups[imageBackupKey(user)] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveProfileImageBackup(user) {
+    const key = imageBackupKey(user);
+    if (!key || (!user?.fotoPerfil && !user?.fotoCapa)) return;
+
+    const backups = JSON.parse(localStorage.getItem("profileImageBackups")) || {};
+    backups[key] = {
+      ...(backups[key] || {}),
+      fotoPerfil: user.fotoPerfil || backups[key]?.fotoPerfil || "",
+      fotoCapa: user.fotoCapa || backups[key]?.fotoCapa || "",
+      posPerfil: user.posPerfil || backups[key]?.posPerfil,
+      posCapa: user.posCapa || backups[key]?.posCapa,
+      zoomPerfil: user.zoomPerfil || backups[key]?.zoomPerfil,
+      zoomCapa: user.zoomCapa || backups[key]?.zoomCapa,
+    };
+    localStorage.setItem("profileImageBackups", JSON.stringify(backups));
+  }
+
+  function restoreProfileImages(user) {
+    const backup = getProfileImageBackup(user);
+    if (!backup) return user;
+
+    return {
+      ...user,
+      fotoPerfil: user.fotoPerfil || backup.fotoPerfil || "",
+      fotoCapa: user.fotoCapa || backup.fotoCapa || "",
+      posPerfil: user.posPerfil || backup.posPerfil,
+      posCapa: user.posCapa || backup.posCapa,
+      zoomPerfil: user.zoomPerfil || backup.zoomPerfil,
+      zoomCapa: user.zoomCapa || backup.zoomCapa,
+    };
+  }
+
+  function fallbackAvatar(user) {
+    const seed = user?.handle || user?.username || user?.email || "usuario";
+    return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed)}`;
+  }
+
+  function fallbackCover(user) {
+    const seed = user?.handle || user?.username || user?.email || "usuario";
+    return `https://picsum.photos/seed/${encodeURIComponent(seed + "-cover")}/1200/320`;
+  }
+
   useEffect(() => {
     const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
     const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
@@ -98,14 +153,14 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       : null;
 
     if (user) {
-      const normalized = {
+      const normalized = restoreProfileImages({
         ...user,
         criadoEm: user.criadoEm || new Date().toISOString(),
         handle: (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase(),
         seguidores: user.seguidores || 0,
         seguindo: Array.isArray(user.seguindo) ? user.seguindo : [],
         comments: user.comments || 0,
-      };
+      });
 
       setUsuarioLogado(logado || null);
       setUsuario(normalized);
@@ -142,14 +197,14 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
         : null;
 
       if (user) {
-        const normalized = {
+        const normalized = restoreProfileImages({
           ...user,
           criadoEm: user.criadoEm || new Date().toISOString(),
           handle: (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase(),
           seguidores: user.seguidores || 0,
           seguindo: Array.isArray(user.seguindo) ? user.seguindo : [],
           comments: user.comments || 0,
-        };
+        });
         setUsuario(normalized);
       }
       setUsuarioLogado(logado || null);
@@ -278,6 +333,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       setPosCapa(editPosCapa);
       setZoomCapa(Number(editZoomCapa || 100));
     }
+
+    saveProfileImageBackup(atualizado);
 
     const novosUsuarios = usuarios.map((u) =>
       u.email === atualizado.email ? atualizado : u
@@ -644,6 +701,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const activeStars = Number(usuario.avaliacao || usuario.estrelas || 0);
   const displayActiveStars = adminOverrideStars !== null ? adminOverrideStars : activeStars;
   const criadoEm = new Date(usuario.criadoEm).toLocaleDateString();
+  const displayFotoPerfil = usuario.fotoPerfil || fallbackAvatar(usuario);
+  const displayFotoCapa = usuario.fotoCapa || fallbackCover(usuario);
 
   return (
     <div className="home">
@@ -711,9 +770,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
           className="capa"
           key={reloadImg}
         >
-          {usuario.fotoCapa && (
+          {displayFotoCapa && (
             <img
-              src={usuario.fotoCapa}
+              src={displayFotoCapa}
               alt="Capa do perfil"
               style={capaImageStyle}
             />
@@ -725,12 +784,12 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
             type="button"
             className="foto"
             key={reloadImg + "perfil"}
-            onClick={() => usuario.fotoPerfil && setFotoPerfilAberta(true)}
+            onClick={() => displayFotoPerfil && setFotoPerfilAberta(true)}
             aria-label="Abrir foto do perfil"
           >
-            {usuario.fotoPerfil && (
+            {displayFotoPerfil && (
               <img
-                src={usuario.fotoPerfil}
+                src={displayFotoPerfil}
                 alt="Foto do perfil"
                 style={perfilImageStyle}
               />
@@ -1054,7 +1113,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
           document.body
         )}
 
-        {fotoPerfilAberta && usuario.fotoPerfil && createPortal(
+        {fotoPerfilAberta && displayFotoPerfil && createPortal(
           <div className="overlay foto-perfil-overlay" onClick={() => setFotoPerfilAberta(false)}>
             <div className="foto-perfil-popup" onClick={(e) => e.stopPropagation()}>
               <button
@@ -1068,7 +1127,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
               <div className="foto-perfil-ampliada">
                 <img
-                  src={usuario.fotoPerfil}
+                  src={displayFotoPerfil}
                   alt={`Foto de perfil de ${usuario.username}`}
                   style={perfilImageStyle}
                 />
