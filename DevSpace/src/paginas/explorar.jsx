@@ -61,10 +61,60 @@ function userAvatar(handle) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle)}`;
 }
 
+function normalizeHandle(value) {
+  return String(value || "").replace(/^@+/, "").replace(/\s+/g, "").toLowerCase().trim();
+}
+
+function fakeCover(handle) {
+  return `https://picsum.photos/seed/${encodeURIComponent((handle || "usuario") + "-explore")}/900/260`;
+}
+
+function groupPostsAsRecommendations() {
+  return GROUPS.flatMap((group) =>
+    group.posts.map((post) => ({
+      ...post,
+      group: group.title,
+      reason: group.subtitle,
+    }))
+  );
+}
+
 export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfile }) {
   const [tab, setTab] = useState("momento");
   const [search, setSearch] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState(null);
+
+  const exploreData = useMemo(() => {
+    const posts = JSON.parse(localStorage.getItem("posts")) || [];
+    const users = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const currentUser =
+      JSON.parse(localStorage.getItem("usuarioLogado")) ||
+      JSON.parse(sessionStorage.getItem("usuarioLogado"));
+    const currentHandle = normalizeHandle(currentUser?.handle || currentUser?.username);
+    const following = new Set((Array.isArray(currentUser?.seguindo) ? currentUser.seguindo : []).map(normalizeHandle));
+
+    const recommendedPosts = (Array.isArray(posts) ? posts : [])
+      .filter((post) => normalizeHandle(post?.handle || post?.username) !== currentHandle)
+      .sort((a, b) => {
+        const scoreA = Number(a.likes || 0) + Number(a.comments || 0) + Number(a.shares || 0);
+        const scoreB = Number(b.likes || 0) + Number(b.comments || 0) + Number(b.shares || 0);
+        return scoreB - scoreA || new Date(b.criadoEm || 0).getTime() - new Date(a.criadoEm || 0).getTime();
+      })
+      .slice(0, 6);
+
+    const fallbackPosts = groupPostsAsRecommendations().slice(0, 6);
+    const recommendedProfiles = (Array.isArray(users) ? users : [])
+      .filter((user) => {
+        const handle = normalizeHandle(user?.handle || user?.username);
+        return handle && handle !== currentHandle && !following.has(handle);
+      })
+      .slice(0, 6);
+
+    return {
+      posts: recommendedPosts.length > 0 ? recommendedPosts : fallbackPosts,
+      profiles: recommendedProfiles,
+    };
+  }, [tab]);
 
   const filteredGroups = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -102,7 +152,7 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
             <button className={tab === "foryou" ? "active" : ""} onClick={() => setTab("foryou")}>Para Você</button>
           </div>
 
-          {!selectedGroup && (
+          {tab === "momento" && !selectedGroup && (
             <div className="explore-groups">
               {filteredGroups.map((group) => (
                 <button key={group.id} className="group-card group-clickable" onClick={() => setSelectedGroupId(group.id)}>
@@ -116,7 +166,7 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
             </div>
           )}
 
-          {selectedGroup && (
+          {tab === "momento" && selectedGroup && (
             <div className="group-detail">
               <button className="group-back" onClick={() => setSelectedGroupId(null)}>← Voltar para grupos</button>
               <h2>{selectedGroup.title}</h2>
@@ -141,6 +191,108 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
                   </article>
                 ))}
               </div>
+            </div>
+          )}
+
+          {tab === "foryou" && (
+            <div className="for-you-panel">
+              <section className="for-you-section">
+                <div className="section-head">
+                  <h2>Posts escolhidos para você</h2>
+                  <span>baseado no que está movimentando o DevSpace</span>
+                </div>
+
+                <div className="for-you-feed">
+                  {exploreData.posts.map((post, index) => {
+                    const handle = normalizeHandle(post.handle || post.username || post.user);
+                    const user = post.username || post.user || "Usuario";
+                    return (
+                      <article key={post.id || `${handle}-${index}`} className="for-you-post">
+                        <button
+                          type="button"
+                          className="for-you-avatar"
+                          style={{ backgroundImage: `url(${post.fotoPerfil || userAvatar(handle)})` }}
+                          onClick={() => onOpenUserProfile?.({ username: user, handle, email: post.email })}
+                          aria-label={`Abrir perfil de ${user}`}
+                        />
+                        <div className="for-you-post-body">
+                          <button
+                            type="button"
+                            className="for-you-user"
+                            onClick={() => onOpenUserProfile?.({ username: user, handle, email: post.email })}
+                          >
+                            {user} <span>@{handle}</span>
+                          </button>
+                          <p>{post.texto || post.text}</p>
+                          <small>{post.group ? post.group : `${post.likes || 0} curtidas • ${post.comments || 0} comentários`}</small>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="for-you-section">
+                <div className="section-head">
+                  <h2>Perfis para conhecer</h2>
+                  <span>pessoas fora da sua bolha atual</span>
+                </div>
+
+                <div className="for-you-profiles">
+                  {exploreData.profiles.map((profile) => {
+                    const handle = normalizeHandle(profile.handle || profile.username);
+                    return (
+                      <button
+                        type="button"
+                        key={profile.email || handle}
+                        className="profile-mini-card"
+                        onClick={() => onOpenUserProfile?.(profile)}
+                      >
+                        <div
+                          className="profile-mini-cover"
+                          style={{ backgroundImage: `url(${profile.fotoCapa || fakeCover(handle)})` }}
+                        />
+                        <div className="profile-mini-body">
+                          <span
+                            className="profile-mini-avatar"
+                            style={{ backgroundImage: `url(${profile.fotoPerfil || userAvatar(handle)})` }}
+                          />
+                          <strong>{profile.username || "Usuario"}</strong>
+                          <small>@{handle}</small>
+                          <p>{profile.bio || "Perfil da comunidade DevSpace."}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                  {exploreData.profiles.length === 0 && (
+                    <p className="explore-empty">Você já segue os principais perfis sugeridos por aqui.</p>
+                  )}
+                </div>
+              </section>
+
+              <section className="for-you-section">
+                <div className="section-head">
+                  <h2>Tópicos para explorar</h2>
+                  <span>atalhos para conversas com mais contexto</span>
+                </div>
+
+                <div className="topic-strip">
+                  {GROUPS.map((group) => (
+                    <button
+                      type="button"
+                      key={group.id}
+                      className="topic-chip"
+                      onClick={() => {
+                        setTab("momento");
+                        setSelectedGroupId(group.id);
+                      }}
+                    >
+                      <strong>{group.title}</strong>
+                      <span>{group.posts.length} conversas</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
             </div>
           )}
         </div>

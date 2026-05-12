@@ -787,3 +787,74 @@ input[type="range"] {
   transform-origin: center center;
   display: block;
 }
+
+@media (max-width: 1180px) {
+  .profile-page {
+    margin-left: 88px;
+    width: calc(100% - 88px);
+  }
+
+  .stats {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 820px) {
+  .topo-perfil {
+    gap: 12px;
+  }
+
+  .topo-perfil h3 {
+    position: static;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .capa {
+    height: clamp(170px, 30vw, 230px);
+  }
+
+  .perfil-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 0 18px;
+  }
+
+  .foto {
+    width: clamp(96px, 18vw, 130px);
+    height: clamp(96px, 18vw, 130px);
+  }
+
+  .stats {
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .btn-editar {
+    margin-left: 0;
+    margin-bottom: 8px;
+  }
+
+  .info,
+  .posts-container,
+  .profile-collection-page {
+    padding-left: 18px;
+    padding-right: 18px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .popup {
+    width: min(420px, calc(100vw - 28px));
+  }
+}
+
+@media (max-width: 760px) {
+  .profile-page {
+    margin-left: 0;
+    width: 100%;
+  }
+}
