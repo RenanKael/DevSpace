@@ -59,18 +59,32 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
     }
   };
 
+  function getCurrentUser() {
+    try {
+      return (
+        usuario ||
+        JSON.parse(localStorage.getItem("usuarioLogado") || "null") ||
+        JSON.parse(sessionStorage.getItem("usuarioLogado") || "null")
+      );
+    } catch {
+      return usuario || null;
+    }
+  }
+
   function handleSubmit() {
     if (!texto.trim() && !image) {
       setErro("Escreva algo ou adicione uma imagem para postar.");
       return;
     }
 
+    const currentUser = getCurrentUser();
+
     const novoPost = {
       id: Date.now(),
-      username: usuario?.username || "Usuario",
-      handle: (usuario?.handle || usuario?.username || "").replace(/\s+/g, "").toLowerCase(),
-      email: usuario?.email || "",
-      fotoPerfil: usuario?.fotoPerfil || "",
+      username: currentUser?.username || "Usuario",
+      handle: (currentUser?.handle || currentUser?.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+      email: currentUser?.email || "",
+      fotoPerfil: currentUser?.fotoPerfil || "",
       texto: texto.trim(),
       imagem: image || "",
       criadoEm: new Date().toISOString(),

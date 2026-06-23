@@ -507,6 +507,7 @@ function App() {
   }, [logado]);
 
   function handleOpenPost() {
+    setUsuario(getStoredUsuario());
     setIsPostModalOpen(true);
   }
 
@@ -577,9 +578,13 @@ function App() {
     try {
       const rawPosts = JSON.parse(localStorage.getItem("posts")) || [];
       const posts = sanitizeStoredPosts(rawPosts);
-      const currentUser = usuario || JSON.parse(localStorage.getItem("usuarioLogado")) || JSON.parse(sessionStorage.getItem("usuarioLogado"));
+      const currentUser = getStoredUsuario() || usuario;
       const novoPost = normalizeStoredPost({
         ...post,
+        username: currentUser?.username || post.username,
+        handle: currentUser?.handle || post.handle || post.username,
+        email: currentUser?.email || post.email || "",
+        fotoPerfil: currentUser?.fotoPerfil || post.fotoPerfil || "",
         isSeedFake: !!post.isSeedFake,
       });
       const novos = [novoPost, ...posts];

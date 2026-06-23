@@ -131,6 +131,7 @@ export default function PerfilColecao({
     });
 
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
+    window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
     setPosts(updatedPosts);
 
     const nextSelectedPost = updatedPosts.find((post) => post.id === postId);

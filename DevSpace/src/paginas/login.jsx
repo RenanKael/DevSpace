@@ -292,6 +292,7 @@ export default function Login({ onLogin }) {
     });
 
     localStorage.setItem("posts", JSON.stringify(postsAtualizados));
+    window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
   }
 
   function alterarAcesso() {
