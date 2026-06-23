@@ -298,9 +298,18 @@ function normalizeStoredPosts(posts) {
 
 function stripPostForStorage(post) {
   const isSeedFake = !!post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com");
+  const commentsList = Array.isArray(post?.commentsList)
+    ? post.commentsList.map((comment) => ({
+        ...comment,
+        fotoPerfil: "",
+      }))
+    : [];
+
   return {
     ...post,
+    fotoPerfil: "",
     imagem: isSeedFake ? "" : post?.imagem || "",
+    commentsList,
   };
 }
 
@@ -310,15 +319,14 @@ function savePostsToStorage(posts) {
   try {
     localStorage.setItem("posts", serializedPosts);
   } catch (error) {
-    const previousPosts = localStorage.getItem("posts");
     localStorage.removeItem("posts");
     try {
       localStorage.setItem("posts", serializedPosts);
     } catch (retryError) {
-      if (previousPosts !== null) {
-        localStorage.setItem("posts", previousPosts);
-      }
-      throw retryError;
+      const emergencyPosts = storagePosts.map((post) => ({ ...post, imagem: "" }));
+      localStorage.removeItem("profileImageBackups");
+      localStorage.setItem("posts", JSON.stringify(emergencyPosts));
+      return emergencyPosts;
     }
   }
   return storagePosts;

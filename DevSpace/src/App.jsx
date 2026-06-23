@@ -234,9 +234,18 @@ function sanitizeStoredPosts(posts) {
 
 function stripPostForStorage(post) {
   const isSeedFake = !!post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com");
+  const commentsList = Array.isArray(post?.commentsList)
+    ? post.commentsList.map((comment) => ({
+        ...comment,
+        fotoPerfil: "",
+      }))
+    : [];
+
   return {
     ...post,
+    fotoPerfil: "",
     imagem: isSeedFake ? "" : post?.imagem || "",
+    commentsList,
   };
 }
 
@@ -246,15 +255,14 @@ function savePostsToStorage(posts) {
   try {
     localStorage.setItem("posts", serializedPosts);
   } catch (error) {
-    const previousPosts = localStorage.getItem("posts");
     localStorage.removeItem("posts");
     try {
       localStorage.setItem("posts", serializedPosts);
     } catch (retryError) {
-      if (previousPosts !== null) {
-        localStorage.setItem("posts", previousPosts);
-      }
-      throw retryError;
+      const emergencyPosts = storagePosts.map((post) => ({ ...post, imagem: "" }));
+      localStorage.removeItem("profileImageBackups");
+      localStorage.setItem("posts", JSON.stringify(emergencyPosts));
+      return emergencyPosts;
     }
   }
   return storagePosts;
@@ -311,12 +319,7 @@ function App() {
         };
       });
 
-      if (
-        postsValidos.length !== posts.length ||
-        JSON.stringify(postsMigrados) !== JSON.stringify(posts)
-      ) {
-        localStorage.setItem("posts", JSON.stringify(postsMigrados));
-      }
+      savePostsToStorage(postsMigrados);
 
       const sessionCandidates = [localUser, sessionUser].filter(Boolean);
       const usersWithSession = [...usuarios];
@@ -494,9 +497,7 @@ function App() {
       });
 
       localStorage.setItem("usuarios", JSON.stringify(dedupedUsers));
-      if (JSON.stringify(repairedPosts) !== JSON.stringify(postsMigrados)) {
-        localStorage.setItem("posts", JSON.stringify(repairedPosts));
-      }
+      savePostsToStorage(repairedPosts);
       const syncedLocal = localUser && dedupedUsers.find((user) => isSameUser(user, localUser));
       const syncedSession = sessionUser && dedupedUsers.find((user) => isSameUser(user, sessionUser));
       if (syncedLocal) localStorage.setItem("usuarioLogado", JSON.stringify(syncedLocal));
