@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function PostComments({
   postId,
@@ -10,6 +10,7 @@ export default function PostComments({
   onOpenUserProfile,
 }) {
   const [novoComentario, setNovoComentario] = useState("");
+  const inputRef = useRef(null);
 
   const usuarioEmail = (usuario?.email || "").toLowerCase();
   const usuarioHandle = (usuario?.handle || usuario?.username || "").replace(/\s+/g, "").toLowerCase();
@@ -34,6 +35,27 @@ export default function PostComments({
     if (!texto) return;
     onAddComment(postId, texto);
     setNovoComentario("");
+  };
+
+  const handleReply = (comment) => {
+    const handle = (comment?.handle || comment?.username || "")
+      .replace(/^@+/, "")
+      .replace(/\s+/g, "")
+      .toLowerCase();
+    if (!handle) return;
+
+    const mention = `@${handle}`;
+    setNovoComentario((current) => {
+      const text = current.trimStart();
+      if (text === mention || text.startsWith(`${mention} `)) return current;
+      return `${mention} ${text}`.trimEnd();
+    });
+
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      const length = inputRef.current?.value.length || 0;
+      inputRef.current?.setSelectionRange(length, length);
+    });
   };
 
   return (
@@ -76,9 +98,23 @@ export default function PostComments({
                       <small>@{comment.handle}</small>
                     </div>
                     <p className="comment-text">{comment.texto}</p>
-                    <small className="comment-time">
-                      {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
-                    </small>
+                    <div className="comment-actions">
+                      <small className="comment-time">
+                        {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
+                      </small>
+                      {usuario && (
+                        <button
+                          type="button"
+                          className="comment-reply-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReply(comment);
+                          }}
+                        >
+                          Responder
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {isOwnComment(comment) && (
                     <button
@@ -100,6 +136,7 @@ export default function PostComments({
 
           <form className="comment-form" onSubmit={handleSubmit}>
             <input
+              ref={inputRef}
               type="text"
               value={novoComentario}
               onChange={(e) => setNovoComentario(e.target.value)}
