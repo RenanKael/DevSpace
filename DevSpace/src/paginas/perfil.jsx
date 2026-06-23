@@ -52,6 +52,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     baseX: 50,
     baseY: 50,
   });
+  const postMenuAnchorRef = useRef(null);
 
   const [animatingStar, setAnimatingStar] = useState(null);
   const previousActiveStarsRef = useRef(null);
@@ -541,6 +542,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setActiveMenuPostId(null);
     setPostMenuPosition(null);
+    postMenuAnchorRef.current = null;
   }
 
   function deletePost(postId) {
@@ -551,6 +553,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setActiveMenuPostId(null);
     setPostMenuPosition(null);
+    postMenuAnchorRef.current = null;
   }
 
   function editPost(post) {
@@ -559,6 +562,23 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     setEditingText(post.texto || "");
     setActiveMenuPostId(null);
     setPostMenuPosition(null);
+    postMenuAnchorRef.current = null;
+  }
+
+  function getPostMenuPosition(button) {
+    const rect = button.getBoundingClientRect();
+    const menuHeight = isAdmin && !isOwnProfile ? 48 : 130;
+    const menuWidth = 176;
+    const gap = 8;
+
+    const rawTop = rect.top + rect.height / 2 - menuHeight / 2;
+    const top = Math.min(
+      Math.max(gap, rawTop),
+      Math.max(gap, window.innerHeight - menuHeight - gap)
+    );
+    const left = Math.max(gap, rect.left - menuWidth - gap);
+
+    return { top, left };
   }
 
   function togglePostMenu(e, postId) {
@@ -567,33 +587,46 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     if (activeMenuPostId === postId) {
       setActiveMenuPostId(null);
       setPostMenuPosition(null);
+      postMenuAnchorRef.current = null;
       return;
     }
 
     const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const menuHeight = isAdmin && !isOwnProfile ? 48 : 130;
-    const menuWidth = 176;
-    const gap = 8;
-    const spaceAbove = rect.top - gap;
-    const spaceBelow = window.innerHeight - rect.bottom - gap;
-    const opensUp = spaceBelow < menuHeight && spaceAbove >= spaceBelow;
-    const rawTop = opensUp ? rect.top - menuHeight - gap : rect.bottom + gap;
-    const top = Math.min(
-      Math.max(gap, rawTop),
-      Math.max(gap, window.innerHeight - menuHeight - gap)
-    );
-    const left = Math.min(
-      Math.max(gap, rect.right - menuWidth),
-      Math.max(gap, window.innerWidth - menuWidth - gap)
-    );
-
-    setPostMenuPosition({
-      top,
-      left,
-    });
+    postMenuAnchorRef.current = button;
+    setPostMenuPosition(getPostMenuPosition(button));
     setActiveMenuPostId(postId);
   }
+
+  useEffect(() => {
+    if (!activeMenuPostId) return;
+
+    let frameId = null;
+    const updateFloatingPostMenu = () => {
+      if (frameId) return;
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        const button = postMenuAnchorRef.current;
+        if (!button || !button.isConnected) {
+          setActiveMenuPostId(null);
+          setPostMenuPosition(null);
+          postMenuAnchorRef.current = null;
+          return;
+        }
+
+        setPostMenuPosition(getPostMenuPosition(button));
+      });
+    };
+
+    window.addEventListener("scroll", updateFloatingPostMenu, true);
+    window.addEventListener("resize", updateFloatingPostMenu);
+
+    return () => {
+      window.removeEventListener("scroll", updateFloatingPostMenu, true);
+      window.removeEventListener("resize", updateFloatingPostMenu);
+      if (frameId) window.cancelAnimationFrame(frameId);
+    };
+  }, [activeMenuPostId, isAdmin, isOwnProfile]);
 
   function logout() {
     if (!isOwnProfile) return;
