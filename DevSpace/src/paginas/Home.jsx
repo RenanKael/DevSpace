@@ -804,7 +804,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         localStorage.setItem("usuarios", JSON.stringify(progressedUsers));
         setUsuarios(progressedUsers);
       }
-      setPosts(seedPosts);
+      setPosts(sortPostsByDate(hydratePostsForDisplay(seedPosts, savedUsers)));
     } else {
       const hasLegacySeed = saved.some((post) => post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com"));
       const savedIds = new Set(saved.map((post) => Number(post.id)));
@@ -889,7 +889,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         localStorage.setItem("usuarios", JSON.stringify(progressedUsers));
         setUsuarios(progressedUsers);
       }
-      setPosts(sortPostsByDate(normalizedPosts));
+      setPosts(sortPostsByDate(hydratePostsForDisplay(normalizedPosts, usersList)));
     }
   }, [refreshFeed]);
 
@@ -915,7 +915,8 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       if (event.key === "posts") {
         try {
           const saved = JSON.parse(localStorage.getItem("posts")) || [];
-          setPosts(Array.isArray(saved) ? sortPostsByDate(normalizeStoredPosts(saved)) : []);
+          const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+          setPosts(Array.isArray(saved) ? sortPostsByDate(hydratePostsForDisplay(saved, savedUsers)) : []);
         } catch {
           setPosts([]);
         }
@@ -935,7 +936,8 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
     const handlePostsUpdated = () => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
-      setPosts(Array.isArray(saved) ? sortPostsByDate(normalizeStoredPosts(saved)) : []);
+      const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+      setPosts(Array.isArray(saved) ? sortPostsByDate(hydratePostsForDisplay(saved, savedUsers)) : []);
     };
 
     window.addEventListener("storage", handleStorage);
@@ -969,7 +971,8 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     setLoading(true);
     setTimeout(() => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
-      setPosts(sortPostsByDate(normalizeStoredPosts(saved)));
+      const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+      setPosts(sortPostsByDate(hydratePostsForDisplay(saved, savedUsers)));
       setLoading(false);
     }, 1000);
   };
