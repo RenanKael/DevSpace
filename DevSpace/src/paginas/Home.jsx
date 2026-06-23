@@ -292,7 +292,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   const [imagePreview, setImagePreview] = useState(null);
   const [commentsPostId, setCommentsPostId] = useState(null);
   const [activeActions, setActiveActions] = useState({});
-  const [syncToast, setSyncToast] = useState(false);
   const [visibleSuggestionHandles, setVisibleSuggestionHandles] = useState(null);
 
   useOverlayClose(!!selectedPost && !commentsPostId, () => setSelectedPost(null));
@@ -306,7 +305,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       return true;
     } catch (error) {
       console.warn("Nao foi possivel salvar posts no localStorage:", error);
-      setSyncToast(true);
       return false;
     }
   }
@@ -746,7 +744,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         try {
           const saved = JSON.parse(localStorage.getItem("posts")) || [];
           setPosts(Array.isArray(saved) ? saved : []);
-          setSyncToast(true);
         } catch {
           setPosts([]);
         }
@@ -756,22 +753,17 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
         const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
         setUsuario(localUser || sessionUser || null);
-        setSyncToast(true);
       }
 
       if (event.key === "usuarios") {
         const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
         setUsuarios(Array.isArray(savedUsers) ? savedUsers : []);
-        setSyncToast(true);
       }
     };
 
     const handlePostsUpdated = (event) => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
       setPosts(Array.isArray(saved) ? saved : []);
-      if (!event?.detail?.sameTab) {
-        setSyncToast(true);
-      }
     };
 
     window.addEventListener("storage", handleStorage);
@@ -782,11 +774,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     };
   }, []);
 
-  useEffect(() => {
-    if (!syncToast) return;
-    const timer = setTimeout(() => setSyncToast(false), 2200);
-    return () => clearTimeout(timer);
-  }, [syncToast]);
 
   useEffect(() => {
     const userKeys = getActionKeys(usuario);
@@ -1289,9 +1276,6 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         </div>
       )}
 
-      {syncToast && (
-        <div className="sync-toast">Dados atualizados em outra aba.</div>
-      )}
     </div>
   );
 }

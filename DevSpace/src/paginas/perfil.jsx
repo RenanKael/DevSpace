@@ -44,7 +44,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
   const [reloadImg, setReloadImg] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [syncToast, setSyncToast] = useState(false);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({
     startX: 0,
@@ -217,7 +216,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                 .sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime())
             : []
         );
-        setSyncToast(true);
     };
 
     const handlePostsUpdated = (event) => {
@@ -254,9 +252,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
         }
         setUsuarioLogado(logado || null);
         setPosts(user ? savedPosts.filter((post) => postBelongsToUser(post, user)) : []);
-        if (!event?.detail?.sameTab) {
-          setSyncToast(true);
-        }
     };
 
     window.addEventListener("storage", handleStorage);
@@ -267,11 +262,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     };
   }, [viewedUser]);
 
-  useEffect(() => {
-    if (!syncToast) return;
-    const timer = setTimeout(() => setSyncToast(false), 2200);
-    return () => clearTimeout(timer);
-  }, [syncToast]);
 
   useEffect(() => {
     if (!usuario || !usuarioLogado) return;
@@ -1263,9 +1253,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
       </div>
 
-      {syncToast && (
-        <div className="sync-toast">Dados atualizados em outra aba.</div>
-      )}
     </div>
   );
 }
