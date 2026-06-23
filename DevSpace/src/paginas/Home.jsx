@@ -309,6 +309,15 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     }
   }
 
+  function getStoredPosts(fallback = []) {
+    try {
+      const saved = JSON.parse(localStorage.getItem("posts")) || [];
+      return Array.isArray(saved) ? saved : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
   function updateUserInState(updatedUser) {
     setUsuario(updatedUser);
     setUsuarios((prev) => {
@@ -379,7 +388,8 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     }));
 
     setPosts((prevPosts) => {
-      const updatedPosts = prevPosts.map((post) => {
+      const sourcePosts = getStoredPosts(prevPosts);
+      const updatedPosts = sourcePosts.map((post) => {
         if (post.id !== postId) return post;
         const currentValue = Number(post[action] || 0);
         const owners = ownerField && Array.isArray(post[ownerField])
@@ -417,7 +427,8 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     commitStarProgress(usuarioAtualizado, recordUserCommentProgress);
 
     setPosts((prevPosts) => {
-      const updatedPosts = prevPosts.map((post) => {
+      const sourcePosts = getStoredPosts(prevPosts);
+      const updatedPosts = sourcePosts.map((post) => {
         if (post.id !== postId) return post;
 
         const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
@@ -452,7 +463,8 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     if (!usuario) return;
 
     setPosts((prevPosts) => {
-      const updatedPosts = prevPosts.map((post) => {
+      const sourcePosts = getStoredPosts(prevPosts);
+      const updatedPosts = sourcePosts.map((post) => {
         if (post.id !== postId) return post;
 
         const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
@@ -481,7 +493,8 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     if (!userKey) return;
 
     setPosts((prevPosts) => {
-      const updatedPosts = prevPosts.map((post) => {
+      const sourcePosts = getStoredPosts(prevPosts);
+      const updatedPosts = sourcePosts.map((post) => {
         if (post.id !== postId) return post;
 
         const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
@@ -813,8 +826,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       }
     };
 
-    const handlePostsUpdated = (event) => {
-      if (event?.detail?.sameTab) return;
+    const handlePostsUpdated = () => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
       setPosts(Array.isArray(saved) ? saved : []);
     };

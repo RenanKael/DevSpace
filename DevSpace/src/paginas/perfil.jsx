@@ -107,6 +107,10 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     localStorage.setItem("profileImageBackups", JSON.stringify(backups));
   }
 
+  function notifyPostsUpdated() {
+    window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
+  }
+
   function restoreProfileImages(user) {
     const backup = getProfileImageBackup(user);
     if (!backup) return user;
@@ -218,8 +222,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
         );
     };
 
-    const handlePostsUpdated = (event) => {
-      if (event?.detail?.sameTab) return;
+    const handlePostsUpdated = () => {
       const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
       const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
       const logado = localUser || sessionUser;
@@ -553,6 +556,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
     try {
       localStorage.setItem("posts", JSON.stringify(postsAtualizados));
+      notifyPostsUpdated();
     } catch (error) {
       console.warn("Nao foi possivel atualizar referencias dos posts:", error);
     }
@@ -567,6 +571,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     );
 
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
+    notifyPostsUpdated();
     setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setEditingPost(null);
     setEditingText("");
@@ -580,6 +585,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     );
 
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
+    notifyPostsUpdated();
     setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setActiveMenuPostId(null);
     setPostMenuPosition(null);
@@ -591,6 +597,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const updatedPosts = savedPosts.filter((post) => post.id !== postId);
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
+    notifyPostsUpdated();
     setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setActiveMenuPostId(null);
     setPostMenuPosition(null);
