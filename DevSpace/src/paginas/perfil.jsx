@@ -219,6 +219,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     };
 
     const handlePostsUpdated = (event) => {
+      if (event?.detail?.sameTab) return;
       const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
       const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
       const logado = localUser || sessionUser;

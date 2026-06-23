@@ -762,6 +762,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     };
 
     const handlePostsUpdated = (event) => {
+      if (event?.detail?.sameTab) return;
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
       setPosts(Array.isArray(saved) ? saved : []);
     };
