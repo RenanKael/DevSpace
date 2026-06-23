@@ -6,6 +6,7 @@ export default function PostComments({
   comments,
   onAddComment,
   onDeleteComment,
+  onToggleCommentLike,
   usuario,
   onOpenUserProfile,
 }) {
@@ -20,15 +21,38 @@ export default function PostComments({
   const usuarioHandle = (storedUser?.handle || storedUser?.username || "").replace(/\s+/g, "").toLowerCase();
   const usuarioNome = (storedUser?.username || "").toLowerCase();
 
+  const normalizeCommentKey = (value) => String(value || "").replace(/^@+/, "").replace(/\s+/g, "").toLowerCase();
+  const usuarioKeys = [usuarioEmail, usuarioHandle, usuarioNome].filter(Boolean).map(normalizeCommentKey);
+
   const isOwnComment = (comment) => {
     const commentEmail = (comment?.email || "").toLowerCase();
-    const commentHandle = (comment?.handle || comment?.username || "").replace(/\s+/g, "").toLowerCase();
+    const commentHandle = normalizeCommentKey(comment?.handle || comment?.username || "");
     const commentName = (comment?.username || "").toLowerCase();
 
     return (
       (usuarioEmail && commentEmail === usuarioEmail) ||
       (usuarioHandle && commentHandle === usuarioHandle) ||
       (usuarioNome && commentName === usuarioNome)
+    );
+  };
+
+  const isCommentLiked = (comment) => {
+    const likedBy = Array.isArray(comment?.likedBy)
+      ? comment.likedBy.map(normalizeCommentKey)
+      : [];
+    return usuarioKeys.some((key) => likedBy.includes(key));
+  };
+
+  const renderCommentText = (text) => {
+    const parts = String(text || "").split(/(@[a-zA-Z0-9_]+)/g);
+    return parts.map((part, index) =>
+      part.startsWith("@") ? (
+        <span key={index} className="comment-mention">
+          {part}
+        </span>
+      ) : (
+        part
+      )
     );
   };
 
@@ -63,8 +87,10 @@ export default function PostComments({
     const mention = `@${handle}`;
     setNovoComentario((current) => {
       const text = current.trimStart();
-      if (text === mention || text.startsWith(`${mention} `)) return current;
-      return `${mention} ${text}`.trimEnd();
+      if (text === mention || text.startsWith(`${mention} `)) {
+        return `${mention} `;
+      }
+      return `${mention} ${text}`.trimEnd() + " ";
     });
 
     window.requestAnimationFrame(() => {
@@ -113,11 +139,21 @@ export default function PostComments({
                       </strong>
                       <small>@{comment.handle}</small>
                     </div>
-                    <p className="comment-text">{comment.texto}</p>
+                    <p className="comment-text">{renderCommentText(comment.texto)}</p>
                     <div className="comment-actions">
                       <small className="comment-time">
                         {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
                       </small>
+                      <button
+                        type="button"
+                        className={`comment-like-btn ${isCommentLiked(comment) ? "liked" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleCommentLike?.(postId, comment.id);
+                        }}
+                      >
+                        ❤️ {Number(comment.likes || 0)}
+                      </button>
                       {storedUser && (
                         <button
                           type="button"

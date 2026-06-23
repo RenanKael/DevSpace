@@ -465,6 +465,50 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     });
   }
 
+  function toggleCommentLike(postId, commentId) {
+    const storedUser =
+      usuario ||
+      JSON.parse(localStorage.getItem("usuarioLogado") || "null") ||
+      JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
+    if (!storedUser) return;
+
+    const userKey = normalizeActionKey(storedUser.email || storedUser.handle || storedUser.username);
+    if (!userKey) return;
+
+    setPosts((prevPosts) => {
+      const updatedPosts = prevPosts.map((post) => {
+        if (post.id !== postId) return post;
+
+        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+        const nextComments = commentsList.map((comment) => {
+          if (comment.id !== commentId) return comment;
+
+          const likedBy = Array.isArray(comment.likedBy) ? comment.likedBy : [];
+          const normalizedLikes = likedBy.map(normalizeActionKey);
+          const hasLiked = normalizedLikes.includes(userKey);
+          const nextLikedBy = hasLiked
+            ? likedBy.filter((key) => normalizeActionKey(key) !== userKey)
+            : [...likedBy, userKey];
+          const currentLikes = Number(comment.likes || 0);
+
+          return {
+            ...comment,
+            likes: hasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1,
+            likedBy: nextLikedBy,
+          };
+        });
+
+        return {
+          ...post,
+          commentsList: nextComments,
+        };
+      });
+
+      salvarPosts(updatedPosts);
+      return updatedPosts;
+    });
+  }
+
   useEffect(() => {
     let saved = [];
     const raw = localStorage.getItem("posts");
@@ -1262,6 +1306,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
               comments={commentsPost.commentsList || []}
               onAddComment={addCommentToPost}
               onDeleteComment={deleteCommentFromPost}
+              onToggleCommentLike={toggleCommentLike}
               usuario={usuario}
               onOpenUserProfile={onOpenUserProfile}
             />

@@ -835,6 +835,29 @@ body {
   color: #fff;
 }
 
+.comment-mention {
+  color: #9aa0a6;
+  font-weight: 700;
+}
+
+.comment-like-btn {
+  border: none;
+  background: transparent;
+  color: #9aa0a6;
+  padding: 4px 6px;
+  font-size: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.comment-like-btn.liked {
+  color: #ff6b81;
+}
+
+.comment-like-btn:hover {
+  color: #fff;
+}
+
 .comment-text {
   margin: 6px 0;
   color: #f2f2f2;
