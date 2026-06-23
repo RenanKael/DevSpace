@@ -562,32 +562,31 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     if (!didUpdate || !salvarPosts(updatedPosts)) return false;
     setUsuario(usuarioAtualizado);
     commitStarProgress(usuarioAtualizado, recordUserCommentProgress);
-    setPosts(sortPostsByDate(updatedPosts));
+    setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
     return true;
   }
 
   function deleteCommentFromPost(postId, commentId) {
     if (!usuario) return;
 
-    setPosts((prevPosts) => {
-      const sourcePosts = getStoredPosts(prevPosts);
-      const updatedPosts = sourcePosts.map((post) => {
-        if (post.id !== postId) return post;
+    const sourcePosts = getStoredPosts(posts);
+    const updatedPosts = sourcePosts.map((post) => {
+      if (post.id !== postId) return post;
 
-        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
-        const targetCommentId = String(commentId);
-        const nextComments = commentsList.filter((comment) => String(comment.id) !== targetCommentId);
+      const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+      const targetCommentId = String(commentId);
+      const nextComments = commentsList.filter((comment) => String(comment.id) !== targetCommentId);
 
-        return {
-          ...post,
-          commentsList: nextComments,
-          comments: nextComments.length,
-        };
-      });
-
-      salvarPosts(updatedPosts);
-      return sortPostsByDate(updatedPosts);
+      return {
+        ...post,
+        commentsList: nextComments,
+        comments: nextComments.length,
+      };
     });
+
+    if (salvarPosts(updatedPosts)) {
+      setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
+    }
   }
 
   function toggleCommentLike(postId, commentId) {
@@ -600,39 +599,38 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     const userKey = normalizeActionKey(storedUser.email || storedUser.handle || storedUser.username);
     if (!userKey) return;
 
-    setPosts((prevPosts) => {
-      const sourcePosts = getStoredPosts(prevPosts);
-      const updatedPosts = sourcePosts.map((post) => {
-        if (post.id !== postId) return post;
+    const sourcePosts = getStoredPosts(posts);
+    const updatedPosts = sourcePosts.map((post) => {
+      if (post.id !== postId) return post;
 
-        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
-        const nextComments = commentsList.map((comment) => {
-          if (String(comment.id) !== String(commentId)) return comment;
+      const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+      const nextComments = commentsList.map((comment) => {
+        if (String(comment.id) !== String(commentId)) return comment;
 
-          const likedBy = Array.isArray(comment.likedBy) ? comment.likedBy : [];
-          const normalizedLikes = likedBy.map(normalizeActionKey);
-          const hasLiked = normalizedLikes.includes(userKey);
-          const nextLikedBy = hasLiked
-            ? likedBy.filter((key) => normalizeActionKey(key) !== userKey)
-            : [...likedBy, userKey];
-          const currentLikes = Number(comment.likes || 0);
-
-          return {
-            ...comment,
-            likes: hasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1,
-            likedBy: nextLikedBy,
-          };
-        });
+        const likedBy = Array.isArray(comment.likedBy) ? comment.likedBy : [];
+        const normalizedLikes = likedBy.map(normalizeActionKey);
+        const hasLiked = normalizedLikes.includes(userKey);
+        const nextLikedBy = hasLiked
+          ? likedBy.filter((key) => normalizeActionKey(key) !== userKey)
+          : [...likedBy, userKey];
+        const currentLikes = Number(comment.likes || 0);
 
         return {
-          ...post,
-          commentsList: nextComments,
+          ...comment,
+          likes: hasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1,
+          likedBy: nextLikedBy,
         };
       });
 
-      salvarPosts(updatedPosts);
-      return sortPostsByDate(updatedPosts);
+      return {
+        ...post,
+        commentsList: nextComments,
+      };
     });
+
+    if (salvarPosts(updatedPosts)) {
+      setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
+    }
   }
 
   useEffect(() => {
