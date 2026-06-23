@@ -195,6 +195,39 @@ function getStoredUsuario() {
   }
 }
 
+function normalizeStoredPost(post) {
+  if (!post || typeof post !== "object") return null;
+  const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+  const handle = (post.handle || post.username || "usuario").replace(/\s+/g, "").toLowerCase();
+  return {
+    ...post,
+    id: Number(post.id) || Date.now(),
+    username: post.username || "Usuario",
+    handle,
+    email: post.email || "",
+    fotoPerfil: post.fotoPerfil || "",
+    texto: post.texto || "",
+    imagem: post.imagem || "",
+    criadoEm: post.criadoEm || new Date().toISOString(),
+    comments: Number(post.comments || 0),
+    commentsList,
+    isSeedFake: !!post.isSeedFake,
+    shares: Number(post.shares || 0),
+    likes: Number(post.likes || 0),
+    bookmarks: Number(post.bookmarks || 0),
+    likedBy: Array.isArray(post.likedBy) ? post.likedBy : [],
+    savedBy: Array.isArray(post.savedBy) ? post.savedBy : [],
+    repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
+  };
+}
+
+function sanitizeStoredPosts(posts) {
+  if (!Array.isArray(posts)) return [];
+  return posts
+    .map(normalizeStoredPost)
+    .filter((post) => post && (post.email || post.username || post.handle));
+}
+
 function App() {
   const [route, setRoute] = useState(createInitialRouteState);
   const [logado, setLogado] = useState(() => !!getStoredUsuario());
@@ -542,16 +575,16 @@ function App() {
 
   function handlePostCreated(post) {
     try {
-      const posts = JSON.parse(localStorage.getItem("posts")) || [];
+      const rawPosts = JSON.parse(localStorage.getItem("posts")) || [];
+      const posts = sanitizeStoredPosts(rawPosts);
       const currentUser = usuario || JSON.parse(localStorage.getItem("usuarioLogado")) || JSON.parse(sessionStorage.getItem("usuarioLogado"));
-      const novoPost = {
+      const novoPost = normalizeStoredPost({
         ...post,
-        comments: Number(post.comments || 0),
-        commentsList: Array.isArray(post.commentsList) ? post.commentsList : [],
         isSeedFake: !!post.isSeedFake,
-      };
+      });
       const novos = [novoPost, ...posts];
       localStorage.setItem("posts", JSON.stringify(novos));
+      window.dispatchEvent(new Event("devspacePostsUpdated"));
 
       if (currentUser) {
         const { updatedUser, previousStars, newStars } = recordUserPostProgress(currentUser);

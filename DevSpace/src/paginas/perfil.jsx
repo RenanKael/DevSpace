@@ -181,40 +181,80 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
       const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
       const logado = localUser || sessionUser;
-    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-    const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-    const syncedUsers = syncUsersStarProgress(usuarios, savedPosts);
-    if (JSON.stringify(syncedUsers) !== JSON.stringify(usuarios)) {
-      localStorage.setItem("usuarios", JSON.stringify(syncedUsers));
-    }
-    const baseUser = viewedUser || logado;
-    const user = baseUser
-        ? syncedUsers.find((u) => {
-            const byEmail = baseUser.email && u.email &&
-              u.email.toLowerCase() === baseUser.email.toLowerCase();
-            const byHandle = baseUser.handle && u.handle &&
-              u.handle.toLowerCase() === baseUser.handle.toLowerCase();
-            return byEmail || byHandle;
-          }) || baseUser
-        : null;
-
-      if (user) {
-        const normalized = restoreProfileImages({
-          ...user,
-          criadoEm: user.criadoEm || new Date().toISOString(),
-          handle: (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase(),
-          seguidores: user.seguidores || 0,
-          seguindo: Array.isArray(user.seguindo) ? user.seguindo : [],
-          comments: user.comments || 0,
-        });
-        setUsuario(normalized);
+      const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+      const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+      const syncedUsers = syncUsersStarProgress(usuarios, savedPosts);
+      if (JSON.stringify(syncedUsers) !== JSON.stringify(usuarios)) {
+        localStorage.setItem("usuarios", JSON.stringify(syncedUsers));
       }
-      setUsuarioLogado(logado || null);
-      setSyncToast(true);
+      const baseUser = viewedUser || logado;
+      const user = baseUser
+          ? syncedUsers.find((u) => {
+              const byEmail = baseUser.email && u.email &&
+                u.email.toLowerCase() === baseUser.email.toLowerCase();
+              const byHandle = baseUser.handle && u.handle &&
+                u.handle.toLowerCase() === baseUser.handle.toLowerCase();
+              return byEmail || byHandle;
+            }) || baseUser
+          : null;
+
+        if (user) {
+          const normalized = restoreProfileImages({
+            ...user,
+            criadoEm: user.criadoEm || new Date().toISOString(),
+            handle: (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+            seguidores: user.seguidores || 0,
+            seguindo: Array.isArray(user.seguindo) ? user.seguindo : [],
+            comments: user.comments || 0,
+          });
+          setUsuario(normalized);
+        }
+        setUsuarioLogado(logado || null);
+        setSyncToast(true);
+    };
+
+    const handlePostsUpdated = () => {
+      const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+      const logado = localUser || sessionUser;
+      const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+      const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+      const syncedUsers = syncUsersStarProgress(usuarios, savedPosts);
+      if (JSON.stringify(syncedUsers) !== JSON.stringify(usuarios)) {
+        localStorage.setItem("usuarios", JSON.stringify(syncedUsers));
+      }
+      const baseUser = viewedUser || logado;
+      const user = baseUser
+          ? syncedUsers.find((u) => {
+              const byEmail = baseUser.email && u.email &&
+                u.email.toLowerCase() === baseUser.email.toLowerCase();
+              const byHandle = baseUser.handle && u.handle &&
+                u.handle.toLowerCase() === baseUser.handle.toLowerCase();
+              return byEmail || byHandle;
+            }) || baseUser
+          : null;
+
+        if (user) {
+          const normalized = restoreProfileImages({
+            ...user,
+            criadoEm: user.criadoEm || new Date().toISOString(),
+            handle: (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+            seguidores: user.seguidores || 0,
+            seguindo: Array.isArray(user.seguindo) ? user.seguindo : [],
+            comments: user.comments || 0,
+          });
+          setUsuario(normalized);
+        }
+        setUsuarioLogado(logado || null);
+        setSyncToast(true);
     };
 
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener("devspacePostsUpdated", handlePostsUpdated);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("devspacePostsUpdated", handlePostsUpdated);
+    };
   }, [viewedUser]);
 
   useEffect(() => {

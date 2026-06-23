@@ -765,8 +765,18 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       }
     };
 
+    const handlePostsUpdated = () => {
+      const saved = JSON.parse(localStorage.getItem("posts")) || [];
+      setPosts(Array.isArray(saved) ? saved : []);
+      setSyncToast(true);
+    };
+
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener("devspacePostsUpdated", handlePostsUpdated);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("devspacePostsUpdated", handlePostsUpdated);
+    };
   }, []);
 
   useEffect(() => {
