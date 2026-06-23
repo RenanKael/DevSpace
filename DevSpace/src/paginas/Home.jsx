@@ -475,7 +475,10 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       saved = [];
     }
 
-    const isAdmin = usuario?.email === "renan.kael@gmail.com";
+    const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+    const currentUser = localUser || sessionUser;
+    const isAdmin = currentUser?.email === "renan.kael@gmail.com";
 
     const fakeSeed = isAdmin
       ? [
@@ -719,7 +722,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       }
       setPosts(normalizedPosts);
     }
-  }, [refreshFeed, usuario, usuarios]);
+  }, [refreshFeed]);
 
   const [loading, setLoading] = useState(false);
 
