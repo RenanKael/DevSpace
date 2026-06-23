@@ -141,6 +141,7 @@ export function usePostImageEditor(initialImage = "") {
 
   return {
     image,
+    setImage,
     editingImage,
     isEditorOpen: !!editingImage,
     editPos,

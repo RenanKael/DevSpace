@@ -9,6 +9,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
   const [erro, setErro] = useState("");
   const {
     image,
+    setImage,
     editingImage,
     isEditorOpen,
     editPos,
@@ -38,6 +39,25 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
   }, [clearForm, onClose]);
 
   useOverlayClose(open && !isEditorOpen, handleClose);
+
+  const handlePaste = (event) => {
+    const items = event.clipboardData?.items || [];
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (loadEvent) => {
+            setErro("");
+            setImage(loadEvent.target.result);
+          };
+          reader.readAsDataURL(file);
+          event.preventDefault();
+          return;
+        }
+      }
+    }
+  };
 
   function handleSubmit() {
     if (!texto.trim() && !image) {
@@ -112,6 +132,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
             placeholder="O que esta acontecendo?"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
+            onPaste={handlePaste}
           />
 
           {image && (

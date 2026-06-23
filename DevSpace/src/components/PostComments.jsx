@@ -12,6 +12,7 @@ export default function PostComments({
 }) {
   const [novoComentario, setNovoComentario] = useState("");
   const [replyTo, setReplyTo] = useState(null);
+  const [image, setImage] = useState(null);
   const inputRef = useRef(null);
   const storedUser =
     usuario ||
@@ -66,10 +67,11 @@ export default function PostComments({
     }
 
     const texto = novoComentario.trim();
-    if (!texto) return;
-    onAddComment(postId, texto, replyTo?.id);
+    if (!texto && !image) return;
+    onAddComment(postId, texto, replyTo?.id, image);
     setNovoComentario("");
     setReplyTo(null);
+    setImage(null);
   };
 
   const handleInputKeyDown = (e) => {
@@ -101,6 +103,24 @@ export default function PostComments({
       const length = inputRef.current?.value.length || 0;
       inputRef.current?.setSelectionRange(length, length);
     });
+  };
+
+  const handlePaste = (event) => {
+    const items = event.clipboardData?.items || [];
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (loadEvent) => {
+            setImage(loadEvent.target.result);
+          };
+          reader.readAsDataURL(file);
+          event.preventDefault();
+          return;
+        }
+      }
+    }
   };
 
   const repliesByParent = comments.reduce((map, comment) => {
@@ -142,6 +162,11 @@ export default function PostComments({
               <small>@{comment.handle}</small>
             </div>
             <p className="comment-text">{renderCommentText(comment.texto)}</p>
+            {comment.imagem && (
+              <div className="comment-image-view">
+                <img src={comment.imagem} alt="Imagem do comentario" />
+              </div>
+            )}
             <div className="comment-actions">
               <small className="comment-time">
                 {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
@@ -222,6 +247,14 @@ export default function PostComments({
             </div>
           )}
 
+          {image && (
+            <div className="comment-image-preview">
+              <img src={image} alt="Preview do comentario" />
+              <button type="button" className="comment-image-remove" onClick={() => setImage(null)}>
+                x
+              </button>
+            </div>
+          )}
           <form className="comment-form" onSubmit={handleSubmit}>
             <input
               ref={inputRef}
@@ -229,10 +262,11 @@ export default function PostComments({
               value={novoComentario}
               onChange={(e) => setNovoComentario(e.target.value)}
               onKeyDown={handleInputKeyDown}
+              onPaste={handlePaste}
               placeholder="Escreva um comentario"
               disabled={!storedUser}
             />
-            <button type="submit" onClick={handleSubmit} disabled={!storedUser || !novoComentario.trim()}>
+            <button type="submit" onClick={handleSubmit} disabled={!storedUser || (!novoComentario.trim() && !image)}>
               Comentar
             </button>
           </form>

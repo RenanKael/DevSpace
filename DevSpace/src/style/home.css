@@ -897,6 +897,44 @@ body {
   color: #fff;
 }
 
+.comment-image-view {
+  margin: 10px 0 0;
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.comment-image-view img {
+  width: 100%;
+  display: block;
+  border-radius: 16px;
+}
+
+.comment-image-preview {
+  position: relative;
+  margin-bottom: 12px;
+  max-width: 320px;
+}
+
+.comment-image-preview img {
+  width: 100%;
+  border-radius: 14px;
+  display: block;
+}
+
+.comment-image-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  cursor: pointer;
+}
+
 .comment-text {
   margin: 6px 0;
   color: #f2f2f2;

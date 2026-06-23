@@ -402,13 +402,14 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     });
   }
 
-  function addCommentToPost(postId, texto) {
+  function addCommentToPost(postId, texto, parentId = null, imagem = null) {
     const storedUser =
       usuario ||
       JSON.parse(localStorage.getItem("usuarioLogado") || "null") ||
       JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
 
     if (!storedUser) return;
+    if (!texto.trim() && !imagem) return;
 
     const usuarioAtualizado = findUserProfile(storedUser, usuarios) || storedUser;
     const commentHandle = (usuarioAtualizado.handle || usuarioAtualizado.username || "usuario").replace(/\s+/g, "").toLowerCase();
@@ -426,8 +427,12 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
           handle: commentHandle,
           email: usuarioAtualizado.email || "",
           fotoPerfil: usuarioAtualizado.fotoPerfil || "",
-          texto,
+          texto: texto.trim(),
           criadoEm: new Date().toISOString(),
+          parentId,
+          imagem: imagem || "",
+          likes: 0,
+          likedBy: [],
         };
 
         const nextComments = [novoComentario, ...commentsList];
