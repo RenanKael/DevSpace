@@ -33,12 +33,24 @@ export default function PostComments({
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e?.preventDefault) {
+      e.preventDefault();
+    }
+    if (e?.stopPropagation) {
+      e.stopPropagation();
+    }
+
     const texto = novoComentario.trim();
     if (!texto) return;
     onAddComment(postId, texto);
     setNovoComentario("");
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   };
 
   const handleReply = (comment) => {
@@ -144,10 +156,11 @@ export default function PostComments({
               type="text"
               value={novoComentario}
               onChange={(e) => setNovoComentario(e.target.value)}
+              onKeyDown={handleInputKeyDown}
               placeholder="Escreva um comentario"
               disabled={!storedUser}
             />
-            <button type="submit" disabled={!storedUser || !novoComentario.trim()}>
+            <button type="submit" onClick={handleSubmit} disabled={!storedUser || !novoComentario.trim()}>
               Comentar
             </button>
           </form>
