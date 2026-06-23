@@ -199,6 +199,10 @@ function normalizeStoredPost(post) {
   if (!post || typeof post !== "object") return null;
   const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
   const handle = (post.handle || post.username || "usuario").replace(/\s+/g, "").toLowerCase();
+  const comments = post.isSeedFake
+    ? commentsList.length || Number(post.comments || 0)
+    : commentsList.length;
+
   return {
     ...post,
     id: Number(post.id) || Date.now(),
@@ -209,7 +213,7 @@ function normalizeStoredPost(post) {
     texto: post.texto || "",
     imagem: post.imagem || "",
     criadoEm: post.criadoEm || new Date().toISOString(),
-    comments: Number(post.comments || 0),
+    comments,
     commentsList,
     isSeedFake: !!post.isSeedFake,
     shares: Number(post.shares || 0),
@@ -603,8 +607,10 @@ function App() {
 
       setPostRefresh((value) => value + 1);
       setIsPostModalOpen(false);
+      return true;
     } catch (error) {
       console.warn("Nao foi possivel salvar o post:", error);
+      return false;
     }
   }
 

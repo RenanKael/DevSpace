@@ -266,6 +266,32 @@ function sortPostsByDate(posts) {
   });
 }
 
+function normalizeStoredPost(post) {
+  if (!post || typeof post !== "object") return null;
+  const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+
+  return {
+    ...post,
+    commentsList,
+    comments: post.isSeedFake
+      ? commentsList.length || Number(post.comments || 0)
+      : commentsList.length,
+    shares: Number(post.shares || 0),
+    likes: Number(post.likes || 0),
+    bookmarks: Number(post.bookmarks || 0),
+    likedBy: Array.isArray(post.likedBy) ? post.likedBy : [],
+    savedBy: Array.isArray(post.savedBy) ? post.savedBy : [],
+    repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
+  };
+}
+
+function normalizeStoredPosts(posts) {
+  if (!Array.isArray(posts)) return [];
+  return posts
+    .map(normalizeStoredPost)
+    .filter((post) => post && (post.email || post.username || post.handle));
+}
+
 export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(() => {
@@ -308,7 +334,8 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
   function salvarPosts(postsAtualizados) {
     try {
-      localStorage.setItem("posts", JSON.stringify(postsAtualizados));
+      const normalizedPosts = normalizeStoredPosts(postsAtualizados);
+      localStorage.setItem("posts", JSON.stringify(normalizedPosts));
       window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
       return true;
     } catch (error) {
@@ -320,7 +347,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   function getStoredPosts(fallback = []) {
     try {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
-      return Array.isArray(saved) ? saved : fallback;
+      return Array.isArray(saved) ? normalizeStoredPosts(saved) : fallback;
     } catch {
       return fallback;
     }
@@ -426,45 +453,46 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       JSON.parse(localStorage.getItem("usuarioLogado") || "null") ||
       JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
 
-    if (!storedUser) return;
-    if (!texto.trim() && !imagem) return;
+    if (!storedUser) return false;
+    if (!texto.trim() && !imagem) return false;
 
     const usuarioAtualizado = findUserProfile(storedUser, usuarios) || storedUser;
     const commentHandle = (usuarioAtualizado.handle || usuarioAtualizado.username || "usuario").replace(/\s+/g, "").toLowerCase();
+
+    const sourcePosts = getStoredPosts(posts);
+    let didUpdate = false;
+    const updatedPosts = sourcePosts.map((post) => {
+      if (post.id !== postId) return post;
+
+      const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+      const novoComentario = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        username: usuarioAtualizado.username || "Usuario",
+        handle: commentHandle,
+        email: usuarioAtualizado.email || "",
+        fotoPerfil: usuarioAtualizado.fotoPerfil || "",
+        texto: texto.trim(),
+        criadoEm: new Date().toISOString(),
+        parentId,
+        imagem: imagem || "",
+        likes: 0,
+        likedBy: [],
+      };
+
+      didUpdate = true;
+      const nextComments = [novoComentario, ...commentsList];
+      return {
+        ...post,
+        commentsList: nextComments,
+        comments: nextComments.length,
+      };
+    });
+
+    if (!didUpdate || !salvarPosts(updatedPosts)) return false;
     setUsuario(usuarioAtualizado);
     commitStarProgress(usuarioAtualizado, recordUserCommentProgress);
-
-    setPosts((prevPosts) => {
-      const sourcePosts = getStoredPosts(prevPosts);
-      const updatedPosts = sourcePosts.map((post) => {
-        if (post.id !== postId) return post;
-
-        const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
-        const novoComentario = {
-          id: Date.now() + Math.floor(Math.random() * 1000),
-          username: usuarioAtualizado.username || "Usuario",
-          handle: commentHandle,
-          email: usuarioAtualizado.email || "",
-          fotoPerfil: usuarioAtualizado.fotoPerfil || "",
-          texto: texto.trim(),
-          criadoEm: new Date().toISOString(),
-          parentId,
-          imagem: imagem || "",
-          likes: 0,
-          likedBy: [],
-        };
-
-        const nextComments = [novoComentario, ...commentsList];
-        return {
-          ...post,
-          commentsList: nextComments,
-          comments: nextComments.length,
-        };
-      });
-
-      salvarPosts(updatedPosts);
-      return sortPostsByDate(updatedPosts);
-    });
+    setPosts(sortPostsByDate(updatedPosts));
+    return true;
   }
 
   function deleteCommentFromPost(postId, commentId) {
@@ -476,7 +504,8 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         if (post.id !== postId) return post;
 
         const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
-        const nextComments = commentsList.filter((comment) => comment.id !== commentId);
+        const targetCommentId = String(commentId);
+        const nextComments = commentsList.filter((comment) => String(comment.id) !== targetCommentId);
 
         return {
           ...post,
@@ -507,7 +536,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
         const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
         const nextComments = commentsList.map((comment) => {
-          if (comment.id !== commentId) return comment;
+          if (String(comment.id) !== String(commentId)) return comment;
 
           const likedBy = Array.isArray(comment.likedBy) ? comment.likedBy : [];
           const normalizedLikes = likedBy.map(normalizeActionKey);
@@ -544,6 +573,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     } catch {
       saved = [];
     }
+    saved = normalizeStoredPosts(saved);
 
     const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
     const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
@@ -816,7 +846,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       if (event.key === "posts") {
         try {
           const saved = JSON.parse(localStorage.getItem("posts")) || [];
-          setPosts(Array.isArray(saved) ? sortPostsByDate(saved) : []);
+          setPosts(Array.isArray(saved) ? sortPostsByDate(normalizeStoredPosts(saved)) : []);
         } catch {
           setPosts([]);
         }
@@ -836,7 +866,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
     const handlePostsUpdated = () => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
-      setPosts(Array.isArray(saved) ? sortPostsByDate(saved) : []);
+      setPosts(Array.isArray(saved) ? sortPostsByDate(normalizeStoredPosts(saved)) : []);
     };
 
     window.addEventListener("storage", handleStorage);
@@ -870,7 +900,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     setLoading(true);
     setTimeout(() => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
-      setPosts(sortPostsByDate(saved));
+      setPosts(sortPostsByDate(normalizeStoredPosts(saved)));
       setLoading(false);
     }, 1000);
   };

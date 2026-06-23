@@ -104,7 +104,12 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       return;
     }
 
-    onPostSaved(novoPost);
+    const saved = onPostSaved(novoPost);
+    if (saved === false) {
+      setErro("Nao foi possivel salvar o post. Tente remover a imagem ou usar uma imagem menor.");
+      return;
+    }
+
     clearForm();
   }
 

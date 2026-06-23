@@ -13,6 +13,7 @@ export default function PostComments({
   const [novoComentario, setNovoComentario] = useState("");
   const [replyTo, setReplyTo] = useState(null);
   const [image, setImage] = useState(null);
+  const [erro, setErro] = useState("");
   const inputRef = useRef(null);
   const storedUser =
     usuario ||
@@ -68,7 +69,13 @@ export default function PostComments({
 
     const texto = novoComentario.trim();
     if (!texto && !image) return;
-    onAddComment(postId, texto, replyTo?.id, image);
+    const saved = onAddComment(postId, texto, replyTo?.id, image);
+    if (saved === false) {
+      setErro("Nao foi possivel salvar o comentario. Tente novamente.");
+      return;
+    }
+
+    setErro("");
     setNovoComentario("");
     setReplyTo(null);
     setImage(null);
@@ -271,6 +278,7 @@ export default function PostComments({
               Comentar
             </button>
           </form>
+          {erro && <p className="post-error">{erro}</p>}
         </div>
       )}
     </div>
