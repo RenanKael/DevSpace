@@ -14,6 +14,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
   const [editingPost, setEditingPost] = useState(null);
   const [editingText, setEditingText] = useState("");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [postMenuPosition, setPostMenuPosition] = useState(null);
   const [adminMode, setAdminMode] = useState(false);
   const [adminOverrideStars, setAdminOverrideStars] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -314,45 +315,25 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
   function salvarImagem() {
     if (!isOwnProfile) return;
-    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-
-    let atualizado = { ...usuario };
+    if (!previewImg || !editandoImagem) return;
 
     if (editandoImagem === "perfil") {
-      atualizado.fotoPerfil = previewImg;
-      atualizado.posPerfil = editPosPerfil;
-      atualizado.zoomPerfil = Number(editZoomPerfil || 100);
-      setPosPerfil(editPosPerfil);
-      setZoomPerfil(Number(editZoomPerfil || 100));
+      setForm((prev) => ({
+        ...prev,
+        fotoPerfil: previewImg,
+        posPerfil: editPosPerfil,
+        zoomPerfil: Number(editZoomPerfil || 100),
+      }));
     }
 
     if (editandoImagem === "capa") {
-      atualizado.fotoCapa = previewImg;
-      atualizado.posCapa = editPosCapa;
-      atualizado.zoomCapa = Number(editZoomCapa || 100);
-      setPosCapa(editPosCapa);
-      setZoomCapa(Number(editZoomCapa || 100));
+      setForm((prev) => ({
+        ...prev,
+        fotoCapa: previewImg,
+        posCapa: editPosCapa,
+        zoomCapa: Number(editZoomCapa || 100),
+      }));
     }
-
-    saveProfileImageBackup(atualizado);
-
-    const novosUsuarios = usuarios.map((u) =>
-      u.email === atualizado.email ? atualizado : u
-    );
-
-    localStorage.setItem("usuarios", JSON.stringify(novosUsuarios));
-    if (localStorage.getItem("usuarioLogado")) {
-      localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
-    }
-    if (sessionStorage.getItem("usuarioLogado")) {
-      sessionStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
-    }
-    sincronizarReferenciasDoUsuario(usuario, atualizado);
-
-    setUsuarioLogado(atualizado);
-    setUsuario(atualizado);
-
-    setReloadImg(Date.now());
 
     setEditandoImagem(null);
     setPreviewImg(null);
@@ -410,11 +391,16 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
       senha: querAlterarSenha ? novaSenhaPerfil : usuario.senha,
     };
 
-    atualizado.fotoPerfil = usuario.fotoPerfil;
-    atualizado.fotoCapa = usuario.fotoCapa;
+    atualizado.fotoPerfil = form.fotoPerfil || usuario.fotoPerfil || "";
+    atualizado.fotoCapa = form.fotoCapa || usuario.fotoCapa || "";
+    atualizado.posPerfil = form.posPerfil || usuario.posPerfil || posPerfil;
+    atualizado.posCapa = form.posCapa || usuario.posCapa || posCapa;
+    atualizado.zoomPerfil = Number(form.zoomPerfil || usuario.zoomPerfil || zoomPerfil || 100);
+    atualizado.zoomCapa = Number(form.zoomCapa || usuario.zoomCapa || zoomCapa || 100);
     atualizado.avaliacao = usuario.avaliacao || 0;
     atualizado.estrelas = usuario.estrelas || usuario.avaliacao || 0;
     atualizado.starStats = usuario.starStats;
+    saveProfileImageBackup(atualizado);
 
     usuarios = usuarios.map((u) =>
       u.email === usuario.email ? atualizado : u
@@ -431,6 +417,11 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
     setUsuarioLogado(atualizado);
     setUsuario(atualizado);
+    setForm(atualizado);
+    setPosPerfil(atualizado.posPerfil || { x: 50, y: 50 });
+    setPosCapa(atualizado.posCapa || { x: 50, y: 50 });
+    setZoomPerfil(Number(atualizado.zoomPerfil || 100));
+    setZoomCapa(Number(atualizado.zoomCapa || 100));
 
     setReloadImg(Date.now());
 
@@ -443,6 +434,30 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
     setErro("");
     setSucesso(querAlterarSenha ? "Perfil e senha atualizados com sucesso!" : "Perfil atualizado com sucesso!");
+  }
+
+  function abrirEditorPerfil() {
+    setForm(usuario);
+    setSenhaAtualPerfil("");
+    setNovaSenhaPerfil("");
+    setConfirmarSenhaPerfil("");
+    setPreviewImg(null);
+    setEditandoImagem(null);
+    setErro("");
+    setSucesso("");
+    setEditando(true);
+  }
+
+  function cancelarEdicaoPerfil() {
+    setForm(usuario);
+    setEditando(false);
+    setEditandoImagem(null);
+    setPreviewImg(null);
+    setSenhaAtualPerfil("");
+    setNovaSenhaPerfil("");
+    setConfirmarSenhaPerfil("");
+    setErro("");
+    setSucesso("");
   }
 
   function sincronizarReferenciasDoUsuario(anterior, atualizado) {
@@ -525,6 +540,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
     setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setActiveMenuPostId(null);
+    setPostMenuPosition(null);
   }
 
   function deletePost(postId) {
@@ -534,6 +550,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
     setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
     setActiveMenuPostId(null);
+    setPostMenuPosition(null);
   }
 
   function editPost(post) {
@@ -541,6 +558,41 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     setEditingPost(post);
     setEditingText(post.texto || "");
     setActiveMenuPostId(null);
+    setPostMenuPosition(null);
+  }
+
+  function togglePostMenu(e, postId) {
+    e.stopPropagation();
+
+    if (activeMenuPostId === postId) {
+      setActiveMenuPostId(null);
+      setPostMenuPosition(null);
+      return;
+    }
+
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const menuHeight = isAdmin && !isOwnProfile ? 48 : 130;
+    const menuWidth = 176;
+    const gap = 8;
+    const spaceAbove = rect.top - gap;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+    const opensUp = spaceBelow < menuHeight && spaceAbove >= spaceBelow;
+    const rawTop = opensUp ? rect.top - menuHeight - gap : rect.bottom + gap;
+    const top = Math.min(
+      Math.max(gap, rawTop),
+      Math.max(gap, window.innerHeight - menuHeight - gap)
+    );
+    const left = Math.min(
+      Math.max(gap, rect.right - menuWidth),
+      Math.max(gap, window.innerWidth - menuWidth - gap)
+    );
+
+    setPostMenuPosition({
+      top,
+      left,
+    });
+    setActiveMenuPostId(postId);
   }
 
   function logout() {
@@ -803,7 +855,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
           </div>
 
           {isOwnProfile && (
-            <button className="btn-editar" onClick={() => setEditando(true)}>
+            <button className="btn-editar" onClick={abrirEditorPerfil}>
               Editar Perfil
             </button>
           )}
@@ -847,10 +899,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                       {isOwnProfile && (
                         <button
                           className="perfil-post-options-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveMenuPostId(activeMenuPostId === post.id ? null : post.id);
-                          }}
+                          onClick={(e) => togglePostMenu(e, post.id)}
                         >
                           ⋮
                         </button>
@@ -859,8 +908,11 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                     <div className="perfil-post-text">{post.texto || "Post sem texto"}</div>
                     {post.salvo && <div className="perfil-post-saved">Salvo</div>}
 
-                    {(isOwnProfile || isAdmin) && activeMenuPostId === post.id && (
-                      <div className="perfil-post-menu">
+                    {(isOwnProfile || isAdmin) && activeMenuPostId === post.id && postMenuPosition && createPortal(
+                      <div
+                        className="perfil-post-menu perfil-post-menu-floating"
+                        style={postMenuPosition}
+                      >
                         {isOwnProfile && (
                           <>
                             <button type="button" onClick={() => toggleSavePost(post)}>
@@ -879,7 +931,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
                             Delete Post (Admin)
                           </button>
                         )}
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
                 </div>
@@ -893,13 +946,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
             <div className="popup">
               <button
                 className="close-btn"
-                onClick={() => {
-                  setEditando(false);
-                  setSenhaAtualPerfil("");
-                  setNovaSenhaPerfil("");
-                  setConfirmarSenhaPerfil("");
-                  setErro("");
-                }}
+                onClick={cancelarEdicaoPerfil}
               >
                 x
               </button>
@@ -944,13 +991,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
               <div className="popup-btns">
                 <button onClick={salvarPerfil}>Salvar</button>
                 <button
-                  onClick={() => {
-                    setEditando(false);
-                    setSenhaAtualPerfil("");
-                    setNovaSenhaPerfil("");
-                    setConfirmarSenhaPerfil("");
-                    setErro("");
-                  }}
+                  onClick={cancelarEdicaoPerfil}
                 >
                   Cancelar
                 </button>
@@ -1104,8 +1145,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
               />
 
               <div className="popup-btns">
-                <button onClick={salvarImagem}>Salvar Imagem</button>
-                <button onClick={() => setEditandoImagem(null)}>Cancelar</button>
+                <button onClick={salvarImagem}>Confirmar Imagem</button>
+                <button onClick={() => { setEditandoImagem(null); setPreviewImg(null); }}>Cancelar</button>
               </div>
 
             </div>
