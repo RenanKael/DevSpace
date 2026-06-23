@@ -258,6 +258,14 @@ function isFakeIdentity(item) {
   );
 }
 
+function sortPostsByDate(posts) {
+  return [...posts].sort((a, b) => {
+    const dateA = new Date(a?.criadoEm || 0).getTime();
+    const dateB = new Date(b?.criadoEm || 0).getTime();
+    return dateB - dateA;
+  });
+}
+
 export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement }) {
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(() => {
@@ -351,7 +359,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const updated = savedPosts.filter((post) => post.id !== postId);
     salvarPosts(updated);
-    setPosts(updated);
+    setPosts(sortPostsByDate(updated));
     if (selectedPost?.id === postId) setSelectedPost(null);
   }
 
@@ -408,7 +416,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         };
       });
       salvarPosts(updatedPosts);
-      return updatedPosts;
+      return sortPostsByDate(updatedPosts);
     });
   }
 
@@ -455,7 +463,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       });
 
       salvarPosts(updatedPosts);
-      return updatedPosts;
+      return sortPostsByDate(updatedPosts);
     });
   }
 
@@ -478,7 +486,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       });
 
       salvarPosts(updatedPosts);
-      return updatedPosts;
+      return sortPostsByDate(updatedPosts);
     });
   }
 
@@ -523,7 +531,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       });
 
       salvarPosts(updatedPosts);
-      return updatedPosts;
+      return sortPostsByDate(updatedPosts);
     });
   }
 
@@ -703,7 +711,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       const savedIds = new Set(saved.map((post) => Number(post.id)));
       const missingCommunitySeed = communitySeed.filter((post) => !savedIds.has(Number(post.id)));
       const savedWithCommunitySeed = missingCommunitySeed.length > 0
-        ? [...missingCommunitySeed, ...saved]
+        ? [...saved, ...missingCommunitySeed]
         : saved;
       const savedWithRecoveredSeed = isAdmin && !hasLegacySeed
         ? [...fakeSeed, ...savedWithCommunitySeed]
@@ -782,7 +790,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
         localStorage.setItem("usuarios", JSON.stringify(progressedUsers));
         setUsuarios(progressedUsers);
       }
-      setPosts(normalizedPosts);
+      setPosts(sortPostsByDate(normalizedPosts));
     }
   }, [refreshFeed]);
 
@@ -808,7 +816,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       if (event.key === "posts") {
         try {
           const saved = JSON.parse(localStorage.getItem("posts")) || [];
-          setPosts(Array.isArray(saved) ? saved : []);
+          setPosts(Array.isArray(saved) ? sortPostsByDate(saved) : []);
         } catch {
           setPosts([]);
         }
@@ -828,7 +836,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
     const handlePostsUpdated = () => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
-      setPosts(Array.isArray(saved) ? saved : []);
+      setPosts(Array.isArray(saved) ? sortPostsByDate(saved) : []);
     };
 
     window.addEventListener("storage", handleStorage);
@@ -862,7 +870,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     setLoading(true);
     setTimeout(() => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
-      setPosts(saved);
+      setPosts(sortPostsByDate(saved));
       setLoading(false);
     }, 1000);
   };

@@ -125,16 +125,17 @@ export default function PostComments({
 
   const repliesByParent = comments.reduce((map, comment) => {
     if (!comment.parentId) return map;
-    const parent = map.get(comment.parentId) || [];
+    const parentKey = String(comment.parentId);
+    const parent = map.get(parentKey) || [];
     parent.push(comment);
-    map.set(comment.parentId, parent);
+    map.set(parentKey, parent);
     return map;
   }, new Map());
 
   const topLevelComments = comments.filter((comment) => !comment.parentId);
 
   const renderComment = (comment, isReply = false) => {
-    const replies = repliesByParent.get(comment.id) || [];
+    const replies = repliesByParent.get(String(comment.id)) || [];
     return (
       <div key={comment.id} className={`post-comment ${isReply ? "comment-reply" : ""}`}>
         <div className="comment-row">
@@ -266,7 +267,7 @@ export default function PostComments({
               placeholder="Escreva um comentario"
               disabled={!storedUser}
             />
-            <button type="submit" onClick={handleSubmit} disabled={!storedUser || (!novoComentario.trim() && !image)}>
+            <button type="submit" disabled={!storedUser || (!novoComentario.trim() && !image)}>
               Comentar
             </button>
           </form>
