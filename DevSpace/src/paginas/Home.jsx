@@ -269,13 +269,17 @@ function sortPostsByDate(posts) {
 function normalizeStoredPost(post) {
   if (!post || typeof post !== "object") return null;
   const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
+  const isSeedFake = !!post.isSeedFake || (post.email || "").toLowerCase().endsWith("@dev.com");
+  const seedImage = isSeedFake ? FAKE_CODE_IMAGES[Number(post.id)] : "";
 
   return {
     ...post,
     commentsList,
-    comments: post.isSeedFake
+    comments: isSeedFake
       ? commentsList.length || Number(post.comments || 0)
       : commentsList.length,
+    imagem: isSeedFake ? (seedImage || post.imagem || "") : post.imagem || "",
+    isSeedFake,
     shares: Number(post.shares || 0),
     likes: Number(post.likes || 0),
     bookmarks: Number(post.bookmarks || 0),
@@ -290,6 +294,34 @@ function normalizeStoredPosts(posts) {
   return posts
     .map(normalizeStoredPost)
     .filter((post) => post && (post.email || post.username || post.handle));
+}
+
+function stripPostForStorage(post) {
+  const isSeedFake = !!post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com");
+  return {
+    ...post,
+    imagem: isSeedFake ? "" : post?.imagem || "",
+  };
+}
+
+function savePostsToStorage(posts) {
+  const storagePosts = normalizeStoredPosts(posts).map(stripPostForStorage);
+  const serializedPosts = JSON.stringify(storagePosts);
+  try {
+    localStorage.setItem("posts", serializedPosts);
+  } catch (error) {
+    const previousPosts = localStorage.getItem("posts");
+    localStorage.removeItem("posts");
+    try {
+      localStorage.setItem("posts", serializedPosts);
+    } catch (retryError) {
+      if (previousPosts !== null) {
+        localStorage.setItem("posts", previousPosts);
+      }
+      throw retryError;
+    }
+  }
+  return storagePosts;
 }
 
 export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement }) {
@@ -334,8 +366,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
   function salvarPosts(postsAtualizados) {
     try {
-      const normalizedPosts = normalizeStoredPosts(postsAtualizados);
-      localStorage.setItem("posts", JSON.stringify(normalizedPosts));
+      savePostsToStorage(postsAtualizados);
       window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
       return true;
     } catch (error) {

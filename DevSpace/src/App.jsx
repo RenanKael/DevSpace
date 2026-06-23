@@ -232,6 +232,34 @@ function sanitizeStoredPosts(posts) {
     .filter((post) => post && (post.email || post.username || post.handle));
 }
 
+function stripPostForStorage(post) {
+  const isSeedFake = !!post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com");
+  return {
+    ...post,
+    imagem: isSeedFake ? "" : post?.imagem || "",
+  };
+}
+
+function savePostsToStorage(posts) {
+  const storagePosts = sanitizeStoredPosts(posts).map(stripPostForStorage);
+  const serializedPosts = JSON.stringify(storagePosts);
+  try {
+    localStorage.setItem("posts", serializedPosts);
+  } catch (error) {
+    const previousPosts = localStorage.getItem("posts");
+    localStorage.removeItem("posts");
+    try {
+      localStorage.setItem("posts", serializedPosts);
+    } catch (retryError) {
+      if (previousPosts !== null) {
+        localStorage.setItem("posts", previousPosts);
+      }
+      throw retryError;
+    }
+  }
+  return storagePosts;
+}
+
 function App() {
   const [route, setRoute] = useState(createInitialRouteState);
   const [logado, setLogado] = useState(() => !!getStoredUsuario());
@@ -592,7 +620,7 @@ function App() {
         isSeedFake: !!post.isSeedFake,
       });
       const novos = [novoPost, ...posts];
-      localStorage.setItem("posts", JSON.stringify(novos));
+      savePostsToStorage(novos);
       window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
 
       if (currentUser) {
