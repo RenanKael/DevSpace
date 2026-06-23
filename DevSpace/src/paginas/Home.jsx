@@ -296,6 +296,38 @@ function normalizeStoredPosts(posts) {
     .filter((post) => post && (post.email || post.username || post.handle));
 }
 
+function hydratePostsForDisplay(posts, users) {
+  const usersList = Array.isArray(users) ? users : [];
+  return normalizeStoredPosts(posts).map((post) => {
+    const isFakePost = isFakeIdentity(post);
+    const postHandle = normalizeHandle(post.handle || post.username);
+    const postProfile = isFakePost ? null : findUserProfile(post, usersList);
+    const commentsList = (Array.isArray(post.commentsList) ? post.commentsList : []).map((comment) => {
+      const commentHandle = normalizeHandle(comment?.handle || comment?.username);
+      const commentIsFake = isFakeIdentity(comment);
+      const commentProfile = commentIsFake ? null : findUserProfile(comment, usersList);
+
+      return {
+        ...comment,
+        username: commentProfile?.username || comment.username || "Usuario",
+        handle: commentProfile?.handle || comment.handle || commentHandle,
+        email: commentProfile?.email || comment.email || "",
+        fotoPerfil: commentProfile?.fotoPerfil || comment.fotoPerfil || (commentIsFake ? fakeAvatar(commentHandle) : ""),
+      };
+    });
+
+    return {
+      ...post,
+      username: postProfile?.username || post.username || "Usuario",
+      handle: postProfile?.handle || post.handle || postHandle,
+      email: postProfile?.email || post.email || "",
+      fotoPerfil: postProfile?.fotoPerfil || post.fotoPerfil || (isFakePost ? fakeAvatar(postHandle) : ""),
+      commentsList,
+      comments: commentsList.length,
+    };
+  });
+}
+
 function stripPostForStorage(post) {
   const isSeedFake = !!post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com");
   const commentsList = Array.isArray(post?.commentsList)
@@ -425,7 +457,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const updated = savedPosts.filter((post) => post.id !== postId);
     salvarPosts(updated);
-    setPosts(sortPostsByDate(updated));
+    setPosts(sortPostsByDate(hydratePostsForDisplay(updated, usuarios)));
     if (selectedPost?.id === postId) setSelectedPost(null);
   }
 
@@ -461,29 +493,29 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       },
     }));
 
-    setPosts((prevPosts) => {
-      const sourcePosts = getStoredPosts(prevPosts);
-      const updatedPosts = sourcePosts.map((post) => {
-        if (post.id !== postId) return post;
-        const currentValue = Number(post[action] || 0);
-        const owners = ownerField && Array.isArray(post[ownerField])
-          ? post[ownerField].map(normalizeActionKey)
-          : [];
-        const nextOwners = ownerField && ownerKey
-          ? nextValue
-            ? [...new Set([...owners, ownerKey])]
-            : owners.filter((key) => !userKeys.includes(key))
-          : owners;
+    const sourcePosts = getStoredPosts(posts);
+    const updatedPosts = sourcePosts.map((post) => {
+      if (post.id !== postId) return post;
+      const currentValue = Number(post[action] || 0);
+      const owners = ownerField && Array.isArray(post[ownerField])
+        ? post[ownerField].map(normalizeActionKey)
+        : [];
+      const nextOwners = ownerField && ownerKey
+        ? nextValue
+          ? [...new Set([...owners, ownerKey])]
+          : owners.filter((key) => !userKeys.includes(key))
+        : owners;
 
-        return {
-          ...post,
-          [action]: nextValue ? currentValue + 1 : Math.max(0, currentValue - 1),
-          ...(ownerField ? { [ownerField]: nextOwners } : {}),
-        };
-      });
-      salvarPosts(updatedPosts);
-      return sortPostsByDate(updatedPosts);
+      return {
+        ...post,
+        [action]: nextValue ? currentValue + 1 : Math.max(0, currentValue - 1),
+        ...(ownerField ? { [ownerField]: nextOwners } : {}),
+      };
     });
+
+    if (salvarPosts(updatedPosts)) {
+      setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
+    }
   }
 
   function addCommentToPost(postId, texto, parentId = null, imagem = null) {
