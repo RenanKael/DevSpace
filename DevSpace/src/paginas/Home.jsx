@@ -398,10 +398,16 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   }
 
   function addCommentToPost(postId, texto) {
-    if (!usuario) return;
+    const storedUser =
+      usuario ||
+      JSON.parse(localStorage.getItem("usuarioLogado") || "null") ||
+      JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
 
-    const usuarioAtualizado = findUserProfile(usuario, usuarios) || usuario;
+    if (!storedUser) return;
+
+    const usuarioAtualizado = findUserProfile(storedUser, usuarios) || storedUser;
     const commentHandle = (usuarioAtualizado.handle || usuarioAtualizado.username || "usuario").replace(/\s+/g, "").toLowerCase();
+    setUsuario(usuarioAtualizado);
     commitStarProgress(usuarioAtualizado, recordUserCommentProgress);
 
     setPosts((prevPosts) => {

@@ -11,10 +11,14 @@ export default function PostComments({
 }) {
   const [novoComentario, setNovoComentario] = useState("");
   const inputRef = useRef(null);
+  const storedUser =
+    usuario ||
+    JSON.parse(localStorage.getItem("usuarioLogado") || "null") ||
+    JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
 
-  const usuarioEmail = (usuario?.email || "").toLowerCase();
-  const usuarioHandle = (usuario?.handle || usuario?.username || "").replace(/\s+/g, "").toLowerCase();
-  const usuarioNome = (usuario?.username || "").toLowerCase();
+  const usuarioEmail = (storedUser?.email || "").toLowerCase();
+  const usuarioHandle = (storedUser?.handle || storedUser?.username || "").replace(/\s+/g, "").toLowerCase();
+  const usuarioNome = (storedUser?.username || "").toLowerCase();
 
   const isOwnComment = (comment) => {
     const commentEmail = (comment?.email || "").toLowerCase();
@@ -102,7 +106,7 @@ export default function PostComments({
                       <small className="comment-time">
                         {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
                       </small>
-                      {usuario && (
+                      {storedUser && (
                         <button
                           type="button"
                           className="comment-reply-btn"
@@ -141,9 +145,9 @@ export default function PostComments({
               value={novoComentario}
               onChange={(e) => setNovoComentario(e.target.value)}
               placeholder="Escreva um comentario"
-              disabled={!usuario}
+              disabled={!storedUser}
             />
-            <button type="submit" disabled={!usuario || !novoComentario.trim()}>
+            <button type="submit" disabled={!storedUser || !novoComentario.trim()}>
               Comentar
             </button>
           </form>
