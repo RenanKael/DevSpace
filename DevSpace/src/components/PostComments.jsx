@@ -11,6 +11,7 @@ export default function PostComments({
   onOpenUserProfile,
 }) {
   const [novoComentario, setNovoComentario] = useState("");
+  const [replyTo, setReplyTo] = useState(null);
   const inputRef = useRef(null);
   const storedUser =
     usuario ||
@@ -66,8 +67,9 @@ export default function PostComments({
 
     const texto = novoComentario.trim();
     if (!texto) return;
-    onAddComment(postId, texto);
+    onAddComment(postId, texto, replyTo?.id);
     setNovoComentario("");
+    setReplyTo(null);
   };
 
   const handleInputKeyDown = (e) => {
@@ -85,6 +87,7 @@ export default function PostComments({
     if (!handle) return;
 
     const mention = `@${handle}`;
+    setReplyTo({ id: comment.id, username: comment.username, handle });
     setNovoComentario((current) => {
       const text = current.trimStart();
       if (text === mention || text.startsWith(`${mention} `)) {
@@ -100,6 +103,96 @@ export default function PostComments({
     });
   };
 
+  const repliesByParent = comments.reduce((map, comment) => {
+    if (!comment.parentId) return map;
+    const parent = map.get(comment.parentId) || [];
+    parent.push(comment);
+    map.set(comment.parentId, parent);
+    return map;
+  }, new Map());
+
+  const topLevelComments = comments.filter((comment) => !comment.parentId);
+
+  const renderComment = (comment, isReply = false) => {
+    const replies = repliesByParent.get(comment.id) || [];
+    return (
+      <div key={comment.id} className={`post-comment ${isReply ? "comment-reply" : ""}`}>
+        <div className="comment-row">
+          <div
+            className="comment-avatar"
+            style={{
+              backgroundImage: comment.fotoPerfil ? `url(${comment.fotoPerfil})` : "none",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenUserProfile?.(comment);
+            }}
+          />
+          <div className="comment-content">
+            <div className="comment-header">
+              <strong
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenUserProfile?.(comment);
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                {comment.username}
+              </strong>
+              <small>@{comment.handle}</small>
+            </div>
+            <p className="comment-text">{renderCommentText(comment.texto)}</p>
+            <div className="comment-actions">
+              <small className="comment-time">
+                {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
+              </small>
+              <button
+                type="button"
+                className={`comment-like-btn ${isCommentLiked(comment) ? "liked" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleCommentLike?.(postId, comment.id);
+                }}
+              >
+                ❤️ {Number(comment.likes || 0)}
+              </button>
+              {storedUser && (
+                <button
+                  type="button"
+                  className="comment-reply-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReply(comment);
+                  }}
+                >
+                  Responder
+                </button>
+              )}
+            </div>
+          </div>
+          {isOwnComment(comment) && (
+            <button
+              type="button"
+              className="comment-delete-btn"
+              title="Excluir comentario"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteComment?.(postId, comment.id);
+              }}
+            >
+              x
+            </button>
+          )}
+        </div>
+        {replies.length > 0 && (
+          <div className="comment-replies-list">
+            {replies.map((reply) => renderComment(reply, true))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
       className={`post-comments-section ${isExpanded ? "expanded" : ""}`}
@@ -113,78 +206,21 @@ export default function PostComments({
               <p className="post-comments-empty">Sem comentarios ainda.</p>
             )}
 
-            {comments.map((comment) => (
-              <div key={comment.id} className="post-comment">
-                <div className="comment-row">
-                  <div
-                    className="comment-avatar"
-                    style={{
-                      backgroundImage: comment.fotoPerfil ? `url(${comment.fotoPerfil})` : "none",
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenUserProfile?.(comment);
-                    }}
-                  />
-                  <div className="comment-content">
-                    <div className="comment-header">
-                      <strong
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenUserProfile?.(comment);
-                        }}
-                        style={{ cursor: "pointer" }}
-                      >
-                        {comment.username}
-                      </strong>
-                      <small>@{comment.handle}</small>
-                    </div>
-                    <p className="comment-text">{renderCommentText(comment.texto)}</p>
-                    <div className="comment-actions">
-                      <small className="comment-time">
-                        {new Date(comment.criadoEm).toLocaleDateString("pt-BR")}
-                      </small>
-                      <button
-                        type="button"
-                        className={`comment-like-btn ${isCommentLiked(comment) ? "liked" : ""}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleCommentLike?.(postId, comment.id);
-                        }}
-                      >
-                        ❤️ {Number(comment.likes || 0)}
-                      </button>
-                      {storedUser && (
-                        <button
-                          type="button"
-                          className="comment-reply-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleReply(comment);
-                          }}
-                        >
-                          Responder
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {isOwnComment(comment) && (
-                    <button
-                      type="button"
-                      className="comment-delete-btn"
-                      title="Excluir comentario"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteComment?.(postId, comment.id);
-                      }}
-                    >
-                      x
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+            {topLevelComments.map((comment) => renderComment(comment))}
           </div>
+
+          {replyTo && (
+            <div className="comment-replying-label">
+              Respondendo a <strong>@{replyTo.handle}</strong>
+              <button
+                type="button"
+                className="reply-cancel-btn"
+                onClick={() => setReplyTo(null)}
+              >
+                cancelar
+              </button>
+            </div>
+          )}
 
           <form className="comment-form" onSubmit={handleSubmit}>
             <input
