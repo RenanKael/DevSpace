@@ -302,6 +302,7 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
   function salvarPosts(postsAtualizados) {
     try {
       localStorage.setItem("posts", JSON.stringify(postsAtualizados));
+      window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
       return true;
     } catch (error) {
       console.warn("Nao foi possivel salvar posts no localStorage:", error);
@@ -765,10 +766,12 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
       }
     };
 
-    const handlePostsUpdated = () => {
+    const handlePostsUpdated = (event) => {
       const saved = JSON.parse(localStorage.getItem("posts")) || [];
       setPosts(Array.isArray(saved) ? saved : []);
-      setSyncToast(true);
+      if (!event?.detail?.sameTab) {
+        setSyncToast(true);
+      }
     };
 
     window.addEventListener("storage", handleStorage);

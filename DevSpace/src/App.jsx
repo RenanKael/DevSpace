@@ -584,7 +584,7 @@ function App() {
       });
       const novos = [novoPost, ...posts];
       localStorage.setItem("posts", JSON.stringify(novos));
-      window.dispatchEvent(new Event("devspacePostsUpdated"));
+      window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
 
       if (currentUser) {
         const { updatedUser, previousStars, newStars } = recordUserPostProgress(currentUser);

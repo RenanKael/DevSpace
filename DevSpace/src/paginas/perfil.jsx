@@ -210,10 +210,17 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
           setUsuario(normalized);
         }
         setUsuarioLogado(logado || null);
+        setPosts(
+          user
+            ? savedPosts
+                .filter((post) => postBelongsToUser(post, user))
+                .sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime())
+            : []
+        );
         setSyncToast(true);
     };
 
-    const handlePostsUpdated = () => {
+    const handlePostsUpdated = (event) => {
       const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
       const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
       const logado = localUser || sessionUser;
@@ -246,7 +253,10 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
           setUsuario(normalized);
         }
         setUsuarioLogado(logado || null);
-        setSyncToast(true);
+        setPosts(user ? savedPosts.filter((post) => postBelongsToUser(post, user)) : []);
+        if (!event?.detail?.sameTab) {
+          setSyncToast(true);
+        }
     };
 
     window.addEventListener("storage", handleStorage);
