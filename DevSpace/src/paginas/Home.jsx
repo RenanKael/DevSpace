@@ -260,7 +260,13 @@ function isFakeIdentity(item) {
 
 export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement }) {
   const [showTopbar, setShowTopbar] = useState(true);
-  const [usuario, setUsuario] = useState(null);
+  const [usuario, setUsuario] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("usuarioLogado")) || JSON.parse(sessionStorage.getItem("usuarioLogado"));
+    } catch {
+      return null;
+    }
+  });
   const [usuarios, setUsuarios] = useState([]);
 
   useEffect(() => {

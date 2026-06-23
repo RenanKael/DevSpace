@@ -187,10 +187,18 @@ function createCommunityUser(user) {
   };
 }
 
+function getStoredUsuario() {
+  try {
+    return JSON.parse(localStorage.getItem("usuarioLogado")) || JSON.parse(sessionStorage.getItem("usuarioLogado"));
+  } catch {
+    return null;
+  }
+}
+
 function App() {
   const [route, setRoute] = useState(createInitialRouteState);
-  const [logado, setLogado] = useState(false);
-  const [usuario, setUsuario] = useState(null);
+  const [logado, setLogado] = useState(() => !!getStoredUsuario());
+  const [usuario, setUsuario] = useState(() => getStoredUsuario());
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postRefresh, setPostRefresh] = useState(0);
   const [achievementStars, setAchievementStars] = useState(0);
