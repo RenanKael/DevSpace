@@ -26,8 +26,11 @@ export default function Sidebar({ onReload, irPerfil, irExplorar, onOpenPost }) 
           <img src={perfil} />
           <span>Perfil</span>
         </div>
+        <div className="nav-item" onClick={irChat}>
+          <img src={} />
+          <span>Chat</span>
+        </div>
       </nav>
-
       <button className="post-btn" onClick={onOpenPost}>Postar</button>
     </div>
   );
