@@ -1,4 +1,4 @@
-﻿import "../style/home.css";
+import "../style/home.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import paginaInicial from "../assets/IMGS/Home.png";
 import explorar from "../assets/IMGS/Explorar.png";
@@ -16,42 +16,62 @@ export default function Sidebar({
 }) {
   return (
     <>
-      <button
-        className="sidebar-toggle"
-        style={{ left: isOpen ? "260px" : "15px" }}
-        onClick={onToggle}
-      >
-        {isOpen ? "≡" : "≡"}
-      </button>
+      {!isOpen && (
+        <button className="sidebar-toggle" onClick={onToggle} aria-label="Abrir menu">
+          ≡
+        </button>
+      )}
+
+      {isOpen && <div className="sidebar-backdrop" onClick={onToggle} />}
 
       <div className={`sidebar ${isOpen ? "open" : "closed"}`}>
-        <div className="logo" onClick={onReload}>
-          <img src={logo} alt="DevSpace Logo" />
+        <div className="sidebar-header">
+          <div className="logo" onClick={onReload}>
+            <img src={logo} alt="DevSpace Logo" />
+            {!isOpen && (
+              <button
+                className="logo-toggle-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggle();
+                }}
+                aria-label="Abrir menu"
+              >
+                ≡
+              </button>
+            )}
+          </div>
+
+          {isOpen && (
+            <button className="sidebar-toggle-inline" onClick={onToggle} aria-label="Minimizar menu">
+              ≡
+            </button>
+          )}
         </div>
 
         <nav>
-          <div className="nav-item" onClick={onReload}>
+          <div className="nav-item" data-label="Página Inicial" onClick={onReload}>
             <img src={paginaInicial} alt="" />
             <span>Página Inicial</span>
           </div>
 
-          <div className="nav-item" onClick={irExplorar}>
+          <div className="nav-item" data-label="Explorar" onClick={irExplorar}>
             <img src={explorar} alt="" />
             <span>Explorar</span>
           </div>
 
-          <div className="nav-item" onClick={irPerfil}>
+          <div className="nav-item" data-label="Perfil" onClick={irPerfil}>
             <img src={perfil} alt="" />
             <span>Perfil</span>
           </div>
 
-          <div className="nav-item" onClick={irChat}>
+          <div className="nav-item" data-label="Chat" onClick={irChat}>
             {/* <img src={chat} alt="" /> */}
             <span>Chat</span>
           </div>
         </nav>
 
-        <button className="post-btn" onClick={onOpenPost}>
+        <button className="post-btn" data-label="Postar" onClick={onOpenPost}>
           Postar
         </button>
       </div>

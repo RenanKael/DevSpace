@@ -2,11 +2,11 @@ import { useState } from "react";
 import "../style/home.css";
 import lupa from "../assets/IMGS/Lupa.svg";
 
-export default function Topbar({ visible, usuario, onSearch }) {
+export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true }) {
   const [query, setQuery] = useState("");
 
   return (
-    <div className={`topbar ${visible ? "show" : "hide"}`}>
+    <div className={`topbar ${visible ? "show" : "hide"}${sidebarOpen ? "" : " sidebar-closed"}`}>
       <div className="search-box">
         <img src={lupa} alt="" aria-hidden="true" />
         <input

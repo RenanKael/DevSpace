@@ -29,10 +29,18 @@ body {
   display: flex;
   flex-direction: column;
 
-  transition: transform .35s ease;
+  transition: width .35s ease, padding .35s ease;
   z-index: 1000;
 }
+
+.sidebar.closed {
+  width: 88px;
+  padding: 20px 12px;
+  align-items: center;
+}
+
 .sidebar-toggle{
+  display: none;
   position: fixed;
   top: 20px;
   left: 15px;
@@ -47,51 +55,52 @@ body {
   z-index: 1100;
   transition: all .35s ease;
 }
-.main,
-.profile-page,
-.topbar{
-  transition: margin-left .35s ease, width .35s ease, left .35s ease;
-}
-.main.sidebar-closed{
-  margin-left: 0;
-  width: 100%;
-}
-
-.profile-page.sidebar-closed{
-  margin-left: 0;
-  width: 100%;
-}
-
-.topbar.sidebar-closed{
-  left: 0;
-}
-
-.sidebar.open + .sidebar-toggle{
-  left: 260px;
-}
-
 .sidebar-toggle:hover{
   background:#222;
 }
 
-.sidebar.open{
-  transform: translateX(0);
+.sidebar-backdrop {
+  display: none;
 }
 
-.sidebar.closed{
-  transform: translateX(-100%);
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 0 30px 0;
+  width: 100%;
 }
 
-/* LOGO CENTRALIZADO */
+.sidebar-toggle-inline {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  background: #111;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+
+.sidebar-toggle-inline:hover {
+  background: #222;
+}
+
+/* LOGO */
 .logo {
   width: 60px;
   height: 60px;
-  margin: 12px auto 30px auto;
+  flex-shrink: 0;
+  position: relative;
 
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: width .35s ease, height .35s ease;
 }
 
 .logo img {
@@ -101,7 +110,40 @@ body {
   border-radius: 50%;
 }
 
+.sidebar.closed .logo {
+  width: 50px;
+  height: 50px;
+}
+
+/* Ícone que aparece ao passar o mouse sobre a logo, para abrir/minimizar */
+.logo-toggle-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+
+.logo:hover .logo-toggle-btn,
+.logo-toggle-btn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* MENU */
+.sidebar nav {
+  width: 100%;
+}
+
 .nav-item {
   display: flex;
   align-items: center;
@@ -111,6 +153,7 @@ body {
   padding: 8px 10px;
   border-radius: 10px;
   cursor: pointer;
+  position: relative;
 }
 
 /* 👇 CORRIGIDO AQUI */
@@ -118,11 +161,54 @@ body {
   width: 24px;
   height: 24px;
   object-fit: contain; /* sem fundo cinza */
+  flex-shrink: 0;
 }
 
 /* 👇 HOVER (opcional mas fica top) */
 .nav-item:hover {
   background: #111;
+}
+
+.nav-item span {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 180px;
+  opacity: 1;
+  transition: max-width .35s ease, opacity .2s ease;
+}
+
+.sidebar.closed .nav-item span {
+  max-width: 0;
+  opacity: 0;
+  transition: max-width .35s ease, opacity .15s ease;
+}
+
+/* Tooltip exibido ao passar o mouse sobre os ícones minimizados */
+.sidebar.closed .nav-item::after,
+.sidebar.closed .post-btn::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-6px);
+  background: #1c1c1c;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 1200;
+}
+
+.sidebar.closed .nav-item:hover::after,
+.sidebar.closed .post-btn:hover::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
 }
 
 /* BOTÃO LÁ EMBAIXO */
@@ -136,6 +222,38 @@ body {
   border: none;
   background: white;
   cursor: pointer;
+  position: relative;
+  transition: width .35s ease, height .35s ease, padding .35s ease,
+    border-radius .35s ease, color .2s ease;
+}
+
+.sidebar.closed .post-btn {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
+  color: transparent;
+  flex-shrink: 0;
+}
+
+.post-btn::before {
+  content: "+";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 700;
+  color: #000;
+  opacity: 0;
+  transition: opacity .2s ease;
+  pointer-events: none;
+}
+
+.sidebar.closed .post-btn::before {
+  opacity: 1;
 }
 
 /* MAIN */
@@ -146,6 +264,12 @@ body {
   display: flex;
   justify-content: flex-start;
   overflow: hidden;
+  transition: margin-left .35s ease, width .35s ease;
+}
+
+.main.sidebar-closed {
+  margin-left: 88px;
+  width: calc(100% - 88px);
 }
 
 /* TOPBAR */
@@ -165,7 +289,11 @@ body {
   padding: 0 20px;
   z-index: 10;
 
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, left .35s ease;
+}
+
+.topbar.sidebar-closed {
+  left: 88px;
 }
 
 /* ESCONDE / MOSTRA */
@@ -236,6 +364,12 @@ body {
   grid-template-columns: minmax(520px, 1fr) minmax(240px, 320px);
   gap: clamp(22px, 3vw, 42px);
   align-items: start;
+  transition: padding .35s ease;
+}
+
+.feed-layout.sidebar-closed {
+  padding-left: clamp(16px, 2vw, 40px);
+  padding-right: clamp(16px, 2vw, 40px);
 }
 
 .feed {
@@ -1417,18 +1551,18 @@ body {
   font-size: 12px;
 }
 
-.sidebar {
-  width: 250px;
-  position: fixed;
-  height: 100vh;
-}
-
 .profile-page {
   margin-left: 250px;
   width: calc(100% - 250px);
   background: black;
   min-height: 100vh;
   color: white;
+  transition: margin-left .35s ease, width .35s ease;
+}
+
+.profile-page.sidebar-closed {
+  margin-left: 88px;
+  width: calc(100% - 88px);
 }
 
 .profile-search-list {
@@ -1692,56 +1826,6 @@ body {
 }
 
 @media (max-width: 1180px) {
-  .sidebar {
-    width: 88px;
-    padding: 16px 12px;
-    align-items: center;
-  }
-
-  .logo {
-    width: 50px;
-    height: 50px;
-    margin-bottom: 26px;
-  }
-
-  .sidebar nav {
-    width: 100%;
-  }
-
-  .nav-item {
-    justify-content: center;
-    padding: 12px 8px;
-  }
-
-  .nav-item span {
-    display: none;
-  }
-
-  .post-btn {
-    width: 52px;
-    height: 52px;
-    padding: 0;
-    border-radius: 50%;
-    font-size: 0;
-  }
-
-  .post-btn::before {
-    content: "+";
-    font-size: 28px;
-    line-height: 1;
-    font-weight: 700;
-  }
-
-  .main,
-  .profile-page {
-    margin-left: 88px;
-    width: calc(100% - 88px);
-  }
-
-  .topbar {
-    left: 88px;
-  }
-
   .feed-layout {
     padding-left: clamp(18px, 3vw, 34px);
     padding-right: clamp(18px, 3vw, 34px);
@@ -1793,41 +1877,91 @@ body {
 }
 
 @media (max-width: 760px) {
-  .sidebar {
-    position: sticky;
-    top: 0;
-    width: 100%;
-    height: auto;
-    min-height: 64px;
-    padding: 8px 12px;
-    flex-direction: row;
-    justify-content: space-between;
-    z-index: 30;
-    border-right: none;
-    border-bottom: 1px solid #222;
+  /* No mobile a sidebar vira um painel deslizante (drawer) que fica
+     escondido fora da tela e desliza por cima do conteúdo ao abrir. */
+  .sidebar,
+  .sidebar.closed {
+    width: min(80vw, 280px);
+    height: 100vh;
+    padding: 20px;
+    align-items: stretch;
+    transform: translateX(-100%);
+    border-right: 1px solid #222;
+    border-bottom: none;
   }
 
-  .logo {
-    width: 42px;
-    height: 42px;
-    margin: 0;
+  .sidebar.open {
+    transform: translateX(0);
   }
 
-  .sidebar nav {
-    width: auto;
+  .sidebar-toggle {
     display: flex;
-    gap: 4px;
+    align-items: center;
+    justify-content: center;
   }
 
-  .nav-item {
-    margin: 0;
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999;
+  }
+
+  .sidebar-header,
+  .sidebar.closed .sidebar-header {
+    justify-content: space-between;
+    margin: 12px 0 30px 0;
+  }
+
+  .logo,
+  .sidebar.closed .logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  /* Hover não é confiável em telas de toque; no mobile o menu abre
+     pelo botão flutuante e fecha tocando fora (backdrop). */
+  .logo-toggle-btn {
+    display: none;
+  }
+
+  .sidebar nav,
+  .sidebar.closed nav {
+    width: 100%;
+  }
+
+  .nav-item,
+  .sidebar.closed .nav-item {
+    justify-content: flex-start;
     padding: 10px;
   }
 
-  .post-btn {
-    margin: 0;
-    width: 44px;
-    height: 44px;
+  .nav-item span,
+  .sidebar.closed .nav-item span {
+    display: inline-block;
+    max-width: 180px;
+    opacity: 1;
+  }
+
+  .sidebar.closed .nav-item::after,
+  .sidebar.closed .post-btn::after {
+    content: none;
+  }
+
+  .post-btn,
+  .sidebar.closed .post-btn {
+    width: 100%;
+    height: auto;
+    padding: 10px;
+    border-radius: 20px;
+    font-size: 16px;
+    color: initial;
+  }
+
+  .post-btn::before,
+  .sidebar.closed .post-btn::before {
+    content: none;
   }
 
   .home {
@@ -1835,12 +1969,17 @@ body {
   }
 
   .main,
-  .profile-page {
+  .main.sidebar-closed,
+  .profile-page,
+  .profile-page.sidebar-closed,
+  .explore-page,
+  .explore-page.sidebar-closed {
     margin-left: 0;
     width: 100%;
   }
 
-  .topbar {
+  .topbar,
+  .topbar.sidebar-closed {
     position: sticky;
     left: 0;
     height: auto;

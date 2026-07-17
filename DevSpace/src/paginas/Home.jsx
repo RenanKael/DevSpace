@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
+import { useSidebarOpen } from "../hooks/useSidebarOpen";
 import {
   recordUserCommentProgress,
   recordUserLikeProgress,
@@ -364,7 +365,8 @@ function savePostsToStorage(posts) {
   return storagePosts;
 }
 
-export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement }) {
+export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement }) {
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(() => {
     try {
@@ -1131,12 +1133,20 @@ export default function Home({ irPerfil, irExplorar, onOpenPost, refreshFeed, on
 
   return (
     <div className="home">
-      <Sidebar onReload={reloadFeed} irPerfil={irPerfil} irExplorar={irExplorar} onOpenPost={onOpenPost} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen((open) => !open)}
+        onReload={reloadFeed}
+        irPerfil={irPerfil}
+        irExplorar={irExplorar}
+        irChat={irChat}
+        onOpenPost={onOpenPost}
+      />
 
-      <div className="main">
-        <Topbar visible={showTopbar} usuario={usuario} onSearch={setSearchQuery} />
+      <div className={`main${sidebarOpen ? "" : " sidebar-closed"}`}>
+        <Topbar visible={showTopbar} usuario={usuario} onSearch={setSearchQuery} sidebarOpen={sidebarOpen} />
 
-        <div className="feed-layout">
+        <div className={`feed-layout${sidebarOpen ? "" : " sidebar-closed"}`}>
         <div className="feed">
           {loading && <p>Carregando...</p>}
           {!loading && filteredPosts.length === 0 && profileOnlyResults.length === 0 && (

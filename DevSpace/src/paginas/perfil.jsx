@@ -4,8 +4,10 @@ import "../style/perfil.css";
 import { createPortal } from "react-dom";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
 import { syncUsersStarProgress } from "../utils/starProgress";
+import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
-export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection }) {
+export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact }) {
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -828,7 +830,24 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
     }
   }, [usuario, isRenan]);
 
-  if (!usuario) return <h1>Carregando...</h1>;
+  if (!usuario) {
+    return (
+      <div className="home">
+        <Sidebar
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen((open) => !open)}
+          onReload={irHome}
+          irPerfil={irPerfil}
+          irExplorar={irExplorar}
+          irChat={irChat}
+          onOpenPost={onOpenPost}
+        />
+        <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
+          <h1>Carregando...</h1>
+        </div>
+      </div>
+    );
+  }
 
   const starCount = 5;
   const activeStars = Number(usuario.avaliacao || usuario.estrelas || 0);
@@ -839,9 +858,17 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
 
   return (
     <div className="home">
-      <Sidebar onReload={irHome} irPerfil={irPerfil} irExplorar={irExplorar} onOpenPost={onOpenPost} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen((open) => !open)}
+        onReload={irHome}
+        irPerfil={irPerfil}
+        irExplorar={irExplorar}
+        irChat={irChat}
+        onOpenPost={onOpenPost}
+      />
 
-      <div className="profile-page">
+      <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
 
         <div className="topo-perfil">
           <button className="back-arrow-btn" onClick={irHome} type="button" title="Voltar">
@@ -943,6 +970,20 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, onOpenP
           {!isOwnProfile && (
             <button className="btn-editar" onClick={toggleFollow}>
               {isFollowing ? "Seguindo" : "Seguir"}
+            </button>
+          )}
+          {!isOwnProfile && (
+            <button
+              className="btn-contatar"
+              onClick={() =>
+                onContact?.({
+                  handle: usuario.handle || usuario.username,
+                  username: usuario.username,
+                  fotoPerfil: usuario.fotoPerfil,
+                })
+              }
+            >
+              Contatar
             </button>
           )}
         </div>

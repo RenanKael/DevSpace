@@ -4,6 +4,7 @@ import Home from "./paginas/Home";
 import Perfil from "./paginas/Perfil";
 import PerfilColecao from "./paginas/PerfilColecao";
 import Explorar from "./paginas/explorar";
+import Chat from "./paginas/Chat";
 import PostModal from "./components/PostModal";
 import {
   isSameUser,
@@ -122,6 +123,10 @@ function getRouteFromLocation() {
     return { pagina: "explorar", perfilAlvo: null, perfilCollection: "curtidos" };
   }
 
+  if (parts[0] === "chat") {
+    return { pagina: "chat", perfilAlvo: null, perfilCollection: "curtidos" };
+  }
+
   if (parts[0] === "perfil" && parts[1] === "colecao" && COLLECTION_TYPES.has(parts[2])) {
     return { pagina: "perfilColecao", perfilAlvo: null, perfilCollection: parts[2] };
   }
@@ -140,6 +145,7 @@ function getRouteFromLocation() {
 
 function buildRouteUrl(pagina, perfilAlvo, perfilCollection) {
   if (pagina === "explorar") return "/explorar";
+  if (pagina === "chat") return "/chat";
   if (pagina === "perfilColecao") return `/perfil/colecao/${perfilCollection || "curtidos"}`;
   if (pagina === "perfil") {
     const handle = (perfilAlvo?.handle || "").replace(/^@+/, "").trim();
@@ -275,6 +281,7 @@ function App() {
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postRefresh, setPostRefresh] = useState(0);
   const [achievementStars, setAchievementStars] = useState(0);
+  const [chatAlvo, setChatAlvo] = useState(null);
   const pagina = route.pagina;
   const perfilAlvo = route.perfilAlvo;
   const perfilCollection = route.perfilCollection;
@@ -607,6 +614,12 @@ function App() {
     navigate({ pagina: "perfil", perfilAlvo: alvo });
   }
 
+  function abrirChatCom(userRef) {
+    if (!userRef) return;
+    setChatAlvo(userRef);
+    navigate({ pagina: "chat", perfilAlvo: null });
+  }
+
   function handlePostCreated(post) {
     try {
       const rawPosts = JSON.parse(localStorage.getItem("posts")) || [];
@@ -660,12 +673,14 @@ function App() {
           irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
           irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
           irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
+          irChat={() => navigate({ pagina: "chat", perfilAlvo: null })}
           onOpenPost={handleOpenPost}
           refreshFeed={postRefresh}
           viewedUser={perfilAlvo}
           onOpenProfileCollection={(tipo) => {
             navigate({ pagina: "perfilColecao", perfilAlvo: null, perfilCollection: tipo });
           }}
+          onContact={abrirChatCom}
         />
 
         <PostModal
@@ -687,6 +702,7 @@ function App() {
           irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
           irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
           irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
+          irChat={() => navigate({ pagina: "chat", perfilAlvo: null })}
           onOpenPost={handleOpenPost}
           onOpenUserProfile={abrirPerfilAlvo}
           onStarAchievement={showStarAchievement}
@@ -709,8 +725,33 @@ function App() {
         <Explorar
           irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
           irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
+          irChat={() => navigate({ pagina: "chat", perfilAlvo: null })}
           onOpenPost={handleOpenPost}
           onOpenUserProfile={abrirPerfilAlvo}
+        />
+
+        <PostModal
+          open={isPostModalOpen}
+          onClose={handleClosePost}
+          usuario={usuario}
+          onPostSaved={handlePostCreated}
+        />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+      </>
+    );
+  }
+
+  if (pagina === "chat") {
+    return (
+      <>
+        <Chat
+          irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
+          irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
+          irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
+          onOpenPost={handleOpenPost}
+          onOpenUserProfile={abrirPerfilAlvo}
+          chatAlvo={chatAlvo}
+          onChatAlvoConsumido={() => setChatAlvo(null)}
         />
 
         <PostModal
@@ -729,6 +770,7 @@ function App() {
       <Home
         irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
         irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
+        irChat={() => navigate({ pagina: "chat", perfilAlvo: null })}
         onOpenPost={handleOpenPost}
         refreshFeed={postRefresh}
         onOpenUserProfile={abrirPerfilAlvo}

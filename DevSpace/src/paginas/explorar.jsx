@@ -1,6 +1,7 @@
 ﻿import { useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/explorar.css";
+import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
 const GROUPS = [
   {
@@ -83,7 +84,8 @@ function groupPostsAsRecommendations() {
   );
 }
 
-export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfile }) {
+export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenUserProfile }) {
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [tab, setTab] = useState("momento");
   const [search, setSearch] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState(null);
@@ -173,9 +175,17 @@ export default function Explorar({ irHome, irPerfil, onOpenPost, onOpenUserProfi
 
   return (
     <div className="home">
-      <Sidebar onReload={irHome} irPerfil={irPerfil} irExplorar={() => {}} onOpenPost={onOpenPost} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen((open) => !open)}
+        onReload={irHome}
+        irPerfil={irPerfil}
+        irExplorar={() => {}}
+        irChat={irChat}
+        onOpenPost={onOpenPost}
+      />
 
-      <div className="explore-page">
+      <div className={`explore-page${sidebarOpen ? "" : " sidebar-closed"}`}>
         <div className="explore-main">
           <div className="explore-top">
             <input

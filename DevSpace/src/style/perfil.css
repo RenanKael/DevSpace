@@ -9,6 +9,12 @@
   min-height: 100vh;
   color: white;
   position: relative;
+  transition: margin-left .35s ease, width .35s ease;
+}
+
+.profile-page.sidebar-closed {
+  margin-left: 88px;
+  width: calc(100% - 88px);
 }
 
 /* ========================= */
@@ -250,6 +256,21 @@ button.foto:focus-visible {
 
 .btn-editar:hover {
   background: #ddd;
+}
+
+.btn-contatar {
+  margin-bottom: 20px;
+  background: transparent;
+  color: white;
+  border: 1px solid white;
+  padding: 10px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-contatar:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* ========================= */
@@ -810,11 +831,6 @@ input[type="range"] {
 }
 
 @media (max-width: 1180px) {
-  .profile-page {
-    margin-left: 88px;
-    width: calc(100% - 88px);
-  }
-
   .stats {
     gap: 16px;
   }
@@ -854,7 +870,8 @@ input[type="range"] {
     margin-bottom: 8px;
   }
 
-  .btn-editar {
+  .btn-editar,
+  .btn-contatar {
     margin-left: 0;
     margin-bottom: 8px;
   }

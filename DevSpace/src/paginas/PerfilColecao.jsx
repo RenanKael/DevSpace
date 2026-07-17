@@ -8,6 +8,7 @@ import {
   recordUserRepostProgress,
   recordUserSaveProgress,
 } from "../utils/starProgress";
+import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
 const COLLECTIONS = {
   curtidos: {
@@ -67,10 +68,12 @@ export default function PerfilColecao({
   irHome,
   irPerfil,
   irExplorar,
+  irChat,
   onOpenPost,
   onOpenUserProfile,
   onStarAchievement,
 }) {
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
@@ -150,9 +153,17 @@ export default function PerfilColecao({
 
   return (
     <div className="home">
-      <Sidebar onReload={irHome} irPerfil={irPerfil} irExplorar={irExplorar} onOpenPost={onOpenPost} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen((open) => !open)}
+        onReload={irHome}
+        irPerfil={irPerfil}
+        irExplorar={irExplorar}
+        irChat={irChat}
+        onOpenPost={onOpenPost}
+      />
 
-      <div className="profile-page">
+      <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
         <div className="topo-perfil collection-top">
           <button className="back-arrow-btn" onClick={irPerfil} type="button" title="Voltar ao perfil">
             <img src={backArrow} alt="Voltar" />
