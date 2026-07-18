@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
@@ -12,6 +12,14 @@ import {
   syncUsersStarProgress,
 } from "../utils/starProgress";
 import "../style/home.css";
+
+const MIN_SUGGESTIONS_WIDTH = 220;
+const MAX_SUGGESTIONS_WIDTH = 460;
+const DEFAULT_SUGGESTIONS_WIDTH = 300;
+
+function clampSuggestionsWidth(value) {
+  return Math.min(MAX_SUGGESTIONS_WIDTH, Math.max(MIN_SUGGESTIONS_WIDTH, value));
+}
 
 const FAKE_COMMENT_POOL = [
   { username: "Maria Silva", handle: "mariasilva", texto: "Curti muito essa ideia, ficou bem legal." },
@@ -367,6 +375,56 @@ function savePostsToStorage(posts) {
 
 export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
+  const [suggestionsWidth, setSuggestionsWidth] = useState(() => {
+    const salva = localStorage.getItem("suggestionsWidth");
+    const numero = salva === null ? NaN : Number(salva);
+    return Number.isFinite(numero) ? clampSuggestionsWidth(numero) : DEFAULT_SUGGESTIONS_WIDTH;
+  });
+  const [redimensionando, setRedimensionando] = useState(false);
+  const arrastoRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem("suggestionsWidth", String(suggestionsWidth));
+  }, [suggestionsWidth]);
+
+  useEffect(() => {
+    if (!redimensionando) return;
+
+    function pegarX(e) {
+      return e.touches ? e.touches[0].clientX : e.clientX;
+    }
+
+    function mover(e) {
+      if (!arrastoRef.current) return;
+      const deltaX = arrastoRef.current.startX - pegarX(e);
+      setSuggestionsWidth(clampSuggestionsWidth(arrastoRef.current.startWidth + deltaX));
+    }
+
+    function soltar() {
+      setRedimensionando(false);
+      arrastoRef.current = null;
+    }
+
+    window.addEventListener("mousemove", mover);
+    window.addEventListener("mouseup", soltar);
+    window.addEventListener("touchmove", mover, { passive: false });
+    window.addEventListener("touchend", soltar);
+
+    return () => {
+      window.removeEventListener("mousemove", mover);
+      window.removeEventListener("mouseup", soltar);
+      window.removeEventListener("touchmove", mover);
+      window.removeEventListener("touchend", soltar);
+    };
+  }, [redimensionando]);
+
+  function iniciarRedimensionamento(e) {
+    e.preventDefault();
+    const startX = e.touches ? e.touches[0].clientX : e.clientX;
+    arrastoRef.current = { startX, startWidth: suggestionsWidth };
+    setRedimensionando(true);
+  }
+
   const [showTopbar, setShowTopbar] = useState(true);
   const [usuario, setUsuario] = useState(() => {
     try {
@@ -1132,7 +1190,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     : null;
 
   return (
-    <div className="home">
+    <div className={`home${redimensionando ? " resizing-suggestions" : ""}`}>
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen((open) => !open)}
@@ -1146,7 +1204,10 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
       <div className={`main${sidebarOpen ? "" : " sidebar-closed"}`}>
         <Topbar visible={showTopbar} usuario={usuario} onSearch={setSearchQuery} sidebarOpen={sidebarOpen} />
 
-        <div className={`feed-layout${sidebarOpen ? "" : " sidebar-closed"}`}>
+        <div
+          className={`feed-layout${sidebarOpen ? "" : " sidebar-closed"}`}
+          style={{ "--suggestions-width": `${suggestionsWidth}px` }}
+        >
         <div className="feed">
           {loading && <p>Carregando...</p>}
           {!loading && filteredPosts.length === 0 && profileOnlyResults.length === 0 && (
@@ -1287,35 +1348,45 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
           ))}
         </div>
         <aside className="suggestions-sidebar" aria-label="Sugestoes de perfis">
-          <h3>Sugestões para você</h3>
-          <div className="suggestions-list">
-            {suggestedProfiles.map((profile) => (
-              <div key={profile.email || profile.handle} className="suggestion-card">
-                <button
-                  type="button"
-                  className="suggestion-avatar"
-                  style={{ backgroundImage: profile.fotoPerfil ? `url(${profile.fotoPerfil})` : "none" }}
-                  onClick={() => onOpenUserProfile?.(profile)}
-                  aria-label={`Abrir perfil de ${profile.username}`}
-                />
-                <button
-                  type="button"
-                  className="suggestion-info"
-                  onClick={() => onOpenUserProfile?.(profile)}
-                >
-                  <strong>{profile.username}</strong>
-                  <span>@{profile.handle || profile.username}</span>
-                  <small>{profile.bio || "Perfil da comunidade DevSpace."}</small>
-                </button>
-                <button
-                  type="button"
-                  className="suggestion-follow"
-                  onClick={() => followSuggestedProfile(profile)}
-                >
-                  {isFollowingSuggestion(profile) ? "Deixar de seguir" : "Seguir"}
-                </button>
-              </div>
-            ))}
+          <div
+            className={`suggestions-resize-handle${redimensionando ? " active" : ""}`}
+            onMouseDown={iniciarRedimensionamento}
+            onTouchStart={iniciarRedimensionamento}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Redimensionar sugestoes"
+          />
+          <div className="suggestions-sidebar-inner">
+            <h3>Sugestões para você</h3>
+            <div className="suggestions-list">
+              {suggestedProfiles.map((profile) => (
+                <div key={profile.email || profile.handle} className="suggestion-card">
+                  <button
+                    type="button"
+                    className="suggestion-avatar"
+                    style={{ backgroundImage: profile.fotoPerfil ? `url(${profile.fotoPerfil})` : "none" }}
+                    onClick={() => onOpenUserProfile?.(profile)}
+                    aria-label={`Abrir perfil de ${profile.username}`}
+                  />
+                  <button
+                    type="button"
+                    className="suggestion-info"
+                    onClick={() => onOpenUserProfile?.(profile)}
+                  >
+                    <strong>{profile.username}</strong>
+                    <span>@{profile.handle || profile.username}</span>
+                    <small>{profile.bio || "Perfil da comunidade DevSpace."}</small>
+                  </button>
+                  <button
+                    type="button"
+                    className="suggestion-follow"
+                    onClick={() => followSuggestedProfile(profile)}
+                  >
+                    {isFollowingSuggestion(profile) ? "Deixar de seguir" : "Seguir"}
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </aside>
         </div>
