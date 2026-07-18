@@ -1,3 +1,5 @@
+import { salvarImagem, gerarIdImagem } from "./imageStore";
+
 const STORAGE_KEY = "conversas";
 
 export function normalizeHandle(value) {
@@ -21,9 +23,11 @@ export function saveConversas(conversas) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(conversas));
   } catch {
-    // localStorage indisponível — ignora
+    window.dispatchEvent(new CustomEvent("devspaceConversasUpdated"));
+    return false;
   }
   window.dispatchEvent(new CustomEvent("devspaceConversasUpdated"));
+  return true;
 }
 
 function toParticipante(user) {
@@ -53,17 +57,34 @@ export function getOrCreateConversa(euUser, outroUser) {
   return nova;
 }
 
-export function enviarMensagem(conversaId, autorHandle, texto) {
-  const textoLimpo = texto.trim();
-  if (!textoLimpo) return null;
+/**
+ * As imagens vao para o IndexedDB (cota bem maior que o localStorage) e só
+ * o `imagemId` fica salvo na mensagem — assim o histórico de conversas
+ * continua pequeno no localStorage não importa quantas fotos sejam
+ * enviadas, e imagens antigas nunca precisam ser apagadas para abrir espaço.
+ */
+export async function enviarMensagem(conversaId, autorHandle, texto, imagem) {
+  const textoLimpo = (texto || "").trim();
+  if (!textoLimpo && !imagem) return null;
 
   const conversas = loadConversas();
   const index = conversas.findIndex((c) => c.id === conversaId);
   if (index === -1) return null;
 
+  let imagemId = "";
+  if (imagem) {
+    imagemId = gerarIdImagem();
+    try {
+      await salvarImagem(imagemId, imagem);
+    } catch {
+      return null;
+    }
+  }
+
   const mensagem = {
     autor: normalizeHandle(autorHandle),
     texto: textoLimpo,
+    imagemId,
     criadoEm: new Date().toISOString(),
   };
 
@@ -74,8 +95,8 @@ export function enviarMensagem(conversaId, autorHandle, texto) {
   };
 
   const restantes = conversas.filter((c) => c.id !== conversaId);
-  saveConversas([atualizada, ...restantes]);
-  return atualizada;
+  const sucesso = saveConversas([atualizada, ...restantes]);
+  return sucesso ? atualizada : null;
 }
 
 export function loadConversasDoUsuario(handle) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/chat.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
@@ -8,10 +8,18 @@ import {
   enviarMensagem,
   normalizeHandle,
 } from "../utils/chat";
+import { resizeImageForChat } from "../utils/image";
+import { carregarImagem } from "../utils/imageStore";
 
 function fallbackAvatar(seed) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed || "usuario")}`;
 }
+
+const EMOJIS = [
+  "😀", "😂", "😍", "😎", "🥳", "😅", "😭", "😡", "😮", "🤔",
+  "👍", "👎", "👏", "🙏", "💪", "🤝", "✌️", "🔥", "🎉", "❤️",
+  "💔", "⭐", "✅", "❌", "😴", "🤯", "😱", "🥺", "😉", "🙌",
+];
 
 export default function Chat({
   irHome,
@@ -31,8 +39,20 @@ export default function Chat({
   const [conversas, setConversas] = useState([]);
   const [conversaAtivaId, setConversaAtivaId] = useState(null);
   const [texto, setTexto] = useState("");
+  const [imagemSelecionada, setImagemSelecionada] = useState("");
+  const [emojiAberto, setEmojiAberto] = useState(false);
+  const arquivoInputRef = useRef(null);
+  const textoInputRef = useRef(null);
+  const idsEmBuscaRef = useRef(new Set());
+  const [imagensCache, setImagensCache] = useState({});
 
   const meuHandle = normalizeHandle(usuarioLogado?.handle || usuarioLogado?.username);
+
+  function resolverImagemMensagem(mensagem) {
+    if (mensagem.imagem) return mensagem.imagem;
+    if (mensagem.imagemId) return imagensCache[mensagem.imagemId] || "";
+    return "";
+  }
 
   function recarregarConversas() {
     if (!usuarioLogado) return [];
@@ -62,16 +82,78 @@ export default function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatAlvo]);
 
+  useEffect(() => {
+    const idsFaltando = [];
+    conversas.forEach((c) => {
+      c.mensagens.forEach((m) => {
+        if (m.imagemId && !imagensCache[m.imagemId] && !idsEmBuscaRef.current.has(m.imagemId)) {
+          idsFaltando.push(m.imagemId);
+        }
+      });
+    });
+    if (idsFaltando.length === 0) return;
+
+    idsFaltando.forEach((id) => idsEmBuscaRef.current.add(id));
+
+    let cancelado = false;
+    Promise.all(idsFaltando.map((id) => carregarImagem(id).then((url) => [id, url]))).then((pares) => {
+      if (cancelado) return;
+      setImagensCache((atual) => {
+        const novo = { ...atual };
+        pares.forEach(([id, url]) => {
+          if (url) novo[id] = url;
+        });
+        return novo;
+      });
+    });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [conversas, imagensCache]);
+
   const conversaAtiva = conversas.find((c) => c.id === conversaAtivaId) || null;
   const outroParticipante =
     conversaAtiva?.participantes.find((p) => p.handle !== meuHandle) || null;
 
+  async function enviar() {
+    if (!conversaAtiva || (!texto.trim() && !imagemSelecionada)) return;
+
+    const enviada = await enviarMensagem(conversaAtiva.id, meuHandle, texto, imagemSelecionada);
+    if (!enviada) return;
+
+    setTexto("");
+    setImagemSelecionada("");
+    setEmojiAberto(false);
+    recarregarConversas();
+  }
+
   function handleEnviar(e) {
     e.preventDefault();
-    if (!conversaAtiva || !texto.trim()) return;
-    enviarMensagem(conversaAtiva.id, meuHandle, texto);
-    setTexto("");
-    recarregarConversas();
+    enviar();
+  }
+
+  function handleFormKeyDown(e) {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    enviar();
+  }
+
+  async function handleSelecionarImagem(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const dataUrl = await resizeImageForChat(file);
+    if (!dataUrl) return;
+
+    setImagemSelecionada(dataUrl);
+    textoInputRef.current?.focus();
+  }
+
+  function handleEscolherEmoji(emoji) {
+    setTexto((valor) => valor + emoji);
+    setEmojiAberto(false);
   }
 
   return (
@@ -114,7 +196,11 @@ export default function Chat({
                 />
                 <div className="chat-list-item-info">
                   <strong>{outro.username}</strong>
-                  <span>{ultimaMsg ? ultimaMsg.texto : "Diga oi!"}</span>
+                  <span>
+                    {!ultimaMsg
+                      ? "Diga oi!"
+                      : ultimaMsg.texto || (ultimaMsg.imagem || ultimaMsg.imagemId ? "📷 Imagem" : "")}
+                  </span>
                 </div>
               </button>
             );
@@ -150,23 +236,93 @@ export default function Chat({
                 {conversaAtiva.mensagens.length === 0 && (
                   <p className="chat-empty">Envie a primeira mensagem para {outroParticipante.username}.</p>
                 )}
-                {conversaAtiva.mensagens.map((m, i) => (
-                  <div key={i} className={`chat-bubble${m.autor === meuHandle ? " own" : ""}`}>
-                    {m.texto}
-                  </div>
-                ))}
+                {conversaAtiva.mensagens.map((m, i) => {
+                  const imgSrc = resolverImagemMensagem(m);
+                  return (
+                    <div key={i} className={`chat-bubble${m.autor === meuHandle ? " own" : ""}`}>
+                      {imgSrc && <img className="chat-bubble-imagem" src={imgSrc} alt="Imagem enviada" />}
+                      {m.texto && <span>{m.texto}</span>}
+                    </div>
+                  );
+                })}
               </div>
 
-              <form className="chat-input-row" onSubmit={handleEnviar}>
-                <input
-                  type="text"
-                  placeholder={`Mensagem para ${outroParticipante.username}`}
-                  value={texto}
-                  onChange={(e) => setTexto(e.target.value)}
-                />
-                <button type="submit" disabled={!texto.trim()}>
-                  Enviar
-                </button>
+              <form className="chat-input-row" onSubmit={handleEnviar} onKeyDown={handleFormKeyDown}>
+                {imagemSelecionada && (
+                  <div className="chat-imagem-preview">
+                    <img src={imagemSelecionada} alt="Preview da imagem" />
+                    <button
+                      type="button"
+                      className="chat-imagem-remover"
+                      onClick={() => setImagemSelecionada("")}
+                      aria-label="Remover imagem"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                )}
+
+                <div className="chat-input-controls">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={arquivoInputRef}
+                    hidden
+                    onChange={handleSelecionarImagem}
+                  />
+
+                  <button
+                    type="button"
+                    className="chat-icon-btn"
+                    title="Enviar imagem"
+                    onClick={() => arquivoInputRef.current?.click()}
+                  >
+                    🖼️
+                  </button>
+
+                  <div className="chat-emoji-wrapper">
+                    <button
+                      type="button"
+                      className="chat-icon-btn"
+                      title="Emojis"
+                      onClick={() => setEmojiAberto((aberto) => !aberto)}
+                    >
+                      😊
+                    </button>
+
+                    {emojiAberto && (
+                      <div className="chat-emoji-picker">
+                        {EMOJIS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className="chat-emoji-opcao"
+                            onClick={() => handleEscolherEmoji(emoji)}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <input
+                    type="text"
+                    ref={textoInputRef}
+                    placeholder={`Mensagem para ${outroParticipante.username}`}
+                    value={texto}
+                    onChange={(e) => setTexto(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    className="chat-enviar-btn"
+                    disabled={!texto.trim() && !imagemSelecionada}
+                    aria-label="Enviar"
+                    title="Enviar"
+                  >
+                    ➤
+                  </button>
+                </div>
               </form>
             </>
           )}
