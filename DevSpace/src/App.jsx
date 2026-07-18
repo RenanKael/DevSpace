@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Login from "./paginas/Login";
 import Home from "./paginas/Home";
+import { persistSidebarOpen } from "./hooks/useSidebarOpen";
 import Perfil from "./paginas/Perfil";
 import PerfilColecao from "./paginas/PerfilColecao";
 import Explorar from "./paginas/explorar";
@@ -276,7 +277,11 @@ function savePostsToStorage(posts) {
 
 function App() {
   const [route, setRoute] = useState(createInitialRouteState);
-  const [logado, setLogado] = useState(() => !!getStoredUsuario());
+  const [logado, setLogado] = useState(() => {
+    const jaLogado = !!getStoredUsuario();
+    if (jaLogado) persistSidebarOpen(true);
+    return jaLogado;
+  });
   const [usuario, setUsuario] = useState(() => getStoredUsuario());
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postRefresh, setPostRefresh] = useState(0);
@@ -662,7 +667,14 @@ function App() {
   }
 
   if (!logado) {
-    return <Login onLogin={() => setLogado(true)} />;
+    return (
+      <Login
+        onLogin={() => {
+          persistSidebarOpen(true);
+          setLogado(true);
+        }}
+      />
+    );
   }
 
   if (pagina === "perfil") {
