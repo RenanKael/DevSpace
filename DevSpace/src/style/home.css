@@ -265,6 +265,7 @@ body {
   justify-content: flex-start;
   overflow: hidden;
   transition: margin-left .35s ease, width .35s ease;
+  animation: pageFadeIn 0.45s ease both;
 }
 
 .main.sidebar-closed {

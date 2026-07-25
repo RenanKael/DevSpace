@@ -8,6 +8,7 @@
   display: grid;
   grid-template-columns: 1fr minmax(260px, 320px);
   transition: margin-left .35s ease, width .35s ease;
+  animation: pageFadeIn 0.45s ease both;
 }
 
 .chat-page.sidebar-closed {

@@ -38,3 +38,123 @@ body {
 *::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* ANIMACOES */
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes itemFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Cards/itens de listas que aparecem em cascata (feed, sugestoes, chat,
+   explorar, perfil). Uma unica declaracao central em vez de repetir em
+   cada arquivo de estilo. */
+.post-card,
+.suggestion-card,
+.profile-search-card,
+.chat-list-item,
+.chat-bubble,
+.perfil-post-card,
+.profile-mini-card,
+.group-card,
+.for-you-post,
+.topic-chip,
+.trend-item,
+.group-feed-post {
+  animation: itemFadeIn 0.4s ease both;
+}
+
+.post-card:nth-child(2),
+.suggestion-card:nth-child(2),
+.profile-search-card:nth-child(2),
+.chat-list-item:nth-child(2),
+.perfil-post-card:nth-child(2),
+.profile-mini-card:nth-child(2),
+.group-card:nth-child(2),
+.for-you-post:nth-child(2),
+.topic-chip:nth-child(2),
+.trend-item:nth-child(2),
+.group-feed-post:nth-child(2) {
+  animation-delay: 0.04s;
+}
+
+.post-card:nth-child(3),
+.suggestion-card:nth-child(3),
+.profile-search-card:nth-child(3),
+.chat-list-item:nth-child(3),
+.perfil-post-card:nth-child(3),
+.profile-mini-card:nth-child(3),
+.group-card:nth-child(3),
+.for-you-post:nth-child(3),
+.topic-chip:nth-child(3),
+.trend-item:nth-child(3),
+.group-feed-post:nth-child(3) {
+  animation-delay: 0.08s;
+}
+
+.post-card:nth-child(4),
+.suggestion-card:nth-child(4),
+.profile-search-card:nth-child(4),
+.chat-list-item:nth-child(4),
+.perfil-post-card:nth-child(4),
+.profile-mini-card:nth-child(4),
+.group-card:nth-child(4),
+.for-you-post:nth-child(4),
+.topic-chip:nth-child(4),
+.trend-item:nth-child(4),
+.group-feed-post:nth-child(4) {
+  animation-delay: 0.12s;
+}
+
+.post-card:nth-child(5),
+.suggestion-card:nth-child(5),
+.profile-search-card:nth-child(5),
+.chat-list-item:nth-child(5),
+.perfil-post-card:nth-child(5),
+.profile-mini-card:nth-child(5),
+.group-card:nth-child(5),
+.for-you-post:nth-child(5),
+.topic-chip:nth-child(5),
+.trend-item:nth-child(5),
+.group-feed-post:nth-child(5) {
+  animation-delay: 0.16s;
+}
+
+.post-card:nth-child(n + 6),
+.suggestion-card:nth-child(n + 6),
+.profile-search-card:nth-child(n + 6),
+.chat-list-item:nth-child(n + 6),
+.perfil-post-card:nth-child(n + 6),
+.profile-mini-card:nth-child(n + 6),
+.group-card:nth-child(n + 6),
+.for-you-post:nth-child(n + 6),
+.topic-chip:nth-child(n + 6),
+.trend-item:nth-child(n + 6),
+.group-feed-post:nth-child(n + 6) {
+  animation-delay: 0.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.001ms !important;
+  }
+}
