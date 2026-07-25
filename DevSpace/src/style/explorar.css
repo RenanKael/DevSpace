@@ -7,7 +7,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
   transition: margin-left .35s ease, width .35s ease;
-  animation: pageFadeIn 0.45s ease both;
+  animation: pageFadeIn 0.45s ease;
 }
 
 .explore-page.sidebar-closed {

@@ -278,7 +278,7 @@ body {
   justify-content: flex-start;
   overflow: hidden;
   transition: margin-left .35s ease, width .35s ease;
-  animation: pageFadeIn 0.45s ease both;
+  animation: pageFadeIn 0.45s ease;
 }
 
 .main.sidebar-closed {
@@ -290,7 +290,7 @@ body {
 .topbar {
   position: fixed;
   top: 0;
-  left: 250px;
+  left: 0;
   right: 0;
   height: 70px;
   background: black;
@@ -303,11 +303,7 @@ body {
   padding: 0 20px;
   z-index: 10;
 
-  transition: transform 0.3s ease, left .35s ease;
-}
-
-.topbar.sidebar-closed {
-  left: 88px;
+  transition: transform 0.3s ease;
 }
 
 /* ESCONDE / MOSTRA */
@@ -322,17 +318,24 @@ body {
 /* BUSCA */
 .search-box {
   position: absolute;
-  left: 43%;
+  left: 50%;
   transform: translateX(-50%);
 
-  width: 300px;
+  width: 540px;
+  max-width: calc(100% - 340px);
   height: 40px;
-  padding: 0 14px;
+  padding: 0 18px;
   border-radius: 20px;
   background: white;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  transition: width .35s ease, max-width .35s ease;
+}
+
+.topbar.sidebar-closed .search-box {
+  width: 700px;
+  max-width: calc(100% - 180px);
 }
 
 .search-box img {
@@ -350,6 +353,7 @@ body {
   outline: none;
   background: transparent;
   color: black;
+  font-size: 1rem;
 }
 
 /* PERFIL */
@@ -396,11 +400,14 @@ body {
   scroll-padding: 20px;
   scroll-behavior: smooth;
   overscroll-behavior-y: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #333 transparent;
+  scrollbar-width: none;
   display: flex;
   flex-direction: column;
   gap: 34px;
+}
+
+.feed::-webkit-scrollbar {
+  display: none;
 }
 
 .feed.comments-mode {
