@@ -1,9 +1,10 @@
 import "../style/home.css";
+import SidebarToggleIcon from "./SidebarToggleIcon";
+import ChatIcon from "./ChatIcon";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import paginaInicial from "../assets/IMGS/Home.png";
 import explorar from "../assets/IMGS/Explorar.png";
 import perfil from "../assets/IMGS/NoPerfil.png";
-// import chat from "../assets/IMGS/Chat.png";
 
 export default function Sidebar({
   isOpen,
@@ -18,7 +19,7 @@ export default function Sidebar({
     <>
       {!isOpen && (
         <button className="sidebar-toggle" onClick={onToggle} aria-label="Abrir menu">
-          ≡
+          <SidebarToggleIcon action="abrir" />
         </button>
       )}
 
@@ -37,14 +38,14 @@ export default function Sidebar({
                 }}
                 aria-label="Abrir menu"
               >
-                ≡
+                <SidebarToggleIcon action="abrir" size={28} />
               </button>
             )}
           </div>
 
           {isOpen && (
             <button className="sidebar-toggle-inline" onClick={onToggle} aria-label="Minimizar menu">
-              ≡
+              <SidebarToggleIcon action="fechar" />
             </button>
           )}
         </div>
@@ -66,7 +67,7 @@ export default function Sidebar({
           </div>
 
           <div className="nav-item" data-label="Chat" onClick={irChat}>
-            {/* <img src={chat} alt="" /> */}
+            <ChatIcon />
             <span>Chat</span>
           </div>
         </nav>

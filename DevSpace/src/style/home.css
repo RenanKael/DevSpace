@@ -50,13 +50,17 @@ body {
   border-radius: 10px;
   background: #111;
   color: white;
-  font-size: 18px;
   cursor: pointer;
   z-index: 1100;
   transition: all .35s ease;
+  outline: none;
 }
 .sidebar-toggle:hover{
   background:#222;
+}
+.sidebar-toggle:focus-visible {
+  outline: 2px solid #7aa2ff;
+  outline-offset: 2px;
 }
 
 .sidebar-backdrop {
@@ -76,17 +80,25 @@ body {
   width: 38px;
   height: 38px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: 10px;
-  background: #111;
+  background: transparent;
   color: white;
-  font-size: 18px;
   cursor: pointer;
   transition: background .2s ease;
+  outline: none;
 }
 
 .sidebar-toggle-inline:hover {
-  background: #222;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-toggle-inline:focus-visible {
+  outline: 2px solid #7aa2ff;
+  outline-offset: 2px;
 }
 
 /* LOGO */
@@ -126,10 +138,10 @@ body {
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.6);
   color: white;
-  font-size: 18px;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
+  outline: none;
   transition: opacity .2s ease;
 }
 
@@ -157,7 +169,8 @@ body {
 }
 
 /* 👇 CORRIGIDO AQUI */
-.nav-item img {
+.nav-item img,
+.nav-item svg {
   width: 24px;
   height: 24px;
   object-fit: contain; /* sem fundo cinza */
