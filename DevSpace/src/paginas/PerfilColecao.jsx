@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import "../style/home.css";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
+import { fetchPosts } from "../api";
 import {
   recordUserLikeProgress,
   recordUserRepostProgress,
@@ -39,6 +40,14 @@ const ACTION_PROGRESS_RECORDERS = {
   likes: recordUserLikeProgress,
   bookmarks: recordUserSaveProgress,
 };
+
+function sortPostsByDate(posts) {
+  return [...posts].sort((a, b) => {
+    const dateA = new Date(a?.criadoEm || 0).getTime();
+    const dateB = new Date(b?.criadoEm || 0).getTime();
+    return dateB - dateA;
+  });
+}
 
 function normalizeKey(value) {
   return String(value || "").replace(/^@+/, "").replace(/\s+/g, "").toLowerCase().trim();
@@ -81,10 +90,29 @@ export default function PerfilColecao({
   const config = COLLECTIONS[tipo] || COLLECTIONS.curtidos;
 
   useEffect(() => {
+    let canceled = false;
+
+    async function loadBackendPosts() {
+      try {
+        const backendPosts = await fetchPosts();
+        if (canceled) return;
+        setPosts(Array.isArray(backendPosts) ? sortPostsByDate(backendPosts) : []);
+      } catch (error) {
+        console.warn("Erro ao carregar posts do backend:", error);
+        if (!canceled) {
+          setPosts(JSON.parse(localStorage.getItem("posts")) || []);
+        }
+      }
+    }
+
     const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
     const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
     setUsuario(localUser || sessionUser || null);
-    setPosts(JSON.parse(localStorage.getItem("posts")) || []);
+    loadBackendPosts();
+
+    return () => {
+      canceled = true;
+    };
   }, [tipo]);
 
   const filteredPosts = useMemo(() => {

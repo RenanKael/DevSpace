@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "../style/login.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
+import { loginUser, registerUser } from "../api";
 
 const ADMIN_EMAIL = "renan.kael@gmail.com";
 const ADMIN_HANDLE = "renanadm";
@@ -195,7 +196,7 @@ export default function Login({ onLogin }) {
     setEtapa("criarPerfil");
   }
 
-  function finalizarCadastro() {
+  async function finalizarCadastro() {
     limparAvisos();
 
     const nomeLimpo = username.trim();
@@ -244,14 +245,24 @@ export default function Login({ onLogin }) {
       verificado: true,
     });
 
-    const atualizados = [...usuarios, novoUsuario];
-    localStorage.setItem("usuarios", JSON.stringify(atualizados));
-    localStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
-    localStorage.setItem("lembrarMe", "true");
-    sessionStorage.removeItem("usuarioLogado");
+    try {
+      const createdUser = await registerUser({
+        username: novoUsuario.username,
+        handle: novoUsuario.handle,
+        email: novoUsuario.email,
+        senha: novoUsuario.senha,
+        telefone: novoUsuario.telefone,
+        bio: novoUsuario.bio,
+        fotoPerfil: novoUsuario.fotoPerfil,
+        fotoCapa: novoUsuario.fotoCapa,
+      });
 
-    resetarFormularios();
-    onLogin();
+      salvarSessao(createdUser);
+      resetarFormularios();
+      onLogin();
+    } catch (error) {
+      setErro(error.message || "Erro ao registrar o usuario.");
+    }
   }
 
   function encontrarUsuarioPorLogin(usuarios, valor) {
@@ -414,7 +425,7 @@ export default function Login({ onLogin }) {
     setEtapa("criarPerfil");
   }
 
-  function entrarComEmail() {
+  async function entrarComEmail() {
     limparAvisos();
 
     if (!login.trim() || !senhaLogin) {
@@ -422,33 +433,14 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    const { usuarios, admin } = ensureAdminUser();
-    const loginLimpo = normalizeHandle(login.trim());
-    const loginEmail = login.trim().toLowerCase();
-
-    const usuarioEncontrado =
-      loginEmail === ADMIN_EMAIL || loginLimpo === "allzynadm" || loginLimpo === ADMIN_HANDLE
-        ? admin
-        : usuarios.find((u) => {
-            const email = (u.email || "").toLowerCase();
-            const userHandle = (u.handle || "").toLowerCase();
-            const userName = (u.username || "").toLowerCase();
-            return email === loginEmail || userHandle === loginLimpo || userName === login.trim().toLowerCase();
-          });
-
-    if (!usuarioEncontrado) {
-      setErro("Usuario nao encontrado.");
-      return;
+    try {
+      const user = await loginUser(login.trim(), senhaLogin);
+      salvarSessao(user);
+      resetarFormularios();
+      onLogin();
+    } catch (error) {
+      setErro(error.message || "Erro ao entrar. Verifique suas credenciais.");
     }
-
-    if (!usuarioEncontrado.senha || usuarioEncontrado.senha !== senhaLogin) {
-      setErro("Senha incorreta.");
-      return;
-    }
-
-    salvarSessao(usuarioEncontrado);
-    resetarFormularios();
-    onLogin();
   }
 
   return (

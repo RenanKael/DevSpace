@@ -1,7 +1,8 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/explorar.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
+import { fetchPosts, fetchUsers } from "../api";
 
 const GROUPS = [
   {
@@ -89,10 +90,12 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
   const [tab, setTab] = useState("momento");
   const [search, setSearch] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState(null);
+  const [backendPosts, setBackendPosts] = useState([]);
+  const [backendUsers, setBackendUsers] = useState([]);
 
   const exploreData = useMemo(() => {
-    const posts = JSON.parse(localStorage.getItem("posts")) || [];
-    const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
+    const posts = backendPosts.length > 0 ? backendPosts : JSON.parse(localStorage.getItem("posts")) || [];
+    const savedUsers = backendUsers.length > 0 ? backendUsers : JSON.parse(localStorage.getItem("usuarios")) || [];
     const users = [...(Array.isArray(savedUsers) ? savedUsers : []), ...KNOWN_PROFILES];
     const currentUser =
       JSON.parse(localStorage.getItem("usuarioLogado")) ||
@@ -127,8 +130,8 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
     const q = normalizeHandle(search);
     if (!q) return [];
 
-    const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
-    const postAuthors = (JSON.parse(localStorage.getItem("posts")) || []).map((post) => ({
+    const savedUsers = backendUsers.length > 0 ? backendUsers : JSON.parse(localStorage.getItem("usuarios")) || [];
+    const postAuthors = (backendPosts.length > 0 ? backendPosts : JSON.parse(localStorage.getItem("posts")) || []).map((post) => ({
       username: post.username,
       handle: post.handle || post.username,
       email: post.email,
@@ -170,6 +173,27 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
       );
     });
   }, [search]);
+
+  useEffect(() => {
+    let canceled = false;
+
+    async function loadBackendData() {
+      try {
+        const [postsData, usersData] = await Promise.all([fetchPosts(), fetchUsers()]);
+        if (canceled) return;
+
+        setBackendPosts(Array.isArray(postsData) ? postsData : []);
+        setBackendUsers(Array.isArray(usersData) ? usersData : []);
+      } catch (error) {
+        console.warn("Erro ao carregar explorar do backend:", error);
+      }
+    }
+
+    loadBackendData();
+    return () => {
+      canceled = true;
+    };
+  }, []);
 
   const selectedGroup = GROUPS.find((g) => g.id === selectedGroupId) || null;
 

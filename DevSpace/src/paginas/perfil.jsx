@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import { createPortal } from "react-dom";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
+import { fetchPosts, fetchUsers } from "../api";
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 

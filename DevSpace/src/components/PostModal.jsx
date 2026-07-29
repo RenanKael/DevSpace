@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import { usePostImageEditor } from "../hooks/usePostImageEditor";
 import "../style/home.css";
+import { createPost } from "../api";
 
 export default function PostModal({ open, onClose, usuario, onPostSaved }) {
   const [texto, setTexto] = useState("");
@@ -71,7 +72,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
     }
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!texto.trim() && !image) {
       setErro("Escreva algo ou adicione uma imagem para postar.");
       return;
@@ -80,14 +81,12 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
     const currentUser = getCurrentUser();
 
     const novoPost = {
-      id: Date.now(),
       username: currentUser?.username || "Usuario",
       handle: (currentUser?.handle || currentUser?.username || "usuario").replace(/\s+/g, "").toLowerCase(),
       email: currentUser?.email || "",
       fotoPerfil: currentUser?.fotoPerfil || "",
       texto: texto.trim(),
       imagem: image || "",
-      criadoEm: new Date().toISOString(),
       comments: 0,
       commentsList: [],
       isSeedFake: false,
@@ -104,13 +103,18 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       return;
     }
 
-    const saved = onPostSaved(novoPost);
-    if (saved === false) {
-      setErro("Nao foi possivel salvar o post. Tente remover a imagem ou usar uma imagem menor.");
-      return;
+    try {
+      const createdPost = await createPost(novoPost);
+      const saved = onPostSaved(createdPost);
+      if (saved === false) {
+        setErro("Nao foi possivel salvar o post localmente. Tente remover a imagem ou usar uma imagem menor.");
+        return;
+      }
+      clearForm();
+    } catch (error) {
+      console.error(error);
+      setErro(error.message || "Erro ao publicar. Tente novamente mais tarde.");
     }
-
-    clearForm();
   }
 
   if (!open) return null;
