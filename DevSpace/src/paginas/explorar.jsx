@@ -173,6 +173,14 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
 
   const selectedGroup = GROUPS.find((g) => g.id === selectedGroupId) || null;
 
+  const taggedRealPosts = useMemo(() => {
+    if (!selectedGroupId) return [];
+    const posts = JSON.parse(localStorage.getItem("posts")) || [];
+    return (Array.isArray(posts) ? posts : [])
+      .filter((post) => post?.tag === selectedGroupId && post?.texto)
+      .sort((a, b) => new Date(b.criadoEm || 0).getTime() - new Date(a.criadoEm || 0).getTime());
+  }, [selectedGroupId]);
+
   return (
     <div className="home">
       <Sidebar
@@ -254,6 +262,23 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
               <p className="group-subtitle">{selectedGroup.subtitle}</p>
 
               <div className="group-feed">
+                {taggedRealPosts.map((post) => (
+                  <article key={`real-${post.id}`} className="group-feed-post">
+                    <div className="group-feed-head">
+                      <div
+                        className="group-feed-avatar"
+                        style={{ backgroundImage: `url(${post.fotoPerfil || userAvatar(post.handle || post.username)})` }}
+                      />
+                      <button
+                        className="group-post-user"
+                        onClick={() => onOpenUserProfile?.({ username: post.username, handle: post.handle, email: post.email })}
+                      >
+                        {post.username} <span>@{post.handle || post.username}</span>
+                      </button>
+                    </div>
+                    <p>{post.texto}</p>
+                  </article>
+                ))}
                 {selectedGroup.posts.map((post, idx) => (
                   <article key={`${selectedGroup.id}-${idx}`} className="group-feed-post">
                     <div className="group-feed-head">

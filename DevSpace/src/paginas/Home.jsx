@@ -11,6 +11,7 @@ import {
   recordUserSaveProgress,
   syncUsersStarProgress,
 } from "../utils/starProgress";
+import { tagLabel, displayHashtag } from "../utils/postTags";
 import "../style/home.css";
 
 const MIN_SUGGESTIONS_WIDTH = 220;
@@ -275,6 +276,16 @@ function sortPostsByDate(posts) {
   });
 }
 
+function normalizePoll(poll) {
+  if (!poll || !Array.isArray(poll.options) || poll.options.length < 2) return null;
+  return {
+    options: poll.options,
+    optionVoters: poll.options.map((_, index) =>
+      Array.isArray(poll.optionVoters?.[index]) ? poll.optionVoters[index] : []
+    ),
+  };
+}
+
 function normalizeStoredPost(post) {
   if (!post || typeof post !== "object") return null;
   const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
@@ -295,7 +306,16 @@ function normalizeStoredPost(post) {
     likedBy: Array.isArray(post.likedBy) ? post.likedBy : [],
     savedBy: Array.isArray(post.savedBy) ? post.savedBy : [],
     repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
+    anexo: post.anexo && post.anexo.url ? post.anexo : null,
+    poll: normalizePoll(post.poll),
+    tag: post.tag || "",
+    agendadoPara: post.agendadoPara || "",
   };
+}
+
+function isPostDue(post) {
+  if (!post?.agendadoPara) return true;
+  return new Date(post.agendadoPara).getTime() <= Date.now();
 }
 
 function normalizeStoredPosts(posts) {
@@ -307,7 +327,7 @@ function normalizeStoredPosts(posts) {
 
 function hydratePostsForDisplay(posts, users) {
   const usersList = Array.isArray(users) ? users : [];
-  return normalizeStoredPosts(posts).map((post) => {
+  return normalizeStoredPosts(posts).filter(isPostDue).map((post) => {
     const isFakePost = isFakeIdentity(post);
     const postHandle = normalizeHandle(post.handle || post.username);
     const postProfile = isFakePost ? null : findUserProfile(post, usersList);
@@ -575,6 +595,44 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
         ...post,
         [action]: nextValue ? currentValue + 1 : Math.max(0, currentValue - 1),
         ...(ownerField ? { [ownerField]: nextOwners } : {}),
+      };
+    });
+
+    if (salvarPosts(updatedPosts)) {
+      setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
+    }
+  }
+
+  function togglePollVote(postId, optionIndex) {
+    if (!usuario) {
+      onRequireAuth?.("Entre para votar em enquetes.");
+      return;
+    }
+
+    const userKey = normalizeActionKey(usuario.email || usuario.handle || usuario.username);
+    if (!userKey) return;
+
+    const sourcePosts = getStoredPosts(posts);
+    const updatedPosts = sourcePosts.map((post) => {
+      if (post.id !== postId || !post.poll) return post;
+
+      const optionVoters = post.poll.optionVoters.map((voters) =>
+        Array.isArray(voters) ? voters.map(normalizeActionKey) : []
+      );
+      const votadaAtualmente = optionVoters.findIndex((voters) => voters.includes(userKey));
+
+      if (votadaAtualmente === optionIndex) {
+        optionVoters[optionIndex] = optionVoters[optionIndex].filter((key) => key !== userKey);
+      } else {
+        if (votadaAtualmente !== -1) {
+          optionVoters[votadaAtualmente] = optionVoters[votadaAtualmente].filter((key) => key !== userKey);
+        }
+        optionVoters[optionIndex] = [...optionVoters[optionIndex], userKey];
+      }
+
+      return {
+        ...post,
+        poll: { ...post.poll, optionVoters },
       };
     });
 
@@ -1047,6 +1105,14 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     if (!query) return true;
     if (query.startsWith("@")) return false;
 
+    if (query.startsWith("#")) {
+      const tagQuery = query.slice(1).trim();
+      if (!tagQuery || !post.tag) return false;
+      const hashtagTexto = displayHashtag(post.tag).toLowerCase();
+      const labelTexto = tagLabel(post.tag).toLowerCase();
+      return hashtagTexto.includes(tagQuery) || labelTexto.includes(tagQuery);
+    }
+
     return [post.texto, post.username, post.handle, post.email].some((value) =>
       value?.toLowerCase().includes(query)
     );
@@ -1198,6 +1264,98 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
       (selectedPostData?.id === commentsPostId ? selectedPostData : null)
     : null;
 
+  function getUserPollVoteIndex(poll) {
+    if (!poll || !usuario) return -1;
+    const userKey = normalizeActionKey(usuario.email || usuario.handle || usuario.username);
+    if (!userKey) return -1;
+    return poll.optionVoters.findIndex((voters) => voters.map(normalizeActionKey).includes(userKey));
+  }
+
+  function renderPostTag(post) {
+    if (!post.tag) return null;
+    return (
+      <span className="post-tag-chip-display" title={tagLabel(post.tag) || undefined}>
+        #{displayHashtag(post.tag)}
+      </span>
+    );
+  }
+
+  function renderAnexo(post) {
+    if (!post.anexo) return null;
+
+    if (post.anexo.tipo?.startsWith("image/")) {
+      return (
+        <div className="post-card-window" onClick={(e) => e.stopPropagation()}>
+          <div className="post-card-window-top">
+            <span className="window-dot red" />
+            <span className="window-dot yellow" />
+            <span className="window-dot green" />
+          </div>
+          <div
+            className="post-card-window-body"
+            onClick={(e) => {
+              e.stopPropagation();
+              setImagePreview(post.anexo.url);
+            }}
+          >
+            <img src={post.anexo.url} alt={post.anexo.nome || "Anexo"} />
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <a
+        className="post-anexo-file-card"
+        href={post.anexo.url}
+        download={post.anexo.nome}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="post-anexo-file-icon">📄</span>
+        <div className="post-anexo-file-info">
+          <strong>{post.anexo.nome}</strong>
+          <small>Baixar arquivo</small>
+        </div>
+      </a>
+    );
+  }
+
+  function getPostCardClass(post) {
+    const anexoImagem = post.anexo && post.anexo.tipo?.startsWith("image/");
+    const anexoArquivo = post.anexo && !anexoImagem;
+    if (post.poll || anexoArquivo) return "post-card has-extra";
+    if (post.imagem || anexoImagem) return "post-card has-image";
+    return "post-card text-only";
+  }
+
+  function renderPoll(post) {
+    if (!post.poll) return null;
+    const totalVotos = post.poll.optionVoters.reduce((total, voters) => total + voters.length, 0);
+    const votadaIndex = getUserPollVoteIndex(post.poll);
+
+    return (
+      <div className="post-poll" onClick={(e) => e.stopPropagation()}>
+        {post.poll.options.map((opcao, index) => {
+          const votos = post.poll.optionVoters[index]?.length || 0;
+          const percentual = totalVotos > 0 ? Math.round((votos / totalVotos) * 100) : 0;
+          return (
+            <button
+              key={index}
+              type="button"
+              className={`post-poll-option${votadaIndex === index ? " voted" : ""}`}
+              onClick={() => togglePollVote(post.id, index)}
+            >
+              <span className="post-poll-option-fill" style={{ width: `${percentual}%` }} />
+              <span className="post-poll-option-label">{opcao}</span>
+              <span className="post-poll-option-pct">{percentual}%</span>
+            </button>
+          );
+        })}
+        <small className="post-poll-total">{totalVotos} {totalVotos === 1 ? "voto" : "votos"}</small>
+      </div>
+    );
+  }
+
   return (
     <div className={`home${redimensionando ? " resizing-suggestions" : ""}`}>
       <Sidebar
@@ -1222,7 +1380,13 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
         <div className="feed">
           {loading && <p>Carregando...</p>}
           {!loading && filteredPosts.length === 0 && profileOnlyResults.length === 0 && (
-            <p>{searchQuery.trim().startsWith("@") ? "Nenhum perfil encontrado." : "Sem posts correspondentes a busca."}</p>
+            <p>
+              {searchQuery.trim().startsWith("@")
+                ? "Nenhum perfil encontrado."
+                : searchQuery.trim().startsWith("#")
+                  ? "Nenhum post com essa tag."
+                  : "Sem posts correspondentes a busca."}
+            </p>
           )}
 
           {!loading && profileOnlyResults.length > 0 && (
@@ -1257,7 +1421,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             <div
               key={post.id}
               data-post-card-id={post.id}
-              className={post.imagem ? "post-card has-image" : "post-card text-only"}
+              className={getPostCardClass(post)}
               onClick={() => setSelectedPost(post)}
             >
               <div className="post-card-header">
@@ -1281,6 +1445,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                     {post.username}
                   </strong>
                 </div>
+                {renderPostTag(post)}
                 {(usuario?.email === post.email || usuario?.username === post.username) && (
                   <button
                     className="post-delete-btn"
@@ -1315,6 +1480,9 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                   </div>
                 </div>
               )}
+
+              {renderAnexo(post)}
+              {renderPoll(post)}
 
               <div className="post-card-actions" onClick={(e) => e.stopPropagation()}>
                 <button
@@ -1432,6 +1600,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                   {selectedPostData.username}
                 </strong>
               </div>
+              {renderPostTag(selectedPostData)}
             </div>
             <p className="post-card-text post-expanded-text">{selectedPostData.texto}</p>
             {selectedPostData.imagem && (
@@ -1449,6 +1618,9 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                 </div>
               </div>
             )}
+
+            {renderAnexo(selectedPostData)}
+            {renderPoll(selectedPostData)}
 
             <div className="post-card-actions post-expanded-actions" onClick={(e) => e.stopPropagation()}>
               <button
