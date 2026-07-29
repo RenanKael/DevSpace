@@ -98,6 +98,24 @@ function StarAchievement({ open, stars }) {
   );
 }
 
+function AuthGate({ mensagem, onEntrar, onFechar }) {
+  return (
+    <div className="overlay" onClick={onFechar}>
+      <div className="popup" onClick={(e) => e.stopPropagation()}>
+        <button className="close-btn" onClick={onFechar} type="button" title="Fechar">
+          x
+        </button>
+        <h2>Entre no DevSpace</h2>
+        <p>{mensagem}</p>
+        <div className="popup-btns">
+          <button onClick={onEntrar}>Entrar ou criar conta</button>
+          <button onClick={onFechar}>Agora não</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const LEGACY_COMMUNITY_USERS = [
   { username: "Lia Gomes", handle: "liagomes", email: "lia.gomes@dev.com", bio: "Compartilhando ideias, rotina e pequenos avancos no DevSpace." },
   { username: "Felipe Rocha", handle: "feliperocha", email: "felipe.rocha@dev.com", bio: "Desenvolvedor em modo prototipo, teste e cafe." },
@@ -287,6 +305,8 @@ function App() {
   const [postRefresh, setPostRefresh] = useState(0);
   const [achievementStars, setAchievementStars] = useState(0);
   const [chatAlvo, setChatAlvo] = useState(null);
+  const [mostrarLogin, setMostrarLogin] = useState(false);
+  const [authGateMsg, setAuthGateMsg] = useState(null);
   const pagina = route.pagina;
   const perfilAlvo = route.perfilAlvo;
   const perfilCollection = route.perfilCollection;
@@ -666,13 +686,38 @@ function App() {
     window.setTimeout(() => setAchievementStars(0), 4600);
   }
 
-  if (!logado) {
+  function solicitarLogin(mensagem) {
+    setAuthGateMsg(mensagem || "Entre ou crie uma conta para continuar.");
+  }
+
+  function fecharAuthGate() {
+    setAuthGateMsg(null);
+  }
+
+  function abrirLoginDoGate() {
+    setAuthGateMsg(null);
+    setMostrarLogin(true);
+  }
+
+  function voltarParaFeedDoLogin() {
+    setMostrarLogin(false);
+    navigate({ pagina: "home", perfilAlvo: null });
+  }
+
+  const paginaExigeLogin =
+    pagina === "chat" ||
+    pagina === "perfilColecao" ||
+    (pagina === "perfil" && !perfilAlvo);
+
+  if (mostrarLogin || (!logado && paginaExigeLogin)) {
     return (
       <Login
         onLogin={() => {
           persistSidebarOpen(true);
           setLogado(true);
+          setMostrarLogin(false);
         }}
+        onVoltar={voltarParaFeedDoLogin}
       />
     );
   }
@@ -693,6 +738,7 @@ function App() {
             navigate({ pagina: "perfilColecao", perfilAlvo: null, perfilCollection: tipo });
           }}
           onContact={abrirChatCom}
+          onRequireAuth={solicitarLogin}
         />
 
         <PostModal
@@ -702,6 +748,9 @@ function App() {
           onPostSaved={handlePostCreated}
         />
         <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        {authGateMsg && (
+          <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
+        )}
       </>
     );
   }
@@ -718,6 +767,8 @@ function App() {
           onOpenPost={handleOpenPost}
           onOpenUserProfile={abrirPerfilAlvo}
           onStarAchievement={showStarAchievement}
+          logado={logado}
+          onRequireAuth={solicitarLogin}
         />
 
         <PostModal
@@ -727,6 +778,9 @@ function App() {
           onPostSaved={handlePostCreated}
         />
         <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        {authGateMsg && (
+          <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
+        )}
       </>
     );
   }
@@ -740,6 +794,8 @@ function App() {
           irChat={() => navigate({ pagina: "chat", perfilAlvo: null })}
           onOpenPost={handleOpenPost}
           onOpenUserProfile={abrirPerfilAlvo}
+          logado={logado}
+          onRequireAuth={solicitarLogin}
         />
 
         <PostModal
@@ -749,6 +805,9 @@ function App() {
           onPostSaved={handlePostCreated}
         />
         <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        {authGateMsg && (
+          <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
+        )}
       </>
     );
   }
@@ -764,6 +823,8 @@ function App() {
           onOpenUserProfile={abrirPerfilAlvo}
           chatAlvo={chatAlvo}
           onChatAlvoConsumido={() => setChatAlvo(null)}
+          logado={logado}
+          onRequireAuth={solicitarLogin}
         />
 
         <PostModal
@@ -773,6 +834,9 @@ function App() {
           onPostSaved={handlePostCreated}
         />
         <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        {authGateMsg && (
+          <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
+        )}
       </>
     );
   }
@@ -787,6 +851,7 @@ function App() {
         refreshFeed={postRefresh}
         onOpenUserProfile={abrirPerfilAlvo}
         onStarAchievement={showStarAchievement}
+        onRequireAuth={solicitarLogin}
       />
 
       <PostModal
@@ -796,6 +861,9 @@ function App() {
         onPostSaved={handlePostCreated}
       />
       <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+      {authGateMsg && (
+        <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
+      )}
     </>
   );
 }

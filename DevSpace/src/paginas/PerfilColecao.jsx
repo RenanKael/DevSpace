@@ -72,6 +72,8 @@ export default function PerfilColecao({
   onOpenPost,
   onOpenUserProfile,
   onStarAchievement,
+  logado,
+  onRequireAuth,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
@@ -161,6 +163,8 @@ export default function PerfilColecao({
         irExplorar={irExplorar}
         irChat={irChat}
         onOpenPost={onOpenPost}
+        logado={logado}
+        onRequireAuth={onRequireAuth}
       />
 
       <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>

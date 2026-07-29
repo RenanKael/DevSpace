@@ -29,6 +29,8 @@ export default function Chat({
   onOpenUserProfile,
   chatAlvo,
   onChatAlvoConsumido,
+  logado,
+  onRequireAuth,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuarioLogado] = useState(
@@ -166,6 +168,8 @@ export default function Chat({
         irExplorar={irExplorar}
         irChat={() => {}}
         onOpenPost={onOpenPost}
+        logado={logado}
+        onRequireAuth={onRequireAuth}
       />
 
       <div className={`chat-page${sidebarOpen ? "" : " sidebar-closed"}`}>

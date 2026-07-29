@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "../style/login.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
+import backArrow from "../assets/IMGS/DawnFlech (2).png";
 
 const ADMIN_EMAIL = "renan.kael@gmail.com";
 const ADMIN_HANDLE = "renanadm";
@@ -68,7 +69,7 @@ function ensureAdminUser() {
   return { usuarios: atualizados, admin: novoAdmin };
 }
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onVoltar }) {
   const [etapa, setEtapa] = useState("login");
   const [metodoCadastro, setMetodoCadastro] = useState("sms");
   const [identidadeVerificada, setIdentidadeVerificada] = useState(null);
@@ -81,6 +82,7 @@ export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [handle, setHandle] = useState("");
   const [senha, setSenha] = useState("");
+  const [disponivelContratacao, setDisponivelContratacao] = useState(false);
 
   const [login, setLogin] = useState("");
   const [senhaLogin, setSenhaLogin] = useState("");
@@ -120,6 +122,7 @@ export default function Login({ onLogin }) {
     setUsername("");
     setHandle("");
     setSenha("");
+    setDisponivelContratacao(false);
     setLogin("");
     setSenhaLogin("");
     setAlterarLogin("");
@@ -242,6 +245,7 @@ export default function Login({ onLogin }) {
       telefone: identidadeVerificada.telefone,
       authProvider: identidadeVerificada.provider,
       verificado: true,
+      disponivelContratacao,
     });
 
     const atualizados = [...usuarios, novoUsuario];
@@ -454,6 +458,17 @@ export default function Login({ onLogin }) {
   return (
     <div className="container login-page">
       <div className="left">
+        {onVoltar && (
+          <button
+            type="button"
+            className="login-back-btn"
+            onClick={onVoltar}
+            title="Voltar para o feed"
+            aria-label="Voltar para o feed"
+          >
+            <img src={backArrow} alt="" />
+          </button>
+        )}
         <img src={logo} alt="DevSpace" />
         <h2>Faca login e entre para o nosso time!</h2>
       </div>
@@ -732,6 +747,15 @@ export default function Login({ onLogin }) {
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
             />
+
+            <label className="contrato-toggle">
+              <input
+                type="checkbox"
+                checked={disponivelContratacao}
+                onChange={(e) => setDisponivelContratacao(e.target.checked)}
+              />
+              Quero aparecer como disponível para ser contratado
+            </label>
 
             {erro && <p className="erro">{erro}</p>}
             {sucesso && <p className="sucesso">{sucesso}</p>}

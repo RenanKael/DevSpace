@@ -373,7 +373,7 @@ function savePostsToStorage(posts) {
   return storagePosts;
 }
 
-export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement }) {
+export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement, onRequireAuth }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [suggestionsWidth, setSuggestionsWidth] = useState(() => {
     const salva = localStorage.getItem("suggestionsWidth");
@@ -526,6 +526,11 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
   }
 
   function togglePostAction(postId, action) {
+    if (!usuario) {
+      onRequireAuth?.("Entre para curtir, repostar e salvar posts.");
+      return;
+    }
+
     const ownerField = ACTION_OWNER_FIELDS[action];
     const userKeys = getActionKeys(usuario);
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || posts;
@@ -1126,7 +1131,11 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
   }
 
   function followSuggestedProfile(profile) {
-    if (!usuario || !profile) return;
+    if (!usuario) {
+      onRequireAuth?.("Entre para seguir outros perfis.");
+      return;
+    }
+    if (!profile) return;
 
     const target = buildSuggestedUser(profile);
     const targetHandle = normalizeHandle(target.handle || target.username);
@@ -1199,6 +1208,8 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
         irExplorar={irExplorar}
         irChat={irChat}
         onOpenPost={onOpenPost}
+        logado={!!usuario}
+        onRequireAuth={onRequireAuth}
       />
 
       <div className={`main${sidebarOpen ? "" : " sidebar-closed"}`}>
@@ -1517,6 +1528,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
               onToggleCommentLike={toggleCommentLike}
               usuario={usuario}
               onOpenUserProfile={onOpenUserProfile}
+              onRequireAuth={onRequireAuth}
             />
           </div>
         </div>

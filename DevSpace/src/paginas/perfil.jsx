@@ -6,7 +6,7 @@ import backArrow from "../assets/IMGS/DawnFlech (2).png";
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
-export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact }) {
+export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
@@ -447,6 +447,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     atualizado.avaliacao = usuario.avaliacao || 0;
     atualizado.estrelas = usuario.estrelas || usuario.avaliacao || 0;
     atualizado.starStats = usuario.starStats;
+    atualizado.disponivelContratacao = !!form.disponivelContratacao;
     saveProfileImageBackup(atualizado);
 
     usuarios = usuarios.map((u) =>
@@ -693,7 +694,11 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
   }
 
   function toggleFollow() {
-    if (isOwnProfile || !usuario || !usuarioLogado) return;
+    if (!usuarioLogado) {
+      onRequireAuth?.("Entre para seguir este perfil.");
+      return;
+    }
+    if (isOwnProfile || !usuario) return;
 
     const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
     const loggedEmail = (usuarioLogado.email || "").toLowerCase();
@@ -841,6 +846,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
           irExplorar={irExplorar}
           irChat={irChat}
           onOpenPost={onOpenPost}
+          logado={!!usuarioLogado}
+          onRequireAuth={onRequireAuth}
         />
         <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
           <h1>Carregando...</h1>
@@ -866,6 +873,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
         irExplorar={irExplorar}
         irChat={irChat}
         onOpenPost={onOpenPost}
+        logado={!!usuarioLogado}
+        onRequireAuth={onRequireAuth}
       />
 
       <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
@@ -975,13 +984,17 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
           {!isOwnProfile && (
             <button
               className="btn-contatar"
-              onClick={() =>
+              onClick={() => {
+                if (!usuarioLogado) {
+                  onRequireAuth?.("Entre para conversar com este perfil.");
+                  return;
+                }
                 onContact?.({
                   handle: usuario.handle || usuario.username,
                   username: usuario.username,
                   fotoPerfil: usuario.fotoPerfil,
-                })
-              }
+                });
+              }}
             >
               Contatar
             </button>
@@ -993,6 +1006,10 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
           <span>@{usuario.handle || usuario.username}</span>
 
           <p className="bio">{usuario.bio || "Sem bio..."}</p>
+
+          {usuario.disponivelContratacao && (
+            <p className="contrato-status">💼 Disponível para ser contratado</p>
+          )}
 
           <p className="data">
             Criado em: {criadoEm}
@@ -1078,6 +1095,15 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
               <input value={form.username || ""} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="Nome" />
               <input value={form.handle || ""} onChange={(e) => setForm({ ...form, handle: e.target.value.replace(/\s+/g, "") })} placeholder="@usuário" />
               <input value={form.bio || ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio" />
+
+              <label className="contrato-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!form.disponivelContratacao}
+                  onChange={(e) => setForm({ ...form, disponivelContratacao: e.target.checked })}
+                />
+                Disponível para ser contratado
+              </label>
 
               <div className="password-edit-group">
                 <strong>Alterar senha</strong>
