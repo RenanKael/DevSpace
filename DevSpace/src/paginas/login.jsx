@@ -87,11 +87,13 @@ export default function Login({ onLogin, onVoltar }) {
   const [login, setLogin] = useState("");
   const [senhaLogin, setSenhaLogin] = useState("");
   const [lembrarMe, setLembrarMe] = useState(true);
-  const [alterarLogin, setAlterarLogin] = useState("");
-  const [senhaAtual, setSenhaAtual] = useState("");
-  const [novoEmail, setNovoEmail] = useState("");
-  const [novaSenha, setNovaSenha] = useState("");
-  const [confirmarNovaSenha, setConfirmarNovaSenha] = useState("");
+
+  const [recSenhaContato, setRecSenhaContato] = useState("");
+  const [recSenhaCodigoEnviado, setRecSenhaCodigoEnviado] = useState("");
+  const [recSenhaCodigoDigitado, setRecSenhaCodigoDigitado] = useState("");
+  const [recSenhaUsuario, setRecSenhaUsuario] = useState(null);
+  const [recSenhaNovaSenha, setRecSenhaNovaSenha] = useState("");
+  const [recSenhaConfirmarSenha, setRecSenhaConfirmarSenha] = useState("");
 
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
@@ -125,11 +127,12 @@ export default function Login({ onLogin, onVoltar }) {
     setDisponivelContratacao(false);
     setLogin("");
     setSenhaLogin("");
-    setAlterarLogin("");
-    setSenhaAtual("");
-    setNovoEmail("");
-    setNovaSenha("");
-    setConfirmarNovaSenha("");
+    setRecSenhaContato("");
+    setRecSenhaCodigoEnviado("");
+    setRecSenhaCodigoDigitado("");
+    setRecSenhaUsuario(null);
+    setRecSenhaNovaSenha("");
+    setRecSenhaConfirmarSenha("");
     limparAvisos();
   }
 
@@ -270,125 +273,80 @@ export default function Login({ onLogin, onVoltar }) {
     });
   }
 
-  function sincronizarEmailNosPosts(emailAnterior, usuarioAtualizado) {
-    const posts = JSON.parse(localStorage.getItem("posts")) || [];
-    const antigoEmail = (emailAnterior || "").toLowerCase();
-    if (!antigoEmail) return;
-
-    const postsAtualizados = posts.map((post) => {
-      const postDoUsuario = (post.email || "").toLowerCase() === antigoEmail;
-      const commentsList = Array.isArray(post.commentsList)
-        ? post.commentsList.map((comment) =>
-            (comment.email || "").toLowerCase() === antigoEmail
-              ? {
-                  ...comment,
-                  email: usuarioAtualizado.email,
-                }
-              : comment
-          )
-        : [];
-
-      return {
-        ...post,
-        ...(postDoUsuario ? { email: usuarioAtualizado.email } : {}),
-        commentsList,
-      };
-    });
-
-    localStorage.setItem("posts", JSON.stringify(postsAtualizados));
-    window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
+  function iniciarRecuperacaoSenha() {
+    limparAvisos();
+    setRecSenhaContato(login);
+    setEtapa("esqueciSenha");
   }
 
-  function alterarAcesso() {
+  function enviarCodigoRecuperacao() {
     limparAvisos();
 
-    if (!alterarLogin.trim() || !senhaAtual) {
-      setErro("Informe sua conta atual e sua senha atual.");
+    const contatoLimpo = recSenhaContato.trim();
+    if (!contatoLimpo) {
+      setErro("Informe seu email, usuario ou @.");
       return;
     }
 
-    const emailLimpo = novoEmail.trim().toLowerCase();
-    const senhaLimpa = novaSenha.trim();
+    const usuarios = getUsuarios();
+    const usuarioEncontrado = encontrarUsuarioPorLogin(usuarios, contatoLimpo);
 
-    if (!emailLimpo && !senhaLimpa) {
-      setErro("Digite um novo email, uma nova senha ou os dois.");
+    if (!usuarioEncontrado) {
+      setErro("Nao encontramos uma conta com esses dados.");
       return;
     }
 
-    if (emailLimpo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) {
-      setErro("Digite um novo email valido.");
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+    setRecSenhaUsuario(usuarioEncontrado);
+    setRecSenhaCodigoEnviado(codigo);
+    setRecSenhaCodigoDigitado("");
+    setSucesso(`Codigo enviado para ${usuarioEncontrado.email}.`);
+    setEtapa("esqueciSenhaCodigo");
+  }
+
+  function confirmarCodigoRecuperacao() {
+    limparAvisos();
+
+    if (recSenhaCodigoDigitado.trim() !== recSenhaCodigoEnviado) {
+      setErro("Codigo incorreto. Confira e tente de novo.");
       return;
     }
 
-    if (senhaLimpa && senhaLimpa.length < 6) {
+    setSucesso("Codigo confirmado. Escolha sua nova senha.");
+    setEtapa("esqueciSenhaNova");
+  }
+
+  function salvarNovaSenhaRecuperada() {
+    limparAvisos();
+
+    if (recSenhaNovaSenha.length < 6) {
       setErro("A nova senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
-    if (senhaLimpa && senhaLimpa !== confirmarNovaSenha) {
+    if (recSenhaNovaSenha !== recSenhaConfirmarSenha) {
       setErro("A confirmacao da nova senha nao bate.");
       return;
     }
 
     const usuarios = getUsuarios();
-    const usuarioEncontrado = encontrarUsuarioPorLogin(usuarios, alterarLogin);
-
-    if (!usuarioEncontrado) {
-      setErro("Usuario nao encontrado.");
-      return;
-    }
-
-    if (!usuarioEncontrado.senha || usuarioEncontrado.senha !== senhaAtual) {
-      setErro("Senha atual incorreta.");
-      return;
-    }
-
-    const emailAnterior = usuarioEncontrado.email;
-    const emailEmUso = emailLimpo && usuarios.some((u) =>
-      (u.email || "").toLowerCase() === emailLimpo &&
-      (u.email || "").toLowerCase() !== (usuarioEncontrado.email || "").toLowerCase()
-    );
-
-    if (emailEmUso) {
-      setErro("Esse email ja esta em uso por outra conta.");
-      return;
-    }
-
-    const usuarioAtualizado = {
-      ...usuarioEncontrado,
-      email: emailLimpo || usuarioEncontrado.email,
-      senha: senhaLimpa || usuarioEncontrado.senha,
-    };
-
     const atualizados = usuarios.map((u) =>
-      (u.email || "").toLowerCase() === (usuarioEncontrado.email || "").toLowerCase()
-        ? usuarioAtualizado
+      (u.email || "").toLowerCase() === (recSenhaUsuario.email || "").toLowerCase()
+        ? { ...u, senha: recSenhaNovaSenha }
         : u
     );
 
     localStorage.setItem("usuarios", JSON.stringify(atualizados));
-    sincronizarEmailNosPosts(emailAnterior, usuarioAtualizado);
 
-    const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
-    const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
-    const atualizaSessao = (u) =>
-      u && (u.email || "").toLowerCase() === (emailAnterior || "").toLowerCase();
-
-    if (atualizaSessao(localUser)) {
-      localStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
-    }
-    if (atualizaSessao(sessionUser)) {
-      sessionStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
-    }
-
-    setLogin(usuarioAtualizado.email || usuarioAtualizado.handle || usuarioAtualizado.username || "");
+    setLogin(recSenhaUsuario.email || recSenhaUsuario.handle || "");
     setSenhaLogin("");
-    setAlterarLogin("");
-    setSenhaAtual("");
-    setNovoEmail("");
-    setNovaSenha("");
-    setConfirmarNovaSenha("");
-    setSucesso("Acesso atualizado. Entre com os novos dados.");
+    setRecSenhaContato("");
+    setRecSenhaCodigoEnviado("");
+    setRecSenhaCodigoDigitado("");
+    setRecSenhaUsuario(null);
+    setRecSenhaNovaSenha("");
+    setRecSenhaConfirmarSenha("");
+    setSucesso("Senha redefinida. Entre com a nova senha.");
     setEtapa("login");
   }
 
@@ -498,6 +456,10 @@ export default function Login({ onLogin, onVoltar }) {
               onChange={(e) => setSenhaLogin(e.target.value)}
             />
 
+            <button type="button" className="esqueci-senha-btn" onClick={iniciarRecuperacaoSenha}>
+              <span aria-hidden="true">🔑</span> Esqueci minha senha
+            </button>
+
             <label className="lembrar-me">
               <input
                 type="checkbox"
@@ -526,80 +488,109 @@ export default function Login({ onLogin, onVoltar }) {
                 Cadastre-se
               </button>
             </p>
-
-            <p className="toggle-cadastro">
-              Quer mudar seu acesso?{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  limparAvisos();
-                  setAlterarLogin(login);
-                  setEtapa("alterarAcesso");
-                }}
-                className="link-btn"
-              >
-                Alterar email ou senha
-              </button>
-            </p>
           </form>
         )}
 
-        {etapa === "alterarAcesso" && (
+        {etapa === "esqueciSenha" && (
           <form
             className="card auth-card cadastro-card"
             onSubmit={(e) => {
               e.preventDefault();
-              alterarAcesso();
+              enviarCodigoRecuperacao();
             }}
           >
-            <h3>Alterar acesso</h3>
-            <p className="descricao">Confirme sua conta atual e defina o que deseja mudar.</p>
+            <h3>Esqueci minha senha</h3>
+            <p className="descricao">Informe sua conta para receber um codigo de verificacao.</p>
 
             <input
               type="text"
-              placeholder="Email, usuario ou @ atual"
-              value={alterarLogin}
-              onChange={(e) => setAlterarLogin(e.target.value)}
-            />
-
-            <input
-              type="password"
-              placeholder="Senha atual"
-              value={senhaAtual}
-              onChange={(e) => setSenhaAtual(e.target.value)}
-            />
-
-            <input
-              type="email"
-              placeholder="Novo email (opcional)"
-              value={novoEmail}
-              onChange={(e) => setNovoEmail(e.target.value)}
-            />
-
-            <input
-              type="password"
-              placeholder="Nova senha (opcional)"
-              value={novaSenha}
-              onChange={(e) => setNovaSenha(e.target.value)}
-            />
-
-            <input
-              type="password"
-              placeholder="Confirmar nova senha"
-              value={confirmarNovaSenha}
-              onChange={(e) => setConfirmarNovaSenha(e.target.value)}
-              disabled={!novaSenha.trim()}
+              placeholder="Email, usuario ou @"
+              value={recSenhaContato}
+              onChange={(e) => setRecSenhaContato(e.target.value)}
             />
 
             {erro && <p className="erro">{erro}</p>}
             {sucesso && <p className="sucesso">{sucesso}</p>}
 
             <button type="submit" className="btn-entrar">
-              Salvar novo acesso
+              Enviar codigo
             </button>
 
             <button type="button" className="btn-voltar cadastro-voltar" onClick={voltarParaLogin}>
               Voltar
+            </button>
+          </form>
+        )}
+
+        {etapa === "esqueciSenhaCodigo" && (
+          <form
+            className="card auth-card"
+            onSubmit={(e) => {
+              e.preventDefault();
+              confirmarCodigoRecuperacao();
+            }}
+          >
+            <h3>Confirmar codigo</h3>
+            <p className="descricao">Enviamos um codigo para {recSenhaUsuario?.email}.</p>
+
+            <div className="codigo-teste">Codigo de teste: {recSenhaCodigoEnviado}</div>
+
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Codigo de 6 digitos"
+              value={recSenhaCodigoDigitado}
+              onChange={(e) => setRecSenhaCodigoDigitado(onlyDigits(e.target.value))}
+              maxLength="6"
+            />
+
+            {erro && <p className="erro">{erro}</p>}
+            {sucesso && <p className="sucesso">{sucesso}</p>}
+
+            <button type="submit" className="btn-entrar">
+              Confirmar
+            </button>
+
+            <button type="button" className="btn-voltar cadastro-voltar" onClick={voltarParaLogin}>
+              Cancelar
+            </button>
+          </form>
+        )}
+
+        {etapa === "esqueciSenhaNova" && (
+          <form
+            className="card auth-card"
+            onSubmit={(e) => {
+              e.preventDefault();
+              salvarNovaSenhaRecuperada();
+            }}
+          >
+            <h3>Nova senha</h3>
+            <p className="descricao">Escolha uma nova senha para {recSenhaUsuario?.username}.</p>
+
+            <input
+              type="password"
+              placeholder="Nova senha"
+              value={recSenhaNovaSenha}
+              onChange={(e) => setRecSenhaNovaSenha(e.target.value)}
+            />
+
+            <input
+              type="password"
+              placeholder="Confirmar nova senha"
+              value={recSenhaConfirmarSenha}
+              onChange={(e) => setRecSenhaConfirmarSenha(e.target.value)}
+            />
+
+            {erro && <p className="erro">{erro}</p>}
+            {sucesso && <p className="sucesso">{sucesso}</p>}
+
+            <button type="submit" className="btn-entrar">
+              Salvar nova senha
+            </button>
+
+            <button type="button" className="btn-voltar cadastro-voltar" onClick={voltarParaLogin}>
+              Cancelar
             </button>
           </form>
         )}
