@@ -417,6 +417,7 @@ html, body {
 /* Fluxo novo de login/cadastro */
 .login-page {
   min-height: 100vh;
+  animation: pageFadeIn 0.45s ease;
 }
 
 .auth-card {
