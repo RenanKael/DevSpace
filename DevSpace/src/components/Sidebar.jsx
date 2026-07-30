@@ -4,7 +4,7 @@ import ChatIcon from "./ChatIcon";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import paginaInicial from "../assets/IMGS/Home.png";
 import explorar from "../assets/IMGS/Explorar.png";
-import perfil from "../assets/IMGS/NoPerfil.png";
+import perfil from "../assets/IMGS/PerfilPadrao.png";
 
 export default function Sidebar({
   isOpen,

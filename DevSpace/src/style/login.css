@@ -310,17 +310,21 @@ html, body {
 .link-btn {
   background: none;
   border: none;
-  color: black;
+  border-bottom: 1.5px solid transparent;
+  color: #7aa2ff;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 700;
   padding: 0;
-  text-decoration: underline;
+  text-decoration: none;
   margin: 0;
   font-size: 14px;
+  letter-spacing: 0.2px;
+  transition: color 0.2s ease, border-color 0.2s ease;
 }
 
 .link-btn:hover {
-  color: black;
+  color: #9db8ff;
+  border-bottom-color: #9db8ff;
 }
 
 .descricao {
@@ -540,6 +544,13 @@ html, body {
   width: auto !important;
   display: inline;
   padding: 0;
+  margin-top: 0;
+  background: none;
+  border-radius: 0;
+}
+
+.auth-card .link-btn:hover {
+  background: none;
 }
 
 @media (max-width: 1024px) {
