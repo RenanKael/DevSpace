@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "../style/home.css";
 import lupa from "../assets/IMGS/Lupa.svg";
+import semFoto from "../assets/IMGS/NoPerfil.png";
 
 export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true }) {
   const [query, setQuery] = useState("");
@@ -21,18 +22,15 @@ export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true 
       </div>
 
       <div className="profile">
-        <div className="user-info">
-          <span className="nome">
-            {usuario ? usuario.username : "..."}
-          </span>
-
-          <span className="arroba">
-            @{usuario ? usuario.username : "..."}
-          </span>
-        </div>
+        {usuario && (
+          <div className="user-info">
+            <span className="nome">{usuario.username}</span>
+            <span className="arroba">@{usuario.username}</span>
+          </div>
+        )}
 
         <div className="avatar" style={{
-          backgroundImage: usuario?.fotoPerfil ? `url(${usuario.fotoPerfil})` : 'none',
+          backgroundImage: `url(${usuario?.fotoPerfil || semFoto})`,
           backgroundPosition: usuario?.posPerfil ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%` : 'center',
           backgroundSize: 'cover'
         }}></div>

@@ -14,7 +14,17 @@ export default function Sidebar({
   irExplorar,
   onOpenPost,
   irChat,
+  logado = true,
+  onRequireAuth,
 }) {
+  function protegido(acao, mensagem) {
+    if (logado) {
+      acao?.();
+      return;
+    }
+    onRequireAuth?.(mensagem);
+  }
+
   return (
     <>
       {!isOpen && (
@@ -61,18 +71,30 @@ export default function Sidebar({
             <span>Explorar</span>
           </div>
 
-          <div className="nav-item" data-label="Perfil" onClick={irPerfil}>
+          <div
+            className="nav-item"
+            data-label="Perfil"
+            onClick={() => protegido(irPerfil, "Entre para ver e editar seu perfil.")}
+          >
             <img src={perfil} alt="" />
             <span>Perfil</span>
           </div>
 
-          <div className="nav-item" data-label="Chat" onClick={irChat}>
+          <div
+            className="nav-item"
+            data-label="Chat"
+            onClick={() => protegido(irChat, "Entre para conversar com outras pessoas.")}
+          >
             <ChatIcon />
             <span>Chat</span>
           </div>
         </nav>
 
-        <button className="post-btn" data-label="Postar" onClick={onOpenPost}>
+        <button
+          className="post-btn"
+          data-label="Postar"
+          onClick={() => protegido(onOpenPost, "Entre para publicar no DevSpace.")}
+        >
           Postar
         </button>
       </div>

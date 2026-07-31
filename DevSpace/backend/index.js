@@ -98,6 +98,16 @@ function normalizePost(row) {
   };
 }
 
+function normalizeTask(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    descricao: row.descricao,
+    status: !!row.status,
+    data_criacao: row.data_criacao,
+  };
+}
+
 async function initDatabase() {
   await run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -143,6 +153,15 @@ async function initDatabase() {
       commentsList TEXT DEFAULT '[]'
     );
   `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS tarefas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      descricao TEXT NOT NULL,
+      status INTEGER NOT NULL DEFAULT 0,
+      data_criacao TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }
 
 app.get("/api/users", async (req, res) => {
@@ -152,6 +171,79 @@ app.get("/api/users", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao buscar usuários." });
+  }
+});
+
+app.get("/api/users/:id(\\d+)", async (req, res) => {
+  try {
+    const row = await get("SELECT * FROM users WHERE id = ?", [req.params.id]);
+    if (!row) return res.status(404).json({ message: "Usuário não encontrado." });
+    res.json(normalizeUser(row));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar usuário." });
+  }
+});
+
+app.put("/api/users/:id(\\d+)", async (req, res) => {
+  try {
+    const updates = req.body || {};
+    const allowedFields = [
+      "username",
+      "handle",
+      "email",
+      "senha",
+      "telefone",
+      "bio",
+      "fotoPerfil",
+      "fotoCapa",
+      "estrelas",
+      "avaliacao",
+      "comments",
+      "seguidores",
+      "seguindo",
+      "starStats",
+      "projetos",
+    ];
+    const fields = [];
+    const values = [];
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (allowedFields.includes(key)) {
+        if (["seguindo", "starStats", "projetos"].includes(key)) {
+          fields.push(`${key} = ?`);
+          values.push(JSON.stringify(value || []));
+        } else {
+          fields.push(`${key} = ?`);
+          values.push(value);
+        }
+      }
+    });
+
+    if (!fields.length) {
+      return res.status(400).json({ message: "Nenhuma atualização válida enviada." });
+    }
+
+    values.push(req.params.id);
+    await run(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, values);
+    const updated = await get("SELECT * FROM users WHERE id = ?", [req.params.id]);
+    res.json(normalizeUser(updated));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao atualizar usuário." });
+  }
+});
+
+app.delete("/api/users/:id(\\d+)", async (req, res) => {
+  try {
+    const result = await run("DELETE FROM users WHERE id = ?", [req.params.id]);
+    if (result.changes === 0) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+    res.json({ message: "Usuário excluído com sucesso." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao excluir usuário." });
   }
 });
 
@@ -323,6 +415,109 @@ app.get("/api/posts/:id", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao buscar publicação." });
+  }
+});
+
+app.get("/api/tarefas", async (req, res) => {
+  try {
+    const rows = await all("SELECT * FROM tarefas ORDER BY data_criacao DESC");
+    res.json(rows.map((row) => ({
+      id: row.id,
+      descricao: row.descricao,
+      status: !!row.status,
+      data_criacao: row.data_criacao,
+    })));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar tarefas." });
+  }
+});
+
+app.post("/api/tarefas", async (req, res) => {
+  try {
+    const { descricao } = req.body;
+    if (!descricao || !descricao.trim()) {
+      return res.status(400).json({ message: "Descrição obrigatória." });
+    }
+    const result = await run(
+      "INSERT INTO tarefas (descricao, status) VALUES (?, ?) ",
+      [descricao.trim(), 0]
+    );
+    const tarefa = await get("SELECT * FROM tarefas WHERE id = ?", [result.lastID]);
+    res.status(201).json({
+      id: tarefa.id,
+      descricao: tarefa.descricao,
+      status: !!tarefa.status,
+      data_criacao: tarefa.data_criacao,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao criar tarefa." });
+  }
+});
+
+app.put("/api/tarefas/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { descricao, status } = req.body;
+    if (!descricao || typeof status !== "boolean") {
+      return res.status(400).json({ message: "Dados inválidos." });
+    }
+    const result = await run(
+      "UPDATE tarefas SET descricao = ?, status = ? WHERE id = ?",
+      [descricao.trim(), status ? 1 : 0, id]
+    );
+    if (result.changes === 0) {
+      return res.status(404).json({ message: "Tarefa não encontrada." });
+    }
+    const tarefa = await get("SELECT * FROM tarefas WHERE id = ?", [id]);
+    res.json({
+      id: tarefa.id,
+      descricao: tarefa.descricao,
+      status: !!tarefa.status,
+      data_criacao: tarefa.data_criacao,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao atualizar tarefa." });
+  }
+});
+
+app.get("/api/tarefas/:id", async (req, res) => {
+  try {
+    const row = await get("SELECT * FROM tarefas WHERE id = ?", [req.params.id]);
+    if (!row) return res.status(404).json({ message: "Tarefa não encontrada." });
+    res.json(normalizeTask(row));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar tarefa." });
+  }
+});
+
+app.delete("/api/tarefas/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await run("DELETE FROM tarefas WHERE id = ?", [id]);
+    if (result.changes === 0) {
+      return res.status(404).json({ message: "Tarefa não encontrada." });
+    }
+    res.json({ message: "Tarefa deletada com sucesso." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao deletar tarefa." });
+  }
+});
+
+app.delete("/api/posts/:id", async (req, res) => {
+  try {
+    const result = await run("DELETE FROM posts WHERE id = ?", [req.params.id]);
+    if (result.changes === 0) {
+      return res.status(404).json({ message: "Post não encontrado." });
+    }
+    res.json({ message: "Post deletado com sucesso." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao deletar post." });
   }
 });
 

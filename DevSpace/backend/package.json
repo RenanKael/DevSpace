@@ -1,13 +1,16 @@
 {
   "name": "devspace-backend",
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "setup-db": "node setupDatabase.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "express": "^4.18.2",
     "sqlite3": "^5.1.6"
   }

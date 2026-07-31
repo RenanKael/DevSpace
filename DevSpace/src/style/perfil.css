@@ -305,6 +305,20 @@ button.foto:focus-visible {
   color: #aaa;
 }
 
+.contrato-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(122, 162, 255, 0.14);
+  border: 1px solid rgba(122, 162, 255, 0.4);
+  color: #9db8ff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .posts-container {
   margin: 30px 30px 0;
 }
@@ -565,6 +579,20 @@ button.perfil-post-card:hover {
   font-weight: bold;
   color: white;
   margin-top: 10px;
+}
+
+.popup label.contrato-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: normal;
+  color: #e5e5e5;
+  margin-top: 0;
+}
+
+.contrato-toggle input[type="checkbox"] {
+  width: auto;
+  accent-color: #7aa2ff;
 }
 
 .password-edit-group {

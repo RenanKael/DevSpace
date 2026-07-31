@@ -9,6 +9,7 @@ export default function PostComments({
   onToggleCommentLike,
   usuario,
   onOpenUserProfile,
+  onRequireAuth,
 }) {
   const [novoComentario, setNovoComentario] = useState("");
   const [replyTo, setReplyTo] = useState(null);
@@ -184,6 +185,10 @@ export default function PostComments({
                 className={`comment-like-btn ${isCommentLiked(comment) ? "liked" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (!storedUser) {
+                    onRequireAuth?.("Entre para curtir comentários.");
+                    return;
+                  }
                   onToggleCommentLike?.(postId, comment.id);
                 }}
               >
@@ -263,7 +268,17 @@ export default function PostComments({
               </button>
             </div>
           )}
-          <form className="comment-form" onSubmit={handleSubmit}>
+          <form
+            className="comment-form"
+            onSubmit={handleSubmit}
+            onClickCapture={(e) => {
+              if (!storedUser) {
+                e.preventDefault();
+                e.stopPropagation();
+                onRequireAuth?.("Entre para comentar.");
+              }
+            }}
+          >
             <input
               ref={inputRef}
               type="text"

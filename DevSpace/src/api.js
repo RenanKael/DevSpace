@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 async function request(path, options = {}) {
   const url = path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
@@ -62,4 +62,25 @@ export async function fetchUsers() {
 
 export async function fetchUser(handle) {
   return request(`/users/${encodeURIComponent(handle)}`);
+}
+
+export async function buscarTarefas() {
+  return request("/tarefas");
+}
+export async function criarTarefa(descricao) {
+  return request("/tarefas", {
+    method: "POST",
+    body: JSON.stringify({ descricao }),
+  });
+}
+export async function atualizarTarefa(id, descricao, status) {
+  return request(`/tarefas/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ descricao, status }),
+  });
+}
+export async function deletarTarefa(id) {
+  return request(`/tarefas/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }
