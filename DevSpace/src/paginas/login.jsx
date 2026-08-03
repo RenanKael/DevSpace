@@ -3,9 +3,8 @@ import "../style/login.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
 import googleIcon from "../assets/IMGS/Google.png";
+import { loginUser, registerUser, fetchUsers } from "../api";
 
-const ADMIN_EMAIL = "renan.kael@gmail.com";
-const ADMIN_HANDLE = "renanadm";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 function getUsuarios() {
@@ -45,29 +44,6 @@ function createBaseUser(extra) {
     isAdmin: false,
     ...extra,
   };
-}
-
-function ensureAdminUser() {
-  const usuarios = getUsuarios();
-  const admin = usuarios.find((u) => (u.email || "").toLowerCase() === ADMIN_EMAIL);
-
-  if (admin) return { usuarios, admin };
-
-  const novoAdmin = createBaseUser({
-    username: "RenanADM",
-    handle: ADMIN_HANDLE,
-    email: ADMIN_EMAIL,
-    senha: "rklv2007",
-    telefone: "",
-    bio: "Conta administrativa",
-    estrelas: 6,
-    avaliacao: 6,
-    isAdmin: true,
-  });
-
-  const atualizados = [...usuarios, novoAdmin];
-  localStorage.setItem("usuarios", JSON.stringify(atualizados));
-  return { usuarios: atualizados, admin: novoAdmin };
 }
 
 export default function Login({ onLogin, onVoltar }) {
@@ -204,7 +180,7 @@ export default function Login({ onLogin, onVoltar }) {
     setEtapa("criarPerfil");
   }
 
-  function finalizarCadastro() {
+  async function finalizarCadastro() {
     limparAvisos();
 
     const nomeLimpo = username.trim();
@@ -255,14 +231,27 @@ export default function Login({ onLogin, onVoltar }) {
       disponivelContratacao,
     });
 
-    const atualizados = [...usuarios, novoUsuario];
-    localStorage.setItem("usuarios", JSON.stringify(atualizados));
-    localStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
-    localStorage.setItem("lembrarMe", "true");
-    sessionStorage.removeItem("usuarioLogado");
+    try {
+      const createdUser = await registerUser({
+        username: novoUsuario.username,
+        handle: novoUsuario.handle,
+        email: novoUsuario.email,
+        senha: novoUsuario.senha,
+        telefone: novoUsuario.telefone,
+        bio: novoUsuario.bio,
+        fotoPerfil: novoUsuario.fotoPerfil,
+        fotoCapa: novoUsuario.fotoCapa,
+      });
 
-    resetarFormularios();
-    onLogin();
+      const usuariosLocais = getUsuarios();
+      localStorage.setItem("usuarios", JSON.stringify([...usuariosLocais, createdUser]));
+
+      salvarSessao(createdUser);
+      resetarFormularios();
+      onLogin();
+    } catch (error) {
+      setErro(error.message || "Erro ao registrar o usuario.");
+    }
   }
 
   function encontrarUsuarioPorLogin(usuarios, valor) {
@@ -354,7 +343,7 @@ export default function Login({ onLogin, onVoltar }) {
     setEtapa("login");
   }
 
-  function processarLoginGoogle(perfilGoogle) {
+  async function processarLoginGoogle(perfilGoogle) {
     limparAvisos();
 
     const emailGoogle = (perfilGoogle.email || "").toLowerCase();
@@ -364,13 +353,18 @@ export default function Login({ onLogin, onVoltar }) {
       return;
     }
 
-    const usuarios = getUsuarios();
-    const usuarioGoogle = usuarios.find((u) => (u.email || "").toLowerCase() === emailGoogle);
+    try {
+      const usuariosBackend = await fetchUsers();
+      const usuarioGoogle = usuariosBackend.find((u) => (u.email || "").toLowerCase() === emailGoogle);
 
-    if (usuarioGoogle) {
-      salvarSessao(usuarioGoogle);
-      resetarFormularios();
-      onLogin();
+      if (usuarioGoogle) {
+        salvarSessao(usuarioGoogle);
+        resetarFormularios();
+        onLogin();
+        return;
+      }
+    } catch {
+      setErro("Nao foi possivel falar com o servidor. Tente novamente.");
       return;
     }
 
@@ -445,7 +439,7 @@ export default function Login({ onLogin, onVoltar }) {
     return () => script?.removeEventListener("load", iniciarTokenClient);
   }, []);
 
-  function entrarComEmail() {
+  async function entrarComEmail() {
     limparAvisos();
 
     if (!login.trim() || !senhaLogin) {
@@ -453,33 +447,14 @@ export default function Login({ onLogin, onVoltar }) {
       return;
     }
 
-    const { usuarios, admin } = ensureAdminUser();
-    const loginLimpo = normalizeHandle(login.trim());
-    const loginEmail = login.trim().toLowerCase();
-
-    const usuarioEncontrado =
-      loginEmail === ADMIN_EMAIL || loginLimpo === "allzynadm" || loginLimpo === ADMIN_HANDLE
-        ? admin
-        : usuarios.find((u) => {
-            const email = (u.email || "").toLowerCase();
-            const userHandle = (u.handle || "").toLowerCase();
-            const userName = (u.username || "").toLowerCase();
-            return email === loginEmail || userHandle === loginLimpo || userName === login.trim().toLowerCase();
-          });
-
-    if (!usuarioEncontrado) {
-      setErro("Usuario nao encontrado.");
-      return;
+    try {
+      const user = await loginUser(login.trim(), senhaLogin);
+      salvarSessao(user);
+      resetarFormularios();
+      onLogin();
+    } catch (error) {
+      setErro(error.message || "Erro ao entrar. Verifique suas credenciais.");
     }
-
-    if (!usuarioEncontrado.senha || usuarioEncontrado.senha !== senhaLogin) {
-      setErro("Senha incorreta.");
-      return;
-    }
-
-    salvarSessao(usuarioEncontrado);
-    resetarFormularios();
-    onLogin();
   }
 
   return (

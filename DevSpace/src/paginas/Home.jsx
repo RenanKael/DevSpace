@@ -4,6 +4,7 @@ import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
+import { fetchPosts, fetchUsers } from "../api";
 import {
   recordUserCommentProgress,
   recordUserLikeProgress,
@@ -1017,6 +1018,46 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
   }, [refreshFeed]);
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let canceled = false;
+
+    async function loadFeedFromBackend() {
+      setLoading(true);
+
+      try {
+        const [backendPosts, backendUsers] = await Promise.all([fetchPosts(), fetchUsers()]);
+
+        if (canceled) return;
+
+        if (Array.isArray(backendUsers) && backendUsers.length > 0) {
+          setUsuarios(backendUsers);
+          try {
+            localStorage.setItem("usuarios", JSON.stringify(backendUsers));
+          } catch {
+            // ignore storage failures
+          }
+        }
+
+        if (Array.isArray(backendPosts) && backendPosts.length > 0) {
+          const normalizedPosts = sortPostsByDate(hydratePostsForDisplay(backendPosts, backendUsers));
+          setPosts(normalizedPosts);
+          savePostsToStorage(backendPosts);
+        }
+      } catch (error) {
+        console.warn("Erro ao carregar feed do backend:", error);
+      } finally {
+        if (!canceled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadFeedFromBackend();
+    return () => {
+      canceled = true;
+    };
+  }, [refreshFeed]);
 
   useEffect(() => {
     let lastScroll = 0;

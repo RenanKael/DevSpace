@@ -716,6 +716,7 @@ function App() {
           persistSidebarOpen(true);
           setLogado(true);
           setMostrarLogin(false);
+          setPostRefresh((value) => value + 1);
         }}
         onVoltar={voltarParaFeedDoLogin}
       />
