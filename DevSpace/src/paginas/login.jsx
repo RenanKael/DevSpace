@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "../style/login.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
+import googleIcon from "../assets/IMGS/Google.png";
 
 const ADMIN_EMAIL = "renan.kael@gmail.com";
 const ADMIN_HANDLE = "renanadm";
-const GOOGLE_EMAIL = "usuario.google@devspace.app";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 function getUsuarios() {
   return JSON.parse(localStorage.getItem("usuarios")) || [];
@@ -97,6 +98,8 @@ export default function Login({ onLogin, onVoltar }) {
 
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
+
+  const tokenClientRef = useRef(null);
 
   function limparAvisos() {
     setErro("");
@@ -247,6 +250,7 @@ export default function Login({ onLogin, onVoltar }) {
       senha,
       telefone: identidadeVerificada.telefone,
       authProvider: identidadeVerificada.provider,
+      fotoPerfil: identidadeVerificada.foto || "",
       verificado: true,
       disponivelContratacao,
     });
@@ -350,11 +354,18 @@ export default function Login({ onLogin, onVoltar }) {
     setEtapa("login");
   }
 
-  function entrarComGoogle() {
+  function processarLoginGoogle(perfilGoogle) {
     limparAvisos();
 
+    const emailGoogle = (perfilGoogle.email || "").toLowerCase();
+
+    if (!emailGoogle) {
+      setErro("A conta Google nao retornou um email valido.");
+      return;
+    }
+
     const usuarios = getUsuarios();
-    const usuarioGoogle = usuarios.find((u) => (u.email || "").toLowerCase() === GOOGLE_EMAIL);
+    const usuarioGoogle = usuarios.find((u) => (u.email || "").toLowerCase() === emailGoogle);
 
     if (usuarioGoogle) {
       salvarSessao(usuarioGoogle);
@@ -365,16 +376,74 @@ export default function Login({ onLogin, onVoltar }) {
 
     setIdentidadeVerificada({
       metodo: "google",
-      email: GOOGLE_EMAIL,
+      email: emailGoogle,
       telefone: "",
-      contato: "Conta Google conectada",
+      contato: `Conta Google conectada (${emailGoogle})`,
       provider: "google",
+      foto: perfilGoogle.picture || "",
     });
-    setUsername("Usuario Google");
+    setUsername(perfilGoogle.name || "");
     setMetodoCadastro("google");
     setSucesso("Google conectado. Complete seu perfil para continuar.");
     setEtapa("criarPerfil");
   }
+
+  function entrarComGoogle() {
+    limparAvisos();
+
+    if (!GOOGLE_CLIENT_ID) {
+      setErro("Login com Google nao configurado (falta VITE_GOOGLE_CLIENT_ID).");
+      return;
+    }
+
+    if (!tokenClientRef.current) {
+      setErro("Servico do Google ainda esta carregando, tente novamente em instantes.");
+      return;
+    }
+
+    tokenClientRef.current.requestAccessToken();
+  }
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+
+    function iniciarTokenClient() {
+      if (!window.google?.accounts?.oauth2) return;
+
+      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: "openid email profile",
+        callback: async (resposta) => {
+          if (resposta.error) {
+            setErro("Nao foi possivel conectar com o Google.");
+            return;
+          }
+
+          try {
+            const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+              headers: { Authorization: `Bearer ${resposta.access_token}` },
+            });
+
+            if (!res.ok) throw new Error("userinfo falhou");
+
+            const perfilGoogle = await res.json();
+            processarLoginGoogle(perfilGoogle);
+          } catch {
+            setErro("Falha ao obter os dados da conta Google.");
+          }
+        },
+      });
+    }
+
+    if (window.google?.accounts?.oauth2) {
+      iniciarTokenClient();
+      return;
+    }
+
+    const script = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+    script?.addEventListener("load", iniciarTokenClient);
+    return () => script?.removeEventListener("load", iniciarTokenClient);
+  }, []);
 
   function entrarComEmail() {
     limparAvisos();
@@ -427,8 +496,10 @@ export default function Login({ onLogin, onVoltar }) {
             <img src={backArrow} alt="" />
           </button>
         )}
-        <img src={logo} alt="DevSpace" />
-        <h2>Faca login e entre para o nosso time!</h2>
+        <div className="login-hero">
+          <img src={logo} alt="DevSpace" />
+          <h2>Faca login e entre para o nosso time!</h2>
+        </div>
       </div>
 
       <div className="right">
@@ -479,6 +550,7 @@ export default function Login({ onLogin, onVoltar }) {
             <hr className="divisor" />
 
             <button type="button" className="btn-google" onClick={entrarComGoogle}>
+              <img src={googleIcon} alt="" className="google-icon" />
               Entrar com Google
             </button>
 
@@ -656,6 +728,7 @@ export default function Login({ onLogin, onVoltar }) {
             </button>
 
             <button type="button" className="btn-google" onClick={entrarComGoogle}>
+              <img src={googleIcon} alt="" className="google-icon" />
               Continuar com Google
             </button>
 

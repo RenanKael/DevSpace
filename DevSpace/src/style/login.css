@@ -37,17 +37,26 @@ html, body {
   gap: 40px;
 }
 
-.left img {
+.login-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  width: 420px;
+  max-width: 100%;
+}
+
+.login-hero img {
   width: 230px;
   opacity: 0.9;
 }
 
-.left h2 {
+.login-hero h2 {
   font-size: 48px;
   font-weight: 800;
   max-width: 420px;
   line-height: 1.15;
-  text-align: left;   /* garante alinhamento */
+  text-align: center;
 }
 
 /* LADO DIREITO */
@@ -287,11 +296,25 @@ html, body {
   color: black;
   border: 2px solid #d9d9d9;
   margin-top: 10px !important;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-google:hover {
   background: #374151;
   color: black;
+}
+
+.google-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 .divisor {
@@ -442,8 +465,14 @@ html, body {
     text-align: center;
   }
 
-  .left h2 {
+  .login-hero {
+    align-items: center;
+    width: 100%;
+  }
+
+  .login-hero h2 {
     font-size: 36px;
+    text-align: center;
   }
 
   .card {
