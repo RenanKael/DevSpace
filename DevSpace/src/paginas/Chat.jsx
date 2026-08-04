@@ -49,6 +49,8 @@ export default function Chat({
   const arquivoInputRef = useRef(null); // input file oculto, disparado pelo botao de imagem
   const textoInputRef = useRef(null); // usado para devolver o foco ao campo de texto
   const idsEmBuscaRef = useRef(new Set()); // evita buscar a mesma imagem mais de uma vez em paralelo
+  const mensagensFimRef = useRef(null); // sentinela no fim da lista, usado para rolar ate a ultima mensagem
+  const conversaAnteriorIdRef = useRef(null); // guarda o id da conversa anterior, para saber se houve troca de conversa
   const [imagensCache, setImagensCache] = useState({}); // mapa imagemId -> dataURL ja carregado
 
   const meuHandle = normalizeHandle(usuarioLogado?.handle || usuarioLogado?.username);
@@ -128,6 +130,19 @@ export default function Chat({
   }, [conversas, imagensCache]);
 
   const conversaAtiva = conversas.find((c) => c.id === conversaAtivaId) || null;
+
+  // Rola automaticamente para a ultima mensagem sempre que a conversa muda
+  // ou uma nova mensagem chega/e enviada, para ela nunca ficar escondida.
+  // Ao abrir/trocar de conversa o salto e instantaneo (ja entra mostrando a
+  // ultima mensagem); para mensagens novas na conversa ja aberta, rola suave.
+  useEffect(() => {
+    const trocouDeConversa = conversaAnteriorIdRef.current !== conversaAtivaId;
+    conversaAnteriorIdRef.current = conversaAtivaId;
+    mensagensFimRef.current?.scrollIntoView({
+      behavior: trocouDeConversa ? "auto" : "smooth",
+      block: "end",
+    });
+  }, [conversaAtivaId, conversaAtiva?.mensagens.length]);
   // O "outro" participante da conversa ativa, ou seja, com quem estou conversando
   const outroParticipante =
     conversaAtiva?.participantes.find((p) => p.handle !== meuHandle) || null;
@@ -273,6 +288,7 @@ export default function Chat({
                     </div>
                   );
                 })}
+                <div ref={mensagensFimRef} />
               </div>
 
               {/* Formulario de envio: preview de imagem + botoes (imagem/emoji) + texto + enviar */}

@@ -303,6 +303,7 @@ function App() {
   const [usuario, setUsuario] = useState(() => getStoredUsuario());
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postRefresh, setPostRefresh] = useState(0);
+  const [lastCreatedPostId, setLastCreatedPostId] = useState(null);
   const [achievementStars, setAchievementStars] = useState(0);
   const [chatAlvo, setChatAlvo] = useState(null);
   const [mostrarLogin, setMostrarLogin] = useState(false);
@@ -672,6 +673,7 @@ function App() {
         }
       }
 
+      setLastCreatedPostId(novoPost.id);
       setPostRefresh((value) => value + 1);
       setIsPostModalOpen(false);
       return true;
@@ -853,6 +855,8 @@ function App() {
         onOpenUserProfile={abrirPerfilAlvo}
         onStarAchievement={showStarAchievement}
         onRequireAuth={solicitarLogin}
+        highlightPostId={lastCreatedPostId}
+        onHighlightPostShown={() => setLastCreatedPostId(null)}
       />
 
       <PostModal

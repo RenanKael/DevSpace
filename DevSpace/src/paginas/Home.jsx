@@ -4,7 +4,7 @@ import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
-import { fetchPosts, fetchUsers } from "../api";
+import { fetchPosts, fetchUsers, deletePost as deletePostRequest } from "../api";
 import {
   recordUserCommentProgress,
   recordUserLikeProgress,
@@ -95,44 +95,46 @@ function codeShot(title, subtitle, lines) {
 }
 
 const FAKE_CODE_IMAGES = {
-  9102: codeShot("dashboard-theme.css", "dark dashboard moodboard", [
+  "-9102": codeShot("dashboard-theme.css", "dark dashboard moodboard", [
     { text: ":root { --bg: #090b10; --panel: #151922; }", color: "#d7dce2" },
     { text: ".metric { color: #f4f7fb; border-color: #2c3442; }", color: "#93c5fd" },
     { text: ".alert { color: #f8d66d; background: rgba(248,214,109,.12); }", color: "#fbbf24" },
   ]),
-  9104: codeShot("signup-flow.jsx", "shorter signup flow", [
+  "-9104": codeShot("signup-flow.jsx", "shorter signup flow", [
     { text: "const fields = ['email', 'password'];", color: "#d7dce2" },
     { text: "const optional = ['company', 'role'];", color: "#9ca3af" },
     { text: "return <SignupForm fields={fields} next='profile' />;", color: "#93c5fd" },
   ]),
-  9106: codeShot("cover-studio.jsx", "profile cover experiments", [
+  "-9106": codeShot("cover-studio.jsx", "profile cover experiments", [
     { text: "const cover = createGradient(['#111827', '#7aa2ff']);", color: "#d7dce2" },
     { text: "cover.addLayer('grid', { opacity: .16 });", color: "#93c5fd" },
     { text: "export default <ProfileCover art={cover} />;", color: "#c084fc" },
   ]),
-  9109: codeShot("scene-lighting.cs", "dramatic prototype scene", [
+  "-9109": codeShot("scene-lighting.cs", "dramatic prototype scene", [
     { text: "sun.intensity = 0.45f;", color: "#d7dce2" },
     { text: "fog.color = new Color(0.08f, 0.10f, 0.14f);", color: "#93c5fd" },
     { text: "playerSpawn.SetMood('quiet-night');", color: "#c084fc" },
   ]),
-  9110: codeShot("layout-grid.css", "five-line grid solution", [
+  "-9110": codeShot("layout-grid.css", "five-line grid solution", [
     { text: ".board { display: grid; gap: 12px; }", color: "#d7dce2" },
     { text: "grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));", color: "#93c5fd" },
     { text: ".panel { min-width: 0; }", color: "#86efac" },
   ]),
 };
 
+// IDs negativos garantem que o feed de demonstracao nunca colida com IDs reais
+// atribuidos automaticamente pelo backend (que sempre comecam em 1).
 const COMMUNITY_FEED_SEED = [
-  { id: 9101, username: "Maya Dev", handle: "mayadev", texto: "Refatorei um componente hoje e finalmente ficou legivel. Pequenas vitorias contam muito.", imagem: "" },
-  { id: 9102, username: "Clara Pixel", handle: "clarapixel", texto: "Moodboard novo para um dashboard escuro com contraste melhor.", imagem: FAKE_CODE_IMAGES[9102] },
-  { id: 9103, username: "Lucas Motion", handle: "lucasmotion", texto: "Microanimacao boa e aquela que quase ninguem percebe, mas todo mundo sente.", imagem: "" },
-  { id: 9104, username: "Sofia UX", handle: "sofiaux", texto: "Testei um fluxo de cadastro com menos campos. A sensacao ficou bem mais leve.", imagem: FAKE_CODE_IMAGES[9104] },
-  { id: 9105, username: "Nicolas Code", handle: "nicolascode", texto: "Uma API bem documentada economiza uma tarde inteira de confusao.", imagem: "" },
-  { id: 9106, username: "Lara Studio", handle: "larastudio", texto: "Experimentando capas de perfil com mais personalidade.", imagem: FAKE_CODE_IMAGES[9106] },
-  { id: 9107, username: "Mateus Stack", handle: "mateusstack", texto: "Deploy de sexta sem susto: checklist, variaveis conferidas e logs abertos.", imagem: "" },
-  { id: 9108, username: "Bia Product", handle: "biaproduct", texto: "Ideia do dia: salvar feedback bruto antes de tentar transformar tudo em feature.", imagem: "" },
-  { id: 9109, username: "Theo Games", handle: "theogames", texto: "Prototipo de cena com luz mais dramatica. Ainda simples, mas ja deu clima.", imagem: FAKE_CODE_IMAGES[9109] },
-  { id: 9110, username: "Manu CSS", handle: "manucss", texto: "Grid resolveu em cinco linhas o layout que eu estava complicando com vinte.", imagem: FAKE_CODE_IMAGES[9110] },
+  { id: -9101, username: "Maya Dev", handle: "mayadev", texto: "Refatorei um componente hoje e finalmente ficou legivel. Pequenas vitorias contam muito.", imagem: "" },
+  { id: -9102, username: "Clara Pixel", handle: "clarapixel", texto: "Moodboard novo para um dashboard escuro com contraste melhor.", imagem: FAKE_CODE_IMAGES["-9102"] },
+  { id: -9103, username: "Lucas Motion", handle: "lucasmotion", texto: "Microanimacao boa e aquela que quase ninguem percebe, mas todo mundo sente.", imagem: "" },
+  { id: -9104, username: "Sofia UX", handle: "sofiaux", texto: "Testei um fluxo de cadastro com menos campos. A sensacao ficou bem mais leve.", imagem: FAKE_CODE_IMAGES["-9104"] },
+  { id: -9105, username: "Nicolas Code", handle: "nicolascode", texto: "Uma API bem documentada economiza uma tarde inteira de confusao.", imagem: "" },
+  { id: -9106, username: "Lara Studio", handle: "larastudio", texto: "Experimentando capas de perfil com mais personalidade.", imagem: FAKE_CODE_IMAGES["-9106"] },
+  { id: -9107, username: "Mateus Stack", handle: "mateusstack", texto: "Deploy de sexta sem susto: checklist, variaveis conferidas e logs abertos.", imagem: "" },
+  { id: -9108, username: "Bia Product", handle: "biaproduct", texto: "Ideia do dia: salvar feedback bruto antes de tentar transformar tudo em feature.", imagem: "" },
+  { id: -9109, username: "Theo Games", handle: "theogames", texto: "Prototipo de cena com luz mais dramatica. Ainda simples, mas ja deu clima.", imagem: FAKE_CODE_IMAGES["-9109"] },
+  { id: -9110, username: "Manu CSS", handle: "manucss", texto: "Grid resolveu em cinco linhas o layout que eu estava complicando com vinte.", imagem: FAKE_CODE_IMAGES["-9110"] },
 ];
 
 function fakeAvatar(handle) {
@@ -394,7 +396,7 @@ function savePostsToStorage(posts) {
   return storagePosts;
 }
 
-export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement, onRequireAuth }) {
+export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement, onRequireAuth, highlightPostId, onHighlightPostShown }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [suggestionsWidth, setSuggestionsWidth] = useState(() => {
     const salva = localStorage.getItem("suggestionsWidth");
@@ -540,6 +542,9 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     salvarPosts(updated);
     setPosts(sortPostsByDate(hydratePostsForDisplay(updated, usuarios)));
     if (selectedPost?.id === postId) setSelectedPost(null);
+    deletePostRequest(postId).catch(() => {
+      // post local-only (seed/fake) ou ja removido no backend, sem problema
+    });
   }
 
   function toggleComments(postId) {
@@ -773,10 +778,12 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     const currentUser = localUser || sessionUser;
     const isAdmin = currentUser?.email === "renan.kael@gmail.com";
 
+    // IDs negativos (assim como no COMMUNITY_FEED_SEED) para nunca colidir com
+    // IDs reais atribuidos pelo backend.
     const fakeSeed = isAdmin
       ? [
           {
-            id: 1,
+            id: -1,
             username: "Lia Gomes",
             handle: "liagomes",
             email: "lia.gomes@dev.com",
@@ -807,7 +814,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             criadoEm: new Date().toISOString(),
           },
           {
-            id: 2,
+            id: -2,
             username: "Felipe Rocha",
             handle: "feliperocha",
             email: "felipe.rocha@dev.com",
@@ -845,7 +852,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             criadoEm: new Date().toISOString(),
           },
           {
-            id: 3,
+            id: -3,
             username: "Nina Correa",
             handle: "ninacorrea",
             email: "nina.correa@dev.com",
@@ -890,7 +897,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             criadoEm: new Date().toISOString(),
           },
           {
-            id: 4,
+            id: -4,
             username: "Arthur Silva",
             handle: "arthursilva",
             email: "arthur.silva@dev.com",
@@ -930,6 +937,11 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
       }
       setPosts(sortPostsByDate(hydratePostsForDisplay(seedPosts, savedUsers)));
     } else {
+      // Remove posts fake/seed de um esquema antigo com IDs positivos (podiam colidir
+      // com IDs reais atribuidos pelo backend). Os seeds atuais usam IDs negativos;
+      // eles serao readicionados logo abaixo pela logica de "missing seed".
+      saved = saved.filter((post) => !(post?.isSeedFake && Number(post.id) > 0));
+
       const hasLegacySeed = saved.some((post) => post?.isSeedFake || (post?.email || "").toLowerCase().endsWith("@dev.com"));
       const savedIds = new Set(saved.map((post) => Number(post.id)));
       const missingCommunitySeed = communitySeed.filter((post) => !savedIds.has(Number(post.id)));
@@ -1040,9 +1052,15 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
         }
 
         if (Array.isArray(backendPosts) && backendPosts.length > 0) {
-          const normalizedPosts = sortPostsByDate(hydratePostsForDisplay(backendPosts, backendUsers));
-          setPosts(normalizedPosts);
-          savePostsToStorage(backendPosts);
+          setPosts((prevPosts) => {
+            const backendIds = new Set(backendPosts.map((post) => String(post.id)));
+            const localOnlyPosts = prevPosts.filter(
+              (post) => post.isSeedFake || !backendIds.has(String(post.id))
+            );
+            const mergedPosts = [...backendPosts, ...localOnlyPosts];
+            savePostsToStorage(mergedPosts);
+            return sortPostsByDate(hydratePostsForDisplay(mergedPosts, backendUsers));
+          });
         }
       } catch (error) {
         console.warn("Erro ao carregar feed do backend:", error);
@@ -1128,6 +1146,24 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
 
     setActiveActions(nextActions);
   }, [posts, usuario]);
+
+  // Quando um post acabou de ser criado (highlightPostId veio do App), rola ate
+  // ele no feed e deixa a classe "post-card-new" ativa por um tempo para a
+  // animacao de destaque tocar; depois avisa o App para limpar o highlight.
+  useEffect(() => {
+    if (!highlightPostId) return;
+    const existsInFeed = posts.some((post) => String(post.id) === String(highlightPostId));
+    if (!existsInFeed) return;
+
+    const el = document.querySelector(`[data-post-card-id="${highlightPostId}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    const timeout = window.setTimeout(() => {
+      onHighlightPostShown?.();
+    }, 1600);
+
+    return () => window.clearTimeout(timeout);
+  }, [highlightPostId, posts, onHighlightPostShown]);
 
   const reloadFeed = () => {
     if (loading) return;
@@ -1462,7 +1498,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             <div
               key={post.id}
               data-post-card-id={post.id}
-              className={getPostCardClass(post)}
+              className={`${getPostCardClass(post)}${String(post.id) === String(highlightPostId) ? " post-card-new" : ""}`}
               onClick={() => setSelectedPost(post)}
             >
               <div className="post-card-header">

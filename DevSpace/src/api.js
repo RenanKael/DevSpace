@@ -42,6 +42,12 @@ export async function updatePost(postId, updateData) {
   });
 }
 
+export async function deletePost(postId) {
+  return request(`/posts/${encodeURIComponent(postId)}`, {
+    method: "DELETE",
+  });
+}
+
 export async function loginUser(emailOrHandle, senha) {
   return request("/auth/login", {
     method: "POST",
