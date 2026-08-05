@@ -76,10 +76,10 @@ export async function votePoll(postId, usuarioId, optionIndex) {
   });
 }
 
-export async function addComment(postId, usuarioId, texto, parentId) {
+export async function addComment(postId, usuarioId, texto, parentId, imagem) {
   return request(`/posts/${encodeURIComponent(postId)}/comments`, {
     method: "POST",
-    body: JSON.stringify({ usuarioId, texto, parentId }),
+    body: JSON.stringify({ usuarioId, texto, parentId, imagem }),
   });
 }
 
@@ -141,6 +141,13 @@ export async function fetchUsers() {
 
 export async function fetchUser(handle) {
   return request(`/users/${encodeURIComponent(handle)}`);
+}
+
+export async function updateUser(userId, updates) {
+  return request(`/users/${encodeURIComponent(userId)}`, {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  });
 }
 
 export async function buscarTarefas() {

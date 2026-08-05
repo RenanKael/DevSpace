@@ -21,22 +21,72 @@ function midiaTipoFromMime(mime) {
 
 // ---------- Usuarios ----------
 
+// Mesmos niveis/formula de src/utils/starProgress.js (avaliacao 1-5 estrelas
+// com base em contagens reais, nao XP): cada nivel exige TODOS os limiares
+// simultaneamente para ser alcancado.
+const ADMIN_EMAIL = "renan.kael@gmail.com";
+const STAR_LEVELS = [
+  { stars: 1, posts: 1 },
+  { stars: 2, posts: 5, comments: 1 },
+  { stars: 3, posts: 50, comments: 100, likes: 150, reposts: 70 },
+  { stars: 4, posts: 500, comments: 700, likes: 1000, reposts: 500 },
+  { stars: 5, posts: 1500, comments: 200, likes: 4000, reposts: 300, saves: 10 },
+];
+
+function calculateStars(progress, isAdmin) {
+  if (isAdmin) return 5;
+
+  let stars = 0;
+  for (const level of STAR_LEVELS) {
+    const atingiu =
+      progress.postsCreated >= level.posts &&
+      progress.commentsMade >= (level.comments || 0) &&
+      progress.likesMade >= (level.likes || 0) &&
+      progress.repostsMade >= (level.reposts || 0) &&
+      progress.savesMade >= (level.saves || 0);
+    if (atingiu) {
+      stars = level.stars;
+    } else {
+      break;
+    }
+  }
+  return Math.min(5, stars);
+}
+
+// Conta a atividade real do usuario direto nas tabelas (em vez de manter um
+// contador separado que pode ficar dessincronizado) para calcular as estrelas.
+async function getStarProgress(usuarioId) {
+  const [postsRows, commentsRows, likesRows, repostsRows, savesRows] = await Promise.all([
+    query("SELECT COUNT(*) AS c FROM posts WHERE usuario_id = ?", [usuarioId]),
+    query("SELECT COUNT(*) AS c FROM comentarios WHERE usuario_id = ?", [usuarioId]),
+    query("SELECT COUNT(*) AS c FROM post_interacoes WHERE usuario_id = ? AND tipo = 'like'", [usuarioId]),
+    query("SELECT COUNT(*) AS c FROM post_shares WHERE usuario_id = ?", [usuarioId]),
+    query("SELECT COUNT(*) AS c FROM post_bookmarks WHERE usuario_id = ?", [usuarioId]),
+  ]);
+
+  return {
+    postsCreated: Number(postsRows[0]?.c || 0),
+    commentsMade: Number(commentsRows[0]?.c || 0),
+    likesMade: Number(likesRows[0]?.c || 0),
+    repostsMade: Number(repostsRows[0]?.c || 0),
+    savesMade: Number(savesRows[0]?.c || 0),
+  };
+}
+
 async function mapUsuario(row) {
   if (!row) return null;
 
-  const [seguidoresRows, seguindoRows, starRow] = await Promise.all([
+  const [seguidoresRows, seguindoRows, starProgress] = await Promise.all([
     query("SELECT COUNT(*) AS c FROM seguidores WHERE seguido_id = ?", [row.id]),
     query(
       "SELECT u.username FROM seguidores s JOIN usuarios u ON u.id = s.seguido_id WHERE s.seguidor_id = ?",
       [row.id]
     ),
-    queryOne(
-      `SELECT us.xp_atual, sl.nome, sl.ordem
-       FROM user_star_stats us JOIN star_levels sl ON sl.id = us.star_level_id
-       WHERE us.usuario_id = ?`,
-      [row.id]
-    ),
+    getStarProgress(row.id),
   ]);
+
+  const isAdmin = !!row.is_admin || (row.email || "").toLowerCase() === ADMIN_EMAIL;
+  const estrelas = calculateStars(starProgress, isAdmin);
 
   return {
     id: row.id,
@@ -53,38 +103,16 @@ async function mapUsuario(row) {
     stack: row.stack || "",
     linguagemPrincipal: row.linguagem_principal || "",
     disponivelContratacao: !!row.disponivel_contratacao,
-    isAdmin: !!row.is_admin,
+    isAdmin,
     criadoEm: row.criado_em,
     seguidores: Number(seguidoresRows[0]?.c || 0),
     seguindo: seguindoRows.map((r) => r.username),
-    estrelas: starRow?.ordem || 1,
-    starStats: { xpAtual: Number(starRow?.xp_atual || 0), nivel: starRow?.nome || "Iniciante" },
+    estrelas,
+    avaliacao: estrelas,
+    starStats: { ...starProgress, firstPostAwarded: starProgress.postsCreated > 0 },
     projetos: [],
     comments: 0,
   };
-}
-
-async function getLowestStarLevelId() {
-  const row = await queryOne("SELECT id FROM star_levels ORDER BY ordem ASC LIMIT 1");
-  return row?.id || null;
-}
-
-async function recalcularStarLevel(usuarioId) {
-  const stats = await queryOne("SELECT xp_atual FROM user_star_stats WHERE usuario_id = ?", [usuarioId]);
-  if (!stats) return;
-
-  const nivel = await queryOne(
-    "SELECT id FROM star_levels WHERE xp_necessario <= ? ORDER BY xp_necessario DESC LIMIT 1",
-    [stats.xp_atual]
-  );
-  const nivelId = nivel?.id || (await getLowestStarLevelId());
-  await query("UPDATE user_star_stats SET star_level_id = ? WHERE usuario_id = ?", [nivelId, usuarioId]);
-}
-
-async function ganharXp(usuarioId, xp) {
-  if (!usuarioId || !xp) return;
-  await query("UPDATE user_star_stats SET xp_atual = xp_atual + ? WHERE usuario_id = ?", [xp, usuarioId]);
-  await recalcularStarLevel(usuarioId);
 }
 
 async function findUsuarioIdByEmailOrHandle(email, handle) {
@@ -146,6 +174,16 @@ app.put("/api/users/:id(\\d+)", async (req, res) => {
     });
 
     if (updates.senha) {
+      const atual = await queryOne("SELECT senha_hash FROM usuarios WHERE id = ?", [req.params.id]);
+      if (!atual) return res.status(404).json({ message: "Usuário não encontrado." });
+
+      const senhaAtualOk = updates.senhaAtual
+        ? await bcrypt.compare(updates.senhaAtual, atual.senha_hash)
+        : false;
+      if (!senhaAtualOk) {
+        return res.status(401).json({ message: "Senha atual incorreta." });
+      }
+
       fields.push("senha_hash = ?");
       values.push(await bcrypt.hash(updates.senha, 10));
     }
@@ -267,14 +305,6 @@ app.post("/api/auth/register", async (req, res) => {
       [handle, email, senhaHash, telefone || null, username || handle, bio || null, fotoPerfil || null, fotoCapa || null]
     );
 
-    const nivelId = await getLowestStarLevelId();
-    if (nivelId) {
-      await query(
-        "INSERT INTO user_star_stats (usuario_id, star_level_id, xp_atual) VALUES (?, ?, 0)",
-        [result.insertId, nivelId]
-      );
-    }
-
     const user = await queryOne("SELECT * FROM usuarios WHERE id = ?", [result.insertId]);
     res.status(201).json(await mapUsuario(user));
   } catch (error) {
@@ -306,7 +336,8 @@ async function getPostFull(postRow) {
       postRow.id,
     ]),
     query(
-      `SELECT c.*, u.username AS autor_username, u.nome_exibicao AS autor_nome, u.avatar_url AS autor_avatar, u.email AS autor_email
+      `SELECT c.*, u.username AS autor_username, u.nome_exibicao AS autor_nome, u.avatar_url AS autor_avatar, u.email AS autor_email,
+        (SELECT url FROM midias WHERE comentario_id = c.id LIMIT 1) AS imagem_url
        FROM comentarios c JOIN usuarios u ON u.id = c.usuario_id
        WHERE c.post_id = ? ORDER BY c.criado_em ASC`,
       [postRow.id]
@@ -327,6 +358,7 @@ async function getPostFull(postRow) {
         email: c.autor_email,
         fotoPerfil: c.autor_avatar || "",
         texto: c.conteudo,
+        imagem: c.imagem_url || "",
         criadoEm: c.criado_em,
         parentId: c.comentario_pai_id,
         likes: likesC.length,
@@ -452,8 +484,6 @@ app.post("/api/posts", async (req, res) => {
         ]);
       }
     }
-
-    await ganharXp(usuarioId, 10);
 
     const createdRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [postId]);
     res.status(201).json(await getPostFull(createdRow));
@@ -637,17 +667,23 @@ app.post("/api/posts/:id(\\d+)/poll/vote", async (req, res) => {
 app.post("/api/posts/:id(\\d+)/comments", async (req, res) => {
   try {
     const postId = Number(req.params.id);
-    const { usuarioId, texto, parentId } = req.body || {};
-    if (!usuarioId || !texto?.trim()) {
-      return res.status(400).json({ message: "usuarioId e texto são obrigatórios." });
+    const { usuarioId, texto, parentId, imagem } = req.body || {};
+    if (!usuarioId || (!texto?.trim() && !imagem)) {
+      return res.status(400).json({ message: "usuarioId e texto ou imagem são obrigatórios." });
     }
 
     const result = await query(
       "INSERT INTO comentarios (post_id, usuario_id, comentario_pai_id, conteudo) VALUES (?, ?, ?, ?)",
-      [postId, usuarioId, parentId || null, texto.trim()]
+      [postId, usuarioId, parentId || null, texto?.trim() || ""]
     );
 
-    await ganharXp(usuarioId, 5);
+    if (imagem) {
+      await query("INSERT INTO midias (usuario_id, comentario_id, url, tipo) VALUES (?, ?, ?, 'imagem')", [
+        usuarioId,
+        result.insertId,
+        imagem,
+      ]);
+    }
 
     const postRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [postId]);
     if (!postRow) return res.status(404).json({ message: "Post não encontrado." });

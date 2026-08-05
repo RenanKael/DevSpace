@@ -726,7 +726,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
 
     if (!targetPost?.isSeedFake && usuarioAtualizado?.id) {
-      addComment(postId, usuarioAtualizado.id, texto.trim(), parentId)
+      addComment(postId, usuarioAtualizado.id, texto.trim(), parentId, imagem || null)
         .then((fullPost) => {
           // troca o comentario otimista (id temporario) pelos dados reais do
           // backend, para que curtir/excluir esse comentario funcione depois
@@ -1106,13 +1106,24 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
 
         if (canceled) return;
 
-        if (Array.isArray(backendUsers) && backendUsers.length > 0) {
-          setUsuarios(backendUsers);
-          try {
-            localStorage.setItem("usuarios", JSON.stringify(backendUsers));
-          } catch {
-            // ignore storage failures
-          }
+        if (Array.isArray(backendUsers)) {
+          setUsuarios((prevUsuarios) => {
+            const backendHandles = new Set(
+              backendUsers.map((u) => normalizeHandle(u.handle || u.username))
+            );
+            // preserva contas que so existem localmente (perfis sugeridos e
+            // qualquer conta que ainda nao tenha sido migrada pro backend)
+            const localOnlyUsuarios = prevUsuarios.filter(
+              (u) => !backendHandles.has(normalizeHandle(u.handle || u.username))
+            );
+            const mergedUsuarios = [...backendUsers, ...localOnlyUsuarios];
+            try {
+              localStorage.setItem("usuarios", JSON.stringify(mergedUsuarios));
+            } catch {
+              // ignore storage failures
+            }
+            return mergedUsuarios;
+          });
         }
 
         if (Array.isArray(backendPosts) && backendPosts.length > 0) {

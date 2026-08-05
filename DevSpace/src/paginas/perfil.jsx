@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import { createPortal } from "react-dom";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
-import { deletePost as deletePostRequest } from "../api";
+import { deletePost as deletePostRequest, updateUser as updateUserRequest } from "../api";
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
@@ -387,9 +387,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     setPreviewImg(null);
   }
 
-  function salvarPerfil() {
+  async function salvarPerfil() {
     if (!isOwnProfile) return;
-    
+
     if (!form.username || !form.handle) {
       setErro("Nome e @ são obrigatórios!");
       return;
@@ -403,7 +403,10 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
         return;
       }
 
-      if (senhaAtualPerfil !== usuario.senha) {
+      // Contas antigas (local-only, sem id de backend) ainda guardam a senha
+      // em texto puro no proprio objeto; contas reais tem a senha verificada
+      // pelo servidor (com hash) mais abaixo, ao chamar updateUserRequest.
+      if (!usuario.id && senhaAtualPerfil !== usuario.senha) {
         setErro("Senha atual incorreta.");
         return;
       }
@@ -449,6 +452,33 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     atualizado.estrelas = usuario.estrelas || usuario.avaliacao || 0;
     atualizado.starStats = usuario.starStats;
     atualizado.disponivelContratacao = !!form.disponivelContratacao;
+
+    // Conta real (existe no backend): salva la tambem, nao so no localStorage
+    if (usuario.id) {
+      try {
+        const payload = {
+          username: form.username,
+          handle: form.handle.toLowerCase(),
+          bio: form.bio || "",
+          fotoPerfil: atualizado.fotoPerfil,
+          fotoCapa: atualizado.fotoCapa,
+          disponivelContratacao: atualizado.disponivelContratacao,
+        };
+        if (querAlterarSenha) {
+          payload.senha = novaSenhaPerfil;
+          payload.senhaAtual = senhaAtualPerfil;
+        }
+        const backendUser = await updateUserRequest(usuario.id, payload);
+        // backendUser nao inclui posPerfil/posCapa/zoom/senha (preferencias
+        // locais de UI e senha nunca voltam do servidor), entao o spread so
+        // atualiza os campos que o backend realmente controla.
+        atualizado = { ...atualizado, ...backendUser, senha: atualizado.senha };
+      } catch (error) {
+        setErro(error.message || "Erro ao salvar perfil no servidor.");
+        return;
+      }
+    }
+
     saveProfileImageBackup(atualizado);
 
     usuarios = usuarios.map((u) =>
