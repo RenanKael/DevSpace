@@ -384,6 +384,9 @@ app.get("/api/users/:handle", async (req, res) => {
 // tolerar espacos/traco/parenteses no que a pessoa digitar).
 async function encontrarUsuarioPorIdentificador(identificadorBruto) {
   const identificador = (identificadorBruto || "").trim();
+  // O @ e so decoracao visual do handle (nao fica salvo no banco), entao
+  // precisa ser removido antes de comparar com a coluna username.
+  const semArroba = identificador.replace(/^@+/, "");
   const somenteDigitos = identificador.replace(/\D/g, "");
 
   return queryOne(
@@ -391,7 +394,7 @@ async function encontrarUsuarioPorIdentificador(identificadorBruto) {
      WHERE LOWER(email) = LOWER(?)
         OR LOWER(username) = LOWER(?)
         OR (telefone IS NOT NULL AND telefone <> '' AND ? <> '' AND telefone = ?)`,
-    [identificador, identificador, somenteDigitos, somenteDigitos]
+    [identificador, semArroba, somenteDigitos, somenteDigitos]
   );
 }
 
