@@ -357,10 +357,57 @@ body {
 }
 
 /* PERFIL */
+.profile-wrapper {
+  position: relative;
+}
+
 .profile {
   display: flex;
   align-items: center;
   gap: 10px;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: #14171c;
+  border: 1px solid #2c313b;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  z-index: 2100;
+}
+
+.profile-menu-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 10px 12px;
+  color: #f4f6fb;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.profile-menu-item:hover {
+  background: #1c2027;
+}
+
+.profile-menu-sair {
+  color: #ef4444;
 }
 
 .avatar {

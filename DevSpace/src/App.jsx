@@ -1015,6 +1015,7 @@ function App() {
         onDeclineContact={recusarSolicitacaoContato}
         unreadConversas={unreadConversas}
         onOpenUnreadConversa={abrirConversaNaoLida}
+        onLogout={() => setLogado(false)}
       />
 
       <PostModal
