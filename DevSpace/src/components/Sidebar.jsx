@@ -114,14 +114,7 @@ export default function Sidebar({
                 }}
                 aria-label="Notificações"
               >
-                <span className="sidebar-notif-icon-wrap">
-                  <BellIcon />
-                  {totalNotificacoes > 0 && (
-                    <span className="sidebar-notif-badge">
-                      {totalNotificacoes > 99 ? "99+" : totalNotificacoes}
-                    </span>
-                  )}
-                </span>
+                <BellIcon count={totalNotificacoes} />
                 <span>Notificações</span>
               </button>
 

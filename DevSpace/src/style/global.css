@@ -189,14 +189,9 @@ body {
   border-radius: 10px;
 }
 
-.sidebar-notif-icon-wrap {
-  position: relative;
-  display: block;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
+/* Usado pelo badge de mensagens nao lidas por conversa (Chat.jsx). A
+   notificacao do sino em si agora e desenhada dentro do proprio SVG
+   (BellIcon), sem depender de posicionamento CSS externo. */
 .sidebar-notif-badge {
   position: absolute;
   top: -6px;
