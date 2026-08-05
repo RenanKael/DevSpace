@@ -1,4 +1,3 @@
-import { useState } from "react";
 import "../style/home.css";
 import SidebarToggleIcon from "./SidebarToggleIcon";
 import ChatIcon from "./ChatIcon";
@@ -7,17 +6,6 @@ import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import paginaInicial from "../assets/IMGS/Home.png";
 import explorar from "../assets/IMGS/Explorar.png";
 import perfil from "../assets/IMGS/PerfilPadrao.png";
-
-function fallbackAvatar(seed) {
-  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed || "usuario")}`;
-}
-
-const TEXTO_ATIVIDADE = {
-  curtida_post: "curtiu seu post",
-  comentario_post: "comentou no seu post",
-  curtida_comentario: "curtiu seu comentário",
-  mencao: "te mencionou em um post",
-};
 
 export default function Sidebar({
   isOpen,
@@ -30,15 +18,10 @@ export default function Sidebar({
   logado = true,
   onRequireAuth,
   contactRequests = [],
-  onAcceptContact,
-  onDeclineContact,
   unreadConversas = [],
-  onOpenUnreadConversa,
   activityNotifications = [],
-  onOpenActivityNotification,
   irNotificacoes,
 }) {
-  const [notifAberta, setNotifAberta] = useState(false);
   const totalNotificacoes = contactRequests.length + unreadConversas.length + activityNotifications.length;
 
   function protegido(acao, mensagem) {
@@ -114,139 +97,9 @@ export default function Sidebar({
           </div>
 
           {logado && (
-            <div className="nav-item sidebar-notif-wrapper" data-label="Notificações">
-              <button
-                type="button"
-                className="sidebar-notif-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setNotifAberta((aberta) => !aberta);
-                }}
-                aria-label="Notificações"
-              >
-                <BellIcon count={totalNotificacoes} />
-                <span>Notificações</span>
-              </button>
-
-              {notifAberta && (
-                <>
-                  <div
-                    className="sidebar-backdrop"
-                    style={{ background: "transparent" }}
-                    onClick={() => setNotifAberta(false)}
-                  />
-                  <div className="sidebar-notif-panel" onClick={(e) => e.stopPropagation()}>
-                    <h4>Solicitações de contato</h4>
-                    {contactRequests.length === 0 && (
-                      <p className="sidebar-notif-empty">Nenhuma solicitação pendente.</p>
-                    )}
-                    {contactRequests.map((req) => (
-                      <div key={req.id} className="sidebar-notif-item">
-                        <div
-                          className="sidebar-notif-avatar"
-                          style={{
-                            backgroundImage: `url(${req.remetente.fotoPerfil || fallbackAvatar(req.remetente.handle)})`,
-                          }}
-                        />
-                        <div className="sidebar-notif-info">
-                          <strong>{req.remetente.username}</strong>
-                          <span>quer te contatar</span>
-                          <div className="sidebar-notif-actions">
-                            <button
-                              type="button"
-                              className="sidebar-notif-aceitar"
-                              onClick={() => {
-                                onAcceptContact?.(req.id);
-                                setNotifAberta(false);
-                              }}
-                            >
-                              Aceitar
-                            </button>
-                            <button
-                              type="button"
-                              className="sidebar-notif-recusar"
-                              onClick={() => onDeclineContact?.(req.id)}
-                            >
-                              Recusar
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    <h4>Mensagens</h4>
-                    {unreadConversas.length === 0 && (
-                      <p className="sidebar-notif-empty">Nenhuma mensagem nova.</p>
-                    )}
-                    {unreadConversas.map((conv) => (
-                      <button
-                        type="button"
-                        key={conv.conversaId}
-                        className="sidebar-notif-item sidebar-notif-item-btn"
-                        onClick={() => {
-                          onOpenUnreadConversa?.(conv.conversaId, conv.outroParticipante);
-                          setNotifAberta(false);
-                        }}
-                      >
-                        <div
-                          className="sidebar-notif-avatar"
-                          style={{
-                            backgroundImage: `url(${conv.outroParticipante.fotoPerfil || fallbackAvatar(conv.outroParticipante.handle)})`,
-                          }}
-                        />
-                        <div className="sidebar-notif-info">
-                          <strong>{conv.outroParticipante.username}</strong>
-                          <span>
-                            {conv.naoLidas} mensage{conv.naoLidas === 1 ? "m" : "ns"} nova
-                            {conv.naoLidas === 1 ? "" : "s"}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-
-                    <h4>Atividade</h4>
-                    {activityNotifications.length === 0 && (
-                      <p className="sidebar-notif-empty">Nenhuma atividade nova.</p>
-                    )}
-                    {activityNotifications.map((notificacao) => (
-                      <button
-                        type="button"
-                        key={notificacao.id}
-                        className="sidebar-notif-item sidebar-notif-item-btn"
-                        onClick={() => {
-                          onOpenActivityNotification?.(notificacao);
-                          setNotifAberta(false);
-                        }}
-                      >
-                        <div
-                          className="sidebar-notif-avatar"
-                          style={{
-                            backgroundImage: `url(${notificacao.ator.fotoPerfil || fallbackAvatar(notificacao.ator.handle)})`,
-                          }}
-                        />
-                        <div className="sidebar-notif-info">
-                          <strong>{notificacao.ator.username}</strong>
-                          <span>{TEXTO_ATIVIDADE[notificacao.tipo] || "interagiu com você"}</span>
-                          {notificacao.trecho && (
-                            <span className="sidebar-notif-trecho">"{notificacao.trecho}"</span>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-
-                    <button
-                      type="button"
-                      className="sidebar-notif-view-all"
-                      onClick={() => {
-                        irNotificacoes?.();
-                        setNotifAberta(false);
-                      }}
-                    >
-                      Ver todas as notificações
-                    </button>
-                  </div>
-                </>
-              )}
+            <div className="nav-item" data-label="Notificações" onClick={irNotificacoes}>
+              <BellIcon count={totalNotificacoes} />
+              <span>Notificações</span>
             </div>
           )}
         </nav>
