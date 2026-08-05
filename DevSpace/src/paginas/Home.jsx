@@ -414,7 +414,7 @@ function savePostsToStorage(posts) {
   return storagePosts;
 }
 
-export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement, onRequireAuth, highlightPostId, onHighlightPostShown, contactRequests, onAcceptContact, onDeclineContact }) {
+export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement, onRequireAuth, highlightPostId, onHighlightPostShown, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [suggestionsWidth, setSuggestionsWidth] = useState(() => {
     const salva = localStorage.getItem("suggestionsWidth");
@@ -1531,6 +1531,8 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
         contactRequests={contactRequests}
         onAcceptContact={onAcceptContact}
         onDeclineContact={onDeclineContact}
+        unreadConversas={unreadConversas}
+        onOpenUnreadConversa={onOpenUnreadConversa}
       />
 
       <div className={`main${sidebarOpen ? "" : " sidebar-closed"}`}>

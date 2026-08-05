@@ -85,7 +85,7 @@ function groupPostsAsRecommendations() {
   );
 }
 
-export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenUserProfile, logado, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact }) {
+export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenUserProfile, logado, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [tab, setTab] = useState("momento");
   const [search, setSearch] = useState("");
@@ -220,6 +220,8 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
         contactRequests={contactRequests}
         onAcceptContact={onAcceptContact}
         onDeclineContact={onDeclineContact}
+        unreadConversas={unreadConversas}
+        onOpenUnreadConversa={onOpenUnreadConversa}
       />
 
       <div className={`explore-page${sidebarOpen ? "" : " sidebar-closed"}`}>

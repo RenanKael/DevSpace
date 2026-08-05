@@ -10,7 +10,7 @@ import {
 } from "../utils/chat";
 import { resizeImageForChat } from "../utils/image";
 import { carregarImagem } from "../utils/imageStore";
-import { fetchConversas, getOrCreateConversaApi, enviarMensagemApi } from "../api";
+import { fetchConversas, getOrCreateConversaApi, enviarMensagemApi, markConversaAsRead } from "../api";
 
 // Conversas com "bots" (perfis de demonstracao, sem conta real no backend)
 // sao 100% locais e sempre "aceitas" na hora -- o id delas e string
@@ -44,6 +44,8 @@ export default function Chat({
   contactRequests,
   onAcceptContact,
   onDeclineContact,
+  unreadConversas,
+  onOpenUnreadConversa,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   // Le o usuario logado direto do storage (local ou sessao) apenas uma vez, no mount
@@ -145,6 +147,16 @@ export default function Chat({
   useEffect(() => {
     if (!chatAlvo || !usuarioLogado) return;
 
+    // Veio de uma notificacao de mensagem nova: o id da conversa ja e
+    // conhecido, so precisa abrir ela.
+    if (chatAlvo.conversaId) {
+      recarregarConversas().then(() => {
+        setConversaAtivaId(chatAlvo.conversaId);
+        onChatAlvoConsumido?.();
+      });
+      return;
+    }
+
     if (!chatAlvo.id) {
       const conversa = getOrCreateConversaLocal(usuarioLogado, chatAlvo);
       recarregarConversas().then(() => {
@@ -182,6 +194,15 @@ export default function Chat({
   // O "outro" participante da conversa ativa, ou seja, com quem estou conversando
   const outroParticipante =
     conversaAtiva?.participantes.find((p) => p.handle !== meuHandle) || null;
+
+  // Marca a conversa como lida no backend assim que ela e aberta (conversas
+  // com bot sao locais e nao tem conceito de "lida" no servidor).
+  useEffect(() => {
+    if (!conversaAtivaId || isBotConversaId(conversaAtivaId) || !usuarioLogado?.id) return;
+    markConversaAsRead(conversaAtivaId, usuarioLogado.id).catch(() => {
+      // backend indisponivel; sem problema, so afeta o contador de notificacao
+    });
+  }, [conversaAtivaId, usuarioLogado?.id]);
 
   // Envia a mensagem (texto e/ou imagem) da conversa ativa e limpa o formulario
   async function enviar() {
@@ -263,6 +284,8 @@ export default function Chat({
         contactRequests={contactRequests}
         onAcceptContact={onAcceptContact}
         onDeclineContact={onDeclineContact}
+        unreadConversas={unreadConversas}
+        onOpenUnreadConversa={onOpenUnreadConversa}
       />
 
       <div className={`chat-page${sidebarOpen ? "" : " sidebar-closed"}`}>

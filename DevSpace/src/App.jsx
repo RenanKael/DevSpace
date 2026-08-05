@@ -18,6 +18,7 @@ import {
   fetchContactRequests,
   acceptContactRequest,
   declineContactRequest,
+  fetchUnreadConversas,
 } from "./api";
 
 function fakeAvatar(handle) {
@@ -316,6 +317,7 @@ function App() {
   const [mostrarLogin, setMostrarLogin] = useState(false);
   const [authGateMsg, setAuthGateMsg] = useState(null);
   const [contactRequests, setContactRequests] = useState([]);
+  const [unreadConversas, setUnreadConversas] = useState([]);
   const [contactFeedback, setContactFeedback] = useState("");
   const pagina = route.pagina;
   const perfilAlvo = route.perfilAlvo;
@@ -334,15 +336,34 @@ function App() {
     }
   }
 
-  // Busca solicitacoes de contato pendentes ao logar e periodicamente
-  // (nao ha websocket, entao um polling leve serve como "notificacao").
+  async function recarregarMensagensNaoLidas() {
+    if (!usuario?.id) {
+      setUnreadConversas([]);
+      return;
+    }
+    try {
+      const lista = await fetchUnreadConversas(usuario.id);
+      setUnreadConversas(Array.isArray(lista) ? lista : []);
+    } catch {
+      // backend indisponivel; mantem a lista atual
+    }
+  }
+
+  // Busca solicitacoes de contato pendentes e mensagens nao lidas ao logar
+  // e periodicamente (nao ha websocket, entao um polling leve serve como
+  // "notificacao").
   useEffect(() => {
     if (!usuario?.id) {
       setContactRequests([]);
+      setUnreadConversas([]);
       return;
     }
     recarregarContactRequests();
-    const intervalo = window.setInterval(recarregarContactRequests, 20000);
+    recarregarMensagensNaoLidas();
+    const intervalo = window.setInterval(() => {
+      recarregarContactRequests();
+      recarregarMensagensNaoLidas();
+    }, 20000);
     return () => window.clearInterval(intervalo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuario?.id]);
@@ -746,6 +767,14 @@ function App() {
     }
   }
 
+  // Clicar numa notificacao de mensagem nova abre a conversa direto (o id ja
+  // e conhecido, nao precisa passar pela solicitacao de contato).
+  function abrirConversaNaoLida(conversaId, outroParticipante) {
+    setUnreadConversas((prev) => prev.filter((c) => c.conversaId !== conversaId));
+    setChatAlvo({ conversaId, ...outroParticipante });
+    navigate({ pagina: "chat", perfilAlvo: null });
+  }
+
   function handlePostCreated(post) {
     try {
       const rawPosts = JSON.parse(localStorage.getItem("posts")) || [];
@@ -845,6 +874,8 @@ function App() {
           contactRequests={contactRequests}
           onAcceptContact={aceitarSolicitacaoContato}
           onDeclineContact={recusarSolicitacaoContato}
+          unreadConversas={unreadConversas}
+          onOpenUnreadConversa={abrirConversaNaoLida}
         />
 
         <PostModal
@@ -879,6 +910,8 @@ function App() {
           contactRequests={contactRequests}
           onAcceptContact={aceitarSolicitacaoContato}
           onDeclineContact={recusarSolicitacaoContato}
+          unreadConversas={unreadConversas}
+          onOpenUnreadConversa={abrirConversaNaoLida}
         />
 
         <PostModal
@@ -910,6 +943,8 @@ function App() {
           contactRequests={contactRequests}
           onAcceptContact={aceitarSolicitacaoContato}
           onDeclineContact={recusarSolicitacaoContato}
+          unreadConversas={unreadConversas}
+          onOpenUnreadConversa={abrirConversaNaoLida}
         />
 
         <PostModal
@@ -943,6 +978,8 @@ function App() {
           contactRequests={contactRequests}
           onAcceptContact={aceitarSolicitacaoContato}
           onDeclineContact={recusarSolicitacaoContato}
+          unreadConversas={unreadConversas}
+          onOpenUnreadConversa={abrirConversaNaoLida}
         />
 
         <PostModal
@@ -976,6 +1013,8 @@ function App() {
         contactRequests={contactRequests}
         onAcceptContact={aceitarSolicitacaoContato}
         onDeclineContact={recusarSolicitacaoContato}
+        unreadConversas={unreadConversas}
+        onOpenUnreadConversa={abrirConversaNaoLida}
       />
 
       <PostModal

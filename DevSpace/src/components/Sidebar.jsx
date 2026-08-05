@@ -25,8 +25,11 @@ export default function Sidebar({
   contactRequests = [],
   onAcceptContact,
   onDeclineContact,
+  unreadConversas = [],
+  onOpenUnreadConversa,
 }) {
   const [notifAberta, setNotifAberta] = useState(false);
+  const totalNotificacoes = contactRequests.length + unreadConversas.length;
 
   function protegido(acao, mensagem) {
     if (logado) {
@@ -113,9 +116,9 @@ export default function Sidebar({
               >
                 <span className="sidebar-notif-icon-wrap">
                   <BellIcon />
-                  {contactRequests.length > 0 && (
+                  {totalNotificacoes > 0 && (
                     <span className="sidebar-notif-badge">
-                      {contactRequests.length > 99 ? "99+" : contactRequests.length}
+                      {totalNotificacoes > 99 ? "99+" : totalNotificacoes}
                     </span>
                   )}
                 </span>
@@ -166,6 +169,36 @@ export default function Sidebar({
                           </div>
                         </div>
                       </div>
+                    ))}
+
+                    <h4>Mensagens</h4>
+                    {unreadConversas.length === 0 && (
+                      <p className="sidebar-notif-empty">Nenhuma mensagem nova.</p>
+                    )}
+                    {unreadConversas.map((conv) => (
+                      <button
+                        type="button"
+                        key={conv.conversaId}
+                        className="sidebar-notif-item sidebar-notif-item-btn"
+                        onClick={() => {
+                          onOpenUnreadConversa?.(conv.conversaId, conv.outroParticipante);
+                          setNotifAberta(false);
+                        }}
+                      >
+                        <div
+                          className="sidebar-notif-avatar"
+                          style={{
+                            backgroundImage: `url(${conv.outroParticipante.fotoPerfil || fallbackAvatar(conv.outroParticipante.handle)})`,
+                          }}
+                        />
+                        <div className="sidebar-notif-info">
+                          <strong>{conv.outroParticipante.username}</strong>
+                          <span>
+                            {conv.naoLidas} mensage{conv.naoLidas === 1 ? "m" : "ns"} nova
+                            {conv.naoLidas === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                      </button>
                     ))}
                   </div>
                 </>

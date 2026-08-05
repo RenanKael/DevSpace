@@ -1075,6 +1075,60 @@ app.post("/api/conversas/:id(\\d+)/mensagens", async (req, res) => {
   }
 });
 
+app.get("/api/conversas/unread", async (req, res) => {
+  try {
+    const usuarioId = Number(req.query.usuarioId);
+    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+
+    const rows = await query(
+      `SELECT c.id AS conversa_id, c.atualizado_em,
+        COUNT(m.id) AS nao_lidas,
+        outro.username AS outro_username, outro.nome_exibicao AS outro_nome, outro.avatar_url AS outro_avatar
+       FROM conversas c
+       JOIN conversa_participantes cp_eu ON cp_eu.conversa_id = c.id AND cp_eu.usuario_id = ?
+       JOIN conversa_participantes cp_outro ON cp_outro.conversa_id = c.id AND cp_outro.usuario_id != ?
+       JOIN usuarios outro ON outro.id = cp_outro.usuario_id
+       JOIN mensagens m ON m.conversa_id = c.id AND m.remetente_id != ? AND m.lida = 0
+       GROUP BY c.id, c.atualizado_em, outro.username, outro.nome_exibicao, outro.avatar_url
+       ORDER BY c.atualizado_em DESC`,
+      [usuarioId, usuarioId, usuarioId]
+    );
+
+    res.json(
+      rows.map((r) => ({
+        conversaId: r.conversa_id,
+        naoLidas: Number(r.nao_lidas),
+        outroParticipante: {
+          handle: r.outro_username,
+          username: r.outro_nome || r.outro_username,
+          fotoPerfil: r.outro_avatar || "",
+        },
+        atualizadoEm: r.atualizado_em,
+      }))
+    );
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar mensagens não lidas." });
+  }
+});
+
+app.post("/api/conversas/:id(\\d+)/marcar-lida", async (req, res) => {
+  try {
+    const conversaId = Number(req.params.id);
+    const usuarioId = Number(req.body?.usuarioId);
+    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+
+    await query("UPDATE mensagens SET lida = 1 WHERE conversa_id = ? AND remetente_id != ?", [
+      conversaId,
+      usuarioId,
+    ]);
+    res.json({ message: "Conversa marcada como lida." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao marcar conversa como lida." });
+  }
+});
+
 app.use((req, res) => {
   res.status(404).json({ message: "Rota não encontrada." });
 });

@@ -252,6 +252,17 @@ body {
   border-radius: 10px;
 }
 
+.sidebar-notif-item-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .sidebar-notif-item:hover {
   background: #1c2027;
 }

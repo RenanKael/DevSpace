@@ -121,6 +121,17 @@ export async function enviarMensagemApi(conversaId, usuarioId, texto, imagem) {
   });
 }
 
+export async function fetchUnreadConversas(usuarioId) {
+  return request(`/conversas/unread?usuarioId=${encodeURIComponent(usuarioId)}`);
+}
+
+export async function markConversaAsRead(conversaId, usuarioId) {
+  return request(`/conversas/${encodeURIComponent(conversaId)}/marcar-lida`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId }),
+  });
+}
+
 export async function sendContactRequest(destinatarioId, remetenteId) {
   return request(`/users/${encodeURIComponent(destinatarioId)}/contact-request`, {
     method: "POST",

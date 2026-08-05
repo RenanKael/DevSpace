@@ -7,7 +7,7 @@ import { deletePost as deletePostRequest, updateUser as updateUserRequest, updat
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
-export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact }) {
+export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
@@ -900,6 +900,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
           contactRequests={contactRequests}
           onAcceptContact={onAcceptContact}
           onDeclineContact={onDeclineContact}
+          unreadConversas={unreadConversas}
+          onOpenUnreadConversa={onOpenUnreadConversa}
         />
         <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
           <h1>Carregando...</h1>
@@ -930,6 +932,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
         contactRequests={contactRequests}
         onAcceptContact={onAcceptContact}
         onDeclineContact={onDeclineContact}
+        unreadConversas={unreadConversas}
+        onOpenUnreadConversa={onOpenUnreadConversa}
       />
 
       <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
