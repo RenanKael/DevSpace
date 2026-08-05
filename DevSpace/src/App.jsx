@@ -13,6 +13,7 @@ import {
   syncUsersStarProgress,
 } from "./utils/starProgress";
 import {
+  fetchUser,
   sendContactRequest,
   fetchContactRequests,
   acceptContactRequest,
@@ -683,19 +684,34 @@ function App() {
   async function abrirChatCom(userRef) {
     if (!userRef) return;
 
-    // Perfil sem id real (bot/demonstracao) nunca existiu no backend: abre
-    // direto um chat local com ele, sem passar pela solicitacao de contato
-    // (ele "sempre aceita").
-    if (!userRef.id || !usuario?.id) {
+    if (!usuario?.id) {
+      setChatAlvo(userRef);
+      navigate({ pagina: "chat", perfilAlvo: null });
+      return;
+    }
+
+    // Resolve o id de destino direto no backend pelo handle, em vez de
+    // confiar no que veio em userRef (que pode estar desatualizado por
+    // vir de um cache local antigo). Se nao existir no backend, e um
+    // perfil bot/demonstracao: cai pro chat local instantaneo.
+    let destinatarioId = null;
+    try {
+      const fresco = await fetchUser(userRef.handle || userRef.username);
+      destinatarioId = fresco?.id || null;
+    } catch {
+      destinatarioId = null;
+    }
+
+    if (!destinatarioId) {
       setChatAlvo(userRef);
       navigate({ pagina: "chat", perfilAlvo: null });
       return;
     }
 
     try {
-      const resposta = await sendContactRequest(userRef.id, usuario.id);
+      const resposta = await sendContactRequest(destinatarioId, usuario.id);
       if (resposta.status === "conversa_existente") {
-        setChatAlvo(userRef);
+        setChatAlvo({ ...userRef, id: destinatarioId });
         navigate({ pagina: "chat", perfilAlvo: null });
         return;
       }

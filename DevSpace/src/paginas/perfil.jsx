@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import { createPortal } from "react-dom";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
-import { deletePost as deletePostRequest, updateUser as updateUserRequest } from "../api";
+import { deletePost as deletePostRequest, updateUser as updateUserRequest, updatePost as updatePostRequest } from "../api";
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
@@ -613,6 +613,15 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
     notifyPostsUpdated();
     setPosts(updatedPosts.filter((post) => postBelongsToUser(post, usuario)));
+
+    // Post real (nao fake/seed): salva no backend tambem, senao a proxima
+    // sincronizacao com o servidor sobrescreve a edicao com o texto antigo.
+    if (!editingPost.isSeedFake) {
+      updatePostRequest(editingPost.id, { texto: editingText }).catch((error) => {
+        console.warn("Nao foi possivel salvar a edicao do post no servidor:", error);
+      });
+    }
+
     setEditingPost(null);
     setEditingText("");
   }
