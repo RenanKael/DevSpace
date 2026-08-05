@@ -83,6 +83,9 @@ export default function PerfilColecao({
   onStarAchievement,
   logado,
   onRequireAuth,
+  contactRequests,
+  onAcceptContact,
+  onDeclineContact,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
@@ -193,6 +196,9 @@ export default function PerfilColecao({
         onOpenPost={onOpenPost}
         logado={logado}
         onRequireAuth={onRequireAuth}
+        contactRequests={contactRequests}
+        onAcceptContact={onAcceptContact}
+        onDeclineContact={onDeclineContact}
       />
 
       <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>

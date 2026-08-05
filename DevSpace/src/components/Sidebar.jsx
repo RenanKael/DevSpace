@@ -1,10 +1,16 @@
+import { useState } from "react";
 import "../style/home.css";
 import SidebarToggleIcon from "./SidebarToggleIcon";
 import ChatIcon from "./ChatIcon";
+import BellIcon from "./BellIcon";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import paginaInicial from "../assets/IMGS/Home.png";
 import explorar from "../assets/IMGS/Explorar.png";
 import perfil from "../assets/IMGS/PerfilPadrao.png";
+
+function fallbackAvatar(seed) {
+  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed || "usuario")}`;
+}
 
 export default function Sidebar({
   isOpen,
@@ -16,7 +22,12 @@ export default function Sidebar({
   irChat,
   logado = true,
   onRequireAuth,
+  contactRequests = [],
+  onAcceptContact,
+  onDeclineContact,
 }) {
+  const [notifAberta, setNotifAberta] = useState(false);
+
   function protegido(acao, mensagem) {
     if (logado) {
       acao?.();
@@ -88,6 +99,79 @@ export default function Sidebar({
             <ChatIcon />
             <span>Chat</span>
           </div>
+
+          {logado && (
+            <div className="nav-item sidebar-notif-wrapper" data-label="Notificações">
+              <button
+                type="button"
+                className="sidebar-notif-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNotifAberta((aberta) => !aberta);
+                }}
+                aria-label="Notificações"
+              >
+                <span className="sidebar-notif-icon-wrap">
+                  <BellIcon />
+                  {contactRequests.length > 0 && (
+                    <span className="sidebar-notif-badge">
+                      {contactRequests.length > 99 ? "99+" : contactRequests.length}
+                    </span>
+                  )}
+                </span>
+                <span>Notificações</span>
+              </button>
+
+              {notifAberta && (
+                <>
+                  <div
+                    className="sidebar-backdrop"
+                    style={{ background: "transparent" }}
+                    onClick={() => setNotifAberta(false)}
+                  />
+                  <div className="sidebar-notif-panel" onClick={(e) => e.stopPropagation()}>
+                    <h4>Solicitações de contato</h4>
+                    {contactRequests.length === 0 && (
+                      <p className="sidebar-notif-empty">Nenhuma solicitação pendente.</p>
+                    )}
+                    {contactRequests.map((req) => (
+                      <div key={req.id} className="sidebar-notif-item">
+                        <div
+                          className="sidebar-notif-avatar"
+                          style={{
+                            backgroundImage: `url(${req.remetente.fotoPerfil || fallbackAvatar(req.remetente.handle)})`,
+                          }}
+                        />
+                        <div className="sidebar-notif-info">
+                          <strong>{req.remetente.username}</strong>
+                          <span>quer te contatar</span>
+                          <div className="sidebar-notif-actions">
+                            <button
+                              type="button"
+                              className="sidebar-notif-aceitar"
+                              onClick={() => {
+                                onAcceptContact?.(req.id);
+                                setNotifAberta(false);
+                              }}
+                            >
+                              Aceitar
+                            </button>
+                            <button
+                              type="button"
+                              className="sidebar-notif-recusar"
+                              onClick={() => onDeclineContact?.(req.id)}
+                            >
+                              Recusar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </nav>
 
         <button

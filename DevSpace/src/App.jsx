@@ -12,6 +12,12 @@ import {
   recordUserPostProgress,
   syncUsersStarProgress,
 } from "./utils/starProgress";
+import {
+  sendContactRequest,
+  fetchContactRequests,
+  acceptContactRequest,
+  declineContactRequest,
+} from "./api";
 
 function fakeAvatar(handle) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle || "usuario")}`;
@@ -308,9 +314,43 @@ function App() {
   const [chatAlvo, setChatAlvo] = useState(null);
   const [mostrarLogin, setMostrarLogin] = useState(false);
   const [authGateMsg, setAuthGateMsg] = useState(null);
+  const [contactRequests, setContactRequests] = useState([]);
+  const [contactFeedback, setContactFeedback] = useState("");
   const pagina = route.pagina;
   const perfilAlvo = route.perfilAlvo;
   const perfilCollection = route.perfilCollection;
+
+  async function recarregarContactRequests() {
+    if (!usuario?.id) {
+      setContactRequests([]);
+      return;
+    }
+    try {
+      const lista = await fetchContactRequests(usuario.id);
+      setContactRequests(Array.isArray(lista) ? lista : []);
+    } catch {
+      // backend indisponivel; mantem a lista atual
+    }
+  }
+
+  // Busca solicitacoes de contato pendentes ao logar e periodicamente
+  // (nao ha websocket, entao um polling leve serve como "notificacao").
+  useEffect(() => {
+    if (!usuario?.id) {
+      setContactRequests([]);
+      return;
+    }
+    recarregarContactRequests();
+    const intervalo = window.setInterval(recarregarContactRequests, 20000);
+    return () => window.clearInterval(intervalo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario?.id]);
+
+  useEffect(() => {
+    if (!contactFeedback) return;
+    const timeout = window.setTimeout(() => setContactFeedback(""), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [contactFeedback]);
 
   useEffect(() => {
     const savedLocal = JSON.parse(localStorage.getItem("usuarioLogado"));
@@ -640,10 +680,54 @@ function App() {
     navigate({ pagina: "perfil", perfilAlvo: alvo });
   }
 
-  function abrirChatCom(userRef) {
+  async function abrirChatCom(userRef) {
     if (!userRef) return;
-    setChatAlvo(userRef);
-    navigate({ pagina: "chat", perfilAlvo: null });
+
+    // Perfil sem id real (bot/demonstracao) nunca existiu no backend: abre
+    // direto um chat local com ele, sem passar pela solicitacao de contato
+    // (ele "sempre aceita").
+    if (!userRef.id || !usuario?.id) {
+      setChatAlvo(userRef);
+      navigate({ pagina: "chat", perfilAlvo: null });
+      return;
+    }
+
+    try {
+      const resposta = await sendContactRequest(userRef.id, usuario.id);
+      if (resposta.status === "conversa_existente") {
+        setChatAlvo(userRef);
+        navigate({ pagina: "chat", perfilAlvo: null });
+        return;
+      }
+      setContactFeedback(`Solicitação de contato enviada para ${userRef.username || userRef.handle}.`);
+    } catch (error) {
+      setContactFeedback(error.message || "Não foi possível enviar a solicitação de contato.");
+    }
+  }
+
+  async function aceitarSolicitacaoContato(solicitacaoId) {
+    if (!usuario?.id) return;
+    const solicitacao = contactRequests.find((r) => r.id === solicitacaoId);
+    try {
+      await acceptContactRequest(solicitacaoId, usuario.id);
+      setContactRequests((prev) => prev.filter((r) => r.id !== solicitacaoId));
+      if (solicitacao?.remetente) {
+        setChatAlvo(solicitacao.remetente);
+        navigate({ pagina: "chat", perfilAlvo: null });
+      }
+    } catch (error) {
+      setContactFeedback(error.message || "Não foi possível aceitar a solicitação.");
+    }
+  }
+
+  async function recusarSolicitacaoContato(solicitacaoId) {
+    if (!usuario?.id) return;
+    try {
+      await declineContactRequest(solicitacaoId, usuario.id);
+      setContactRequests((prev) => prev.filter((r) => r.id !== solicitacaoId));
+    } catch (error) {
+      setContactFeedback(error.message || "Não foi possível recusar a solicitação.");
+    }
   }
 
   function handlePostCreated(post) {
@@ -742,6 +826,9 @@ function App() {
           }}
           onContact={abrirChatCom}
           onRequireAuth={solicitarLogin}
+          contactRequests={contactRequests}
+          onAcceptContact={aceitarSolicitacaoContato}
+          onDeclineContact={recusarSolicitacaoContato}
         />
 
         <PostModal
@@ -754,6 +841,7 @@ function App() {
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
+        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
       </>
     );
   }
@@ -772,6 +860,9 @@ function App() {
           onStarAchievement={showStarAchievement}
           logado={logado}
           onRequireAuth={solicitarLogin}
+          contactRequests={contactRequests}
+          onAcceptContact={aceitarSolicitacaoContato}
+          onDeclineContact={recusarSolicitacaoContato}
         />
 
         <PostModal
@@ -784,6 +875,7 @@ function App() {
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
+        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
       </>
     );
   }
@@ -799,6 +891,9 @@ function App() {
           onOpenUserProfile={abrirPerfilAlvo}
           logado={logado}
           onRequireAuth={solicitarLogin}
+          contactRequests={contactRequests}
+          onAcceptContact={aceitarSolicitacaoContato}
+          onDeclineContact={recusarSolicitacaoContato}
         />
 
         <PostModal
@@ -811,6 +906,7 @@ function App() {
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
+        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
       </>
     );
   }
@@ -828,6 +924,9 @@ function App() {
           onChatAlvoConsumido={() => setChatAlvo(null)}
           logado={logado}
           onRequireAuth={solicitarLogin}
+          contactRequests={contactRequests}
+          onAcceptContact={aceitarSolicitacaoContato}
+          onDeclineContact={recusarSolicitacaoContato}
         />
 
         <PostModal
@@ -840,6 +939,7 @@ function App() {
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
+        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
       </>
     );
   }
@@ -857,6 +957,9 @@ function App() {
         onRequireAuth={solicitarLogin}
         highlightPostId={lastCreatedPostId}
         onHighlightPostShown={() => setLastCreatedPostId(null)}
+        contactRequests={contactRequests}
+        onAcceptContact={aceitarSolicitacaoContato}
+        onDeclineContact={recusarSolicitacaoContato}
       />
 
       <PostModal
@@ -869,6 +972,7 @@ function App() {
       {authGateMsg && (
         <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
       )}
+      {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
     </>
   );
 }

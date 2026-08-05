@@ -282,6 +282,22 @@ const CREATE_STATEMENTS = [
     CONSTRAINT fk_poll_votos_opcao FOREIGN KEY (opcao_id) REFERENCES post_poll_opcoes (id) ON DELETE CASCADE,
     CONSTRAINT fk_poll_votos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
+  // Pedido de contato pendente ("fulano quer te contatar"). A existencia da
+  // linha JA significa "pendente" -- aceitar/recusar simplesmente apaga a
+  // linha (aceitar tambem cria/reaproveita a conversa correspondente).
+  `CREATE TABLE IF NOT EXISTS solicitacoes_contato (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    remetente_id BIGINT NOT NULL,
+    destinatario_id BIGINT NOT NULL,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_solicitacao_par (remetente_id, destinatario_id),
+    KEY idx_solicitacoes_destinatario (destinatario_id),
+    CONSTRAINT fk_solicitacoes_remetente FOREIGN KEY (remetente_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+    CONSTRAINT fk_solicitacoes_destinatario FOREIGN KEY (destinatario_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+    CONSTRAINT chk_solicitacao_partes_diferentes CHECK (remetente_id <> destinatario_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 ];
 
 async function addColumnIfMissing(conn, table, column, definition) {

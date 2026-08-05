@@ -246,6 +246,111 @@ app.post("/api/users/:id(\\d+)/follow", async (req, res) => {
   }
 });
 
+// ---------- Solicitacoes de contato ----------
+// Clicar em "Contatar" em alguem com quem ainda nao existe conversa cria uma
+// solicitacao pendente (notificacao); aceitar cria/reaproveita a conversa,
+// recusar so remove a solicitacao. Se ja existe conversa, pula direto pra ela.
+
+function mapSolicitacao(row) {
+  return {
+    id: row.id,
+    remetente: {
+      id: row.remetente_id,
+      handle: row.remetente_username,
+      username: row.remetente_nome || row.remetente_username,
+      fotoPerfil: row.remetente_avatar || "",
+    },
+    criadoEm: row.criado_em,
+  };
+}
+
+app.post("/api/users/:id(\\d+)/contact-request", async (req, res) => {
+  try {
+    const destinatarioId = Number(req.params.id);
+    const remetenteId = Number(req.body?.remetenteId);
+    if (!remetenteId || remetenteId === destinatarioId) {
+      return res.status(400).json({ message: "remetenteId inválido." });
+    }
+
+    const conversaExistente = await encontrarConversaExistente(remetenteId, destinatarioId);
+    if (conversaExistente) {
+      return res.json({ status: "conversa_existente", conversa: await mapConversa(conversaExistente.id) });
+    }
+
+    const jaPendente = await queryOne(
+      "SELECT id FROM solicitacoes_contato WHERE remetente_id = ? AND destinatario_id = ?",
+      [remetenteId, destinatarioId]
+    );
+    if (jaPendente) {
+      return res.json({ status: "pendente", solicitacaoId: jaPendente.id });
+    }
+
+    const result = await query(
+      "INSERT INTO solicitacoes_contato (remetente_id, destinatario_id) VALUES (?, ?)",
+      [remetenteId, destinatarioId]
+    );
+    res.status(201).json({ status: "pendente", solicitacaoId: result.insertId });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao enviar solicitação de contato." });
+  }
+});
+
+app.get("/api/users/:id(\\d+)/contact-requests", async (req, res) => {
+  try {
+    const destinatarioId = Number(req.params.id);
+    const rows = await query(
+      `SELECT sc.id, sc.criado_em, sc.remetente_id,
+        u.username AS remetente_username, u.nome_exibicao AS remetente_nome, u.avatar_url AS remetente_avatar
+       FROM solicitacoes_contato sc JOIN usuarios u ON u.id = sc.remetente_id
+       WHERE sc.destinatario_id = ? ORDER BY sc.criado_em DESC`,
+      [destinatarioId]
+    );
+    res.json(rows.map(mapSolicitacao));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar solicitações de contato." });
+  }
+});
+
+app.post("/api/contact-requests/:id(\\d+)/accept", async (req, res) => {
+  try {
+    const solicitacao = await queryOne("SELECT * FROM solicitacoes_contato WHERE id = ?", [req.params.id]);
+    if (!solicitacao) return res.status(404).json({ message: "Solicitação não encontrada." });
+
+    const usuarioId = Number(req.body?.usuarioId);
+    if (usuarioId !== solicitacao.destinatario_id) {
+      return res.status(403).json({ message: "Você não pode responder essa solicitação." });
+    }
+
+    const conversaId = await criarOuBuscarConversa(solicitacao.remetente_id, solicitacao.destinatario_id);
+    await query("DELETE FROM solicitacoes_contato WHERE id = ?", [req.params.id]);
+
+    res.json({ conversa: await mapConversa(conversaId) });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao aceitar solicitação de contato." });
+  }
+});
+
+app.post("/api/contact-requests/:id(\\d+)/decline", async (req, res) => {
+  try {
+    const solicitacao = await queryOne("SELECT * FROM solicitacoes_contato WHERE id = ?", [req.params.id]);
+    if (!solicitacao) return res.status(404).json({ message: "Solicitação não encontrada." });
+
+    const usuarioId = Number(req.body?.usuarioId);
+    if (usuarioId !== solicitacao.destinatario_id) {
+      return res.status(403).json({ message: "Você não pode responder essa solicitação." });
+    }
+
+    await query("DELETE FROM solicitacoes_contato WHERE id = ?", [req.params.id]);
+    res.json({ message: "Solicitação recusada." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao recusar solicitação de contato." });
+  }
+});
+
 app.get("/api/users/:handle", async (req, res) => {
   try {
     const row = await queryOne("SELECT * FROM usuarios WHERE LOWER(username) = LOWER(?)", [req.params.handle]);
@@ -891,6 +996,33 @@ app.get("/api/conversas", async (req, res) => {
   }
 });
 
+async function encontrarConversaExistente(usuarioAId, usuarioBId) {
+  return queryOne(
+    `SELECT cp1.conversa_id AS id
+     FROM conversa_participantes cp1
+     JOIN conversa_participantes cp2 ON cp2.conversa_id = cp1.conversa_id AND cp2.usuario_id = ?
+     WHERE cp1.usuario_id = ?
+       AND (SELECT COUNT(*) FROM conversa_participantes cp3 WHERE cp3.conversa_id = cp1.conversa_id) = 2
+     LIMIT 1`,
+    [usuarioBId, usuarioAId]
+  );
+}
+
+async function criarOuBuscarConversa(usuarioAId, usuarioBId) {
+  const existente = await encontrarConversaExistente(usuarioAId, usuarioBId);
+  if (existente) return existente.id;
+
+  const result = await query("INSERT INTO conversas () VALUES ()");
+  const conversaId = result.insertId;
+  await query("INSERT INTO conversa_participantes (conversa_id, usuario_id) VALUES (?, ?), (?, ?)", [
+    conversaId,
+    usuarioAId,
+    conversaId,
+    usuarioBId,
+  ]);
+  return conversaId;
+}
+
 app.post("/api/conversas", async (req, res) => {
   try {
     const usuarioId = Number(req.body?.usuarioId);
@@ -899,29 +1031,7 @@ app.post("/api/conversas", async (req, res) => {
       return res.status(400).json({ message: "usuarioId e outroUsuarioId (diferentes) são obrigatórios." });
     }
 
-    const existente = await queryOne(
-      `SELECT cp1.conversa_id AS id
-       FROM conversa_participantes cp1
-       JOIN conversa_participantes cp2 ON cp2.conversa_id = cp1.conversa_id AND cp2.usuario_id = ?
-       WHERE cp1.usuario_id = ?
-         AND (SELECT COUNT(*) FROM conversa_participantes cp3 WHERE cp3.conversa_id = cp1.conversa_id) = 2
-       LIMIT 1`,
-      [outroUsuarioId, usuarioId]
-    );
-
-    if (existente) {
-      return res.json(await mapConversa(existente.id));
-    }
-
-    const result = await query("INSERT INTO conversas () VALUES ()");
-    const conversaId = result.insertId;
-    await query("INSERT INTO conversa_participantes (conversa_id, usuario_id) VALUES (?, ?), (?, ?)", [
-      conversaId,
-      usuarioId,
-      conversaId,
-      outroUsuarioId,
-    ]);
-
+    const conversaId = await criarOuBuscarConversa(usuarioId, outroUsuarioId);
     res.status(201).json(await mapConversa(conversaId));
   } catch (error) {
     console.error(error);

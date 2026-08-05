@@ -2,9 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/chat.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
-import { normalizeHandle } from "../utils/chat";
+import {
+  normalizeHandle,
+  loadConversasDoUsuario,
+  getOrCreateConversa as getOrCreateConversaLocal,
+  enviarMensagem as enviarMensagemLocal,
+} from "../utils/chat";
 import { resizeImageForChat } from "../utils/image";
+import { carregarImagem } from "../utils/imageStore";
 import { fetchConversas, getOrCreateConversaApi, enviarMensagemApi } from "../api";
+
+// Conversas com "bots" (perfis de demonstracao, sem conta real no backend)
+// sao 100% locais e sempre "aceitas" na hora -- o id delas e string
+// (ex: "handleA__handleB"), nunca colide com o id numerico do backend.
+function isBotConversaId(id) {
+  return typeof id === "string";
+}
 
 // Gera um avatar padrao (via DiceBear) quando o usuario nao tem foto de perfil
 function fallbackAvatar(seed) {
@@ -28,6 +41,9 @@ export default function Chat({
   onChatAlvoConsumido,
   logado,
   onRequireAuth,
+  contactRequests,
+  onAcceptContact,
+  onDeclineContact,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   // Le o usuario logado direto do storage (local ou sessao) apenas uma vez, no mount
@@ -45,27 +61,42 @@ export default function Chat({
   const textoInputRef = useRef(null); // usado para devolver o foco ao campo de texto
   const mensagensFimRef = useRef(null); // sentinela no fim da lista, usado para rolar ate a ultima mensagem
   const conversaAnteriorIdRef = useRef(null); // guarda o id da conversa anterior, para saber se houve troca de conversa
+  const idsEmBuscaRef = useRef(new Set()); // evita buscar a mesma imagem de bot mais de uma vez em paralelo
+  const [imagensCache, setImagensCache] = useState({}); // mapa imagemId -> dataURL ja carregado (so conversas com bot)
 
   const meuHandle = normalizeHandle(usuarioLogado?.handle || usuarioLogado?.username);
 
-  // Imagem ja vem embutida (base64) na mensagem retornada pelo backend
+  // Mensagens reais (backend) ja vem com a imagem embutida; mensagens de bot
+  // (locais) guardam so um imagemId, buscado do IndexedDB via imagensCache.
   function resolverImagemMensagem(mensagem) {
-    return mensagem.imagem || "";
+    if (mensagem.imagem) return mensagem.imagem;
+    if (mensagem.imagemId) return imagensCache[mensagem.imagemId] || "";
+    return "";
   }
 
-  // Recarrega a lista de conversas do usuario logado a partir do backend e atualiza o estado
+  // Recarrega conversas reais (backend) + conversas locais com bots, e
+  // combina as duas listas ordenadas pela mensagem mais recente.
   async function recarregarConversas() {
-    if (!usuarioLogado?.id) return [];
-    try {
-      const lista = await fetchConversas(usuarioLogado.id);
-      setConversas(Array.isArray(lista) ? lista : []);
-      return Array.isArray(lista) ? lista : [];
-    } catch {
-      return [];
+    const botConversas = usuarioLogado ? loadConversasDoUsuario(meuHandle) : [];
+
+    let reais = [];
+    if (usuarioLogado?.id) {
+      try {
+        reais = await fetchConversas(usuarioLogado.id);
+        if (!Array.isArray(reais)) reais = [];
+      } catch {
+        reais = [];
+      }
     }
+
+    const combinadas = [...reais, ...botConversas].sort(
+      (a, b) => new Date(b.atualizadoEm).getTime() - new Date(a.atualizadoEm).getTime()
+    );
+    setConversas(combinadas);
+    return combinadas;
   }
 
-  // No mount: carrega as conversas do backend e seleciona a primeira como ativa
+  // No mount: carrega as conversas (reais + bots) e seleciona a primeira como ativa
   useEffect(() => {
     recarregarConversas().then((lista) => {
       if (!conversaAtivaId && lista.length > 0) {
@@ -75,14 +106,61 @@ export default function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Quando a pagina recebe um "chatAlvo" (ex: veio do botao "Contatar" de um perfil),
-  // busca ou cria a conversa com essa pessoa e a abre automaticamente
+  // Busca em lote as imagens de bot ainda faltando no cache (mensagens reais
+  // ja trazem a imagem embutida, entao isso so afeta conversas locais)
   useEffect(() => {
-    if (!chatAlvo || !usuarioLogado?.id || !chatAlvo.id) return;
+    const idsFaltando = [];
+    conversas.forEach((c) => {
+      c.mensagens.forEach((m) => {
+        if (m.imagemId && !imagensCache[m.imagemId] && !idsEmBuscaRef.current.has(m.imagemId)) {
+          idsFaltando.push(m.imagemId);
+        }
+      });
+    });
+    if (idsFaltando.length === 0) return;
+
+    idsFaltando.forEach((id) => idsEmBuscaRef.current.add(id));
+
+    let cancelado = false;
+    Promise.all(idsFaltando.map((id) => carregarImagem(id).then((url) => [id, url]))).then((pares) => {
+      if (cancelado) return;
+      setImagensCache((atual) => {
+        const novo = { ...atual };
+        pares.forEach(([id, url]) => {
+          if (url) novo[id] = url;
+        });
+        return novo;
+      });
+    });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [conversas, imagensCache]);
+
+  // Quando a pagina recebe um "chatAlvo" (ex: veio do botao "Contatar" de um
+  // perfil), abre a conversa com essa pessoa. Bots (sem id real) sempre
+  // "aceitam" na hora, via uma conversa 100% local; usuarios reais ja chegam
+  // aqui com a conversa criada (o pedido de contato ja foi aceito antes).
+  useEffect(() => {
+    if (!chatAlvo || !usuarioLogado) return;
+
+    if (!chatAlvo.id) {
+      const conversa = getOrCreateConversaLocal(usuarioLogado, chatAlvo);
+      recarregarConversas().then(() => {
+        setConversaAtivaId(conversa.id);
+        onChatAlvoConsumido?.();
+      });
+      return;
+    }
+
+    if (!usuarioLogado.id) return;
+
     getOrCreateConversaApi(usuarioLogado.id, chatAlvo.id).then((conversa) => {
-      setConversaAtivaId(conversa.id);
-      recarregarConversas();
-      onChatAlvoConsumido?.();
+      recarregarConversas().then(() => {
+        setConversaAtivaId(conversa.id);
+        onChatAlvoConsumido?.();
+      });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatAlvo]);
@@ -107,7 +185,19 @@ export default function Chat({
 
   // Envia a mensagem (texto e/ou imagem) da conversa ativa e limpa o formulario
   async function enviar() {
-    if (!conversaAtiva || !usuarioLogado?.id || (!texto.trim() && !imagemSelecionada)) return;
+    if (!conversaAtiva || !usuarioLogado || (!texto.trim() && !imagemSelecionada)) return;
+
+    if (isBotConversaId(conversaAtiva.id)) {
+      const enviada = await enviarMensagemLocal(conversaAtiva.id, meuHandle, texto, imagemSelecionada);
+      if (!enviada) return;
+      await recarregarConversas();
+      setTexto("");
+      setImagemSelecionada("");
+      setEmojiAberto(false);
+      return;
+    }
+
+    if (!usuarioLogado.id) return;
 
     try {
       const conversaAtualizada = await enviarMensagemApi(
@@ -170,6 +260,9 @@ export default function Chat({
         onOpenPost={onOpenPost}
         logado={logado}
         onRequireAuth={onRequireAuth}
+        contactRequests={contactRequests}
+        onAcceptContact={onAcceptContact}
+        onDeclineContact={onDeclineContact}
       />
 
       <div className={`chat-page${sidebarOpen ? "" : " sidebar-closed"}`}>

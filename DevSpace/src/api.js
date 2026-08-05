@@ -121,6 +121,31 @@ export async function enviarMensagemApi(conversaId, usuarioId, texto, imagem) {
   });
 }
 
+export async function sendContactRequest(destinatarioId, remetenteId) {
+  return request(`/users/${encodeURIComponent(destinatarioId)}/contact-request`, {
+    method: "POST",
+    body: JSON.stringify({ remetenteId }),
+  });
+}
+
+export async function fetchContactRequests(usuarioId) {
+  return request(`/users/${encodeURIComponent(usuarioId)}/contact-requests`);
+}
+
+export async function acceptContactRequest(solicitacaoId, usuarioId) {
+  return request(`/contact-requests/${encodeURIComponent(solicitacaoId)}/accept`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId }),
+  });
+}
+
+export async function declineContactRequest(solicitacaoId, usuarioId) {
+  return request(`/contact-requests/${encodeURIComponent(solicitacaoId)}/decline`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId }),
+  });
+}
+
 export async function loginUser(emailOrHandle, senha) {
   return request("/auth/login", {
     method: "POST",

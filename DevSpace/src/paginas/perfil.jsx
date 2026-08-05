@@ -7,7 +7,7 @@ import { deletePost as deletePostRequest, updateUser as updateUserRequest } from
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
-export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth }) {
+export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
@@ -150,15 +150,19 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
       localStorage.setItem("usuarios", JSON.stringify(syncedUsers));
     }
     const baseUser = viewedUser || logado;
-    const user = baseUser
+    const matched = baseUser
       ? syncedUsers.find((u) => {
           const byEmail = baseUser.email && u.email &&
             u.email.toLowerCase() === baseUser.email.toLowerCase();
           const byHandle = baseUser.handle && u.handle &&
             u.handle.toLowerCase() === baseUser.handle.toLowerCase();
           return byEmail || byHandle;
-        }) || baseUser
+        })
       : null;
+    // No proprio perfil, a sessao (usuarioLogado) e sempre mais atualizada
+    // que a lista local "usuarios" (que pode ficar defasada, ex: sem o id
+    // real do backend) -- por isso ela tem prioridade no merge.
+    const user = !viewedUser && logado ? { ...(matched || {}), ...logado } : matched || baseUser;
 
     if (user) {
       const normalized = restoreProfileImages({
@@ -194,15 +198,16 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
         localStorage.setItem("usuarios", JSON.stringify(syncedUsers));
       }
       const baseUser = viewedUser || logado;
-      const user = baseUser
+      const matched = baseUser
           ? syncedUsers.find((u) => {
               const byEmail = baseUser.email && u.email &&
                 u.email.toLowerCase() === baseUser.email.toLowerCase();
               const byHandle = baseUser.handle && u.handle &&
                 u.handle.toLowerCase() === baseUser.handle.toLowerCase();
               return byEmail || byHandle;
-            }) || baseUser
+            })
           : null;
+      const user = !viewedUser && logado ? { ...(matched || {}), ...logado } : matched || baseUser;
 
         if (user) {
           const normalized = restoreProfileImages({
@@ -236,15 +241,16 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
         localStorage.setItem("usuarios", JSON.stringify(syncedUsers));
       }
       const baseUser = viewedUser || logado;
-      const user = baseUser
+      const matched = baseUser
           ? syncedUsers.find((u) => {
               const byEmail = baseUser.email && u.email &&
                 u.email.toLowerCase() === baseUser.email.toLowerCase();
               const byHandle = baseUser.handle && u.handle &&
                 u.handle.toLowerCase() === baseUser.handle.toLowerCase();
               return byEmail || byHandle;
-            }) || baseUser
+            })
           : null;
+      const user = !viewedUser && logado ? { ...(matched || {}), ...logado } : matched || baseUser;
 
         if (user) {
           const normalized = restoreProfileImages({
@@ -882,6 +888,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
           onOpenPost={onOpenPost}
           logado={!!usuarioLogado}
           onRequireAuth={onRequireAuth}
+          contactRequests={contactRequests}
+          onAcceptContact={onAcceptContact}
+          onDeclineContact={onDeclineContact}
         />
         <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
           <h1>Carregando...</h1>
@@ -909,6 +918,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
         onOpenPost={onOpenPost}
         logado={!!usuarioLogado}
         onRequireAuth={onRequireAuth}
+        contactRequests={contactRequests}
+        onAcceptContact={onAcceptContact}
+        onDeclineContact={onDeclineContact}
       />
 
       <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
@@ -1015,7 +1027,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
               {isFollowing ? "Seguindo" : "Seguir"}
             </button>
           )}
-          {!isOwnProfile && (
+          {!isOwnProfile && (usuario.disponivelContratacao || !usuario.id) && (
             <button
               className="btn-contatar"
               onClick={() => {
@@ -1024,8 +1036,10 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                   return;
                 }
                 onContact?.({
+                  id: usuario.id,
                   handle: usuario.handle || usuario.username,
                   username: usuario.username,
+                  email: usuario.email,
                   fotoPerfil: usuario.fotoPerfil,
                 });
               }}
