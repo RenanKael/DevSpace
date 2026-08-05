@@ -73,6 +73,16 @@
   background-position: center;
 }
 
+.chat-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chat-avatar-badge {
+  top: -4px;
+  right: -6px;
+}
+
 .chat-list-item-info {
   min-width: 0;
   display: flex;

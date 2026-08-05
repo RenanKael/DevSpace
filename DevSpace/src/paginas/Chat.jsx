@@ -45,7 +45,7 @@ export default function Chat({
   contactRequests,
   onAcceptContact,
   onDeclineContact,
-  unreadConversas,
+  unreadConversas = [],
   onOpenUnreadConversa,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
@@ -305,6 +305,7 @@ export default function Chat({
           {conversas.map((c) => {
             const outro = c.participantes.find((p) => p.handle !== meuHandle) || c.participantes[0];
             const ultimaMsg = c.mensagens[c.mensagens.length - 1];
+            const naoLidas = unreadConversas.find((u) => u.conversaId === c.id)?.naoLidas || 0;
             return (
               <button
                 key={c.id}
@@ -312,10 +313,17 @@ export default function Chat({
                 className={`chat-list-item${c.id === conversaAtivaId ? " active" : ""}`}
                 onClick={() => setConversaAtivaId(c.id)}
               >
-                <div
-                  className="chat-avatar"
-                  style={{ backgroundImage: `url(${outro.fotoPerfil || fallbackAvatar(outro.handle)})` }}
-                />
+                <div className="chat-avatar-wrap">
+                  <div
+                    className="chat-avatar"
+                    style={{ backgroundImage: `url(${outro.fotoPerfil || fallbackAvatar(outro.handle)})` }}
+                  />
+                  {naoLidas > 0 && (
+                    <span className="sidebar-notif-badge chat-avatar-badge">
+                      {naoLidas > 99 ? "99+" : naoLidas}
+                    </span>
+                  )}
+                </div>
                 <div className="chat-list-item-info">
                   <strong>{outro.username}</strong>
                   <span className="chat-list-item-preview">
