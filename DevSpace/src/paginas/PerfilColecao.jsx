@@ -88,6 +88,8 @@ export default function PerfilColecao({
   onDeclineContact,
   unreadConversas,
   onOpenUnreadConversa,
+  activityNotifications,
+  onOpenActivityNotification,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
@@ -203,6 +205,8 @@ export default function PerfilColecao({
         onDeclineContact={onDeclineContact}
         unreadConversas={unreadConversas}
         onOpenUnreadConversa={onOpenUnreadConversa}
+        activityNotifications={activityNotifications}
+        onOpenActivityNotification={onOpenActivityNotification}
       />
 
       <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>

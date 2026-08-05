@@ -290,6 +290,17 @@ body {
   white-space: nowrap;
 }
 
+.sidebar-notif-trecho {
+  display: block;
+  margin-top: 2px;
+  color: #7a8492;
+  font-size: 12px;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sidebar-notif-actions {
   display: flex;
   gap: 6px;

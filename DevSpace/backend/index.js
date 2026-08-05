@@ -648,6 +648,8 @@ app.post("/api/posts", async (req, res) => {
       }
     }
 
+    await notificarMencoes(texto, postId, usuarioId);
+
     const createdRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [postId]);
     res.status(201).json(await getPostFull(createdRow));
   } catch (error) {
@@ -701,6 +703,32 @@ app.delete("/api/posts/:id(\\d+)", async (req, res) => {
   }
 });
 
+// ---------- Notificacoes de atividade ----------
+// (curtida no post, comentario no post, curtida no comentario, mencao)
+
+async function criarNotificacao(destinatarioId, atorId, tipo, extras = {}) {
+  if (!destinatarioId || !atorId || destinatarioId === atorId) return;
+  await query(
+    "INSERT INTO notificacoes (destinatario_id, ator_id, tipo, post_id, comentario_id) VALUES (?, ?, ?, ?, ?)",
+    [destinatarioId, atorId, tipo, extras.postId || null, extras.comentarioId || null]
+  );
+}
+
+// Detecta @handles no texto do post e notifica cada usuario real e existente
+// mencionado (ignora auto-mencao e handles que nao existem).
+async function notificarMencoes(texto, postId, atorId) {
+  if (!texto) return;
+  const handles = [...new Set((texto.match(/@([a-zA-Z0-9._-]{3,30})/g) || []).map((m) => m.slice(1).toLowerCase()))];
+  if (handles.length === 0) return;
+
+  for (const handle of handles) {
+    const usuario = await queryOne("SELECT id FROM usuarios WHERE LOWER(username) = LOWER(?)", [handle]);
+    if (usuario) {
+      await criarNotificacao(usuario.id, atorId, "mencao", { postId });
+    }
+  }
+}
+
 // ---------- Reações a posts (curtir / repostar / salvar) ----------
 
 async function toggleSimpleRelation(table, postId, usuarioId) {
@@ -737,6 +765,9 @@ app.post("/api/posts/:id(\\d+)/like", async (req, res) => {
         usuarioId,
       ]);
       liked = true;
+
+      const post = await queryOne("SELECT usuario_id FROM posts WHERE id = ?", [postId]);
+      if (post) await criarNotificacao(post.usuario_id, usuarioId, "curtida_post", { postId });
     }
 
     const [{ c: likes }] = await query(
@@ -850,6 +881,12 @@ app.post("/api/posts/:id(\\d+)/comments", async (req, res) => {
 
     const postRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [postId]);
     if (!postRow) return res.status(404).json({ message: "Post não encontrado." });
+
+    await criarNotificacao(postRow.usuario_id, usuarioId, "comentario_post", {
+      postId,
+      comentarioId: result.insertId,
+    });
+
     res.status(201).json(await getPostFull(postRow));
   } catch (error) {
     console.error(error);
@@ -878,7 +915,7 @@ app.post("/api/comments/:id(\\d+)/like", async (req, res) => {
     const usuarioId = Number(req.body?.usuarioId);
     if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
 
-    const comentario = await queryOne("SELECT post_id FROM comentarios WHERE id = ?", [comentarioId]);
+    const comentario = await queryOne("SELECT post_id, usuario_id FROM comentarios WHERE id = ?", [comentarioId]);
     if (!comentario) return res.status(404).json({ message: "Comentário não encontrado." });
 
     const existente = await queryOne(
@@ -892,6 +929,10 @@ app.post("/api/comments/:id(\\d+)/like", async (req, res) => {
         comentarioId,
         usuarioId,
       ]);
+      await criarNotificacao(comentario.usuario_id, usuarioId, "curtida_comentario", {
+        postId: comentario.post_id,
+        comentarioId,
+      });
     }
 
     const postRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [comentario.post_id]);
@@ -1184,6 +1225,68 @@ app.post("/api/conversas/:id(\\d+)/marcar-lida", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao marcar conversa como lida." });
+  }
+});
+
+function mapNotificacao(row) {
+  return {
+    id: row.id,
+    tipo: row.tipo,
+    lida: !!row.lida,
+    criadoEm: row.criado_em,
+    postId: row.post_id,
+    comentarioId: row.comentario_id,
+    ator: {
+      id: row.ator_id,
+      handle: row.ator_username,
+      username: row.ator_nome || row.ator_username,
+      fotoPerfil: row.ator_avatar || "",
+    },
+    trecho: (row.trecho || "").slice(0, 80),
+  };
+}
+
+app.get("/api/users/:id(\\d+)/notifications", async (req, res) => {
+  try {
+    const destinatarioId = Number(req.params.id);
+    const rows = await query(
+      `SELECT n.*, u.username AS ator_username, u.nome_exibicao AS ator_nome, u.avatar_url AS ator_avatar,
+        COALESCE(c.conteudo, p.conteudo) AS trecho
+       FROM notificacoes n
+       JOIN usuarios u ON u.id = n.ator_id
+       LEFT JOIN posts p ON p.id = n.post_id
+       LEFT JOIN comentarios c ON c.id = n.comentario_id
+       WHERE n.destinatario_id = ?
+       ORDER BY n.criado_em DESC
+       LIMIT 50`,
+      [destinatarioId]
+    );
+    res.json(rows.map(mapNotificacao));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar notificações." });
+  }
+});
+
+app.post("/api/notifications/:id(\\d+)/read", async (req, res) => {
+  try {
+    await query("UPDATE notificacoes SET lida = 1 WHERE id = ?", [req.params.id]);
+    res.json({ message: "Notificação marcada como lida." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao marcar notificação como lida." });
+  }
+});
+
+app.post("/api/notifications/read-all", async (req, res) => {
+  try {
+    const usuarioId = Number(req.body?.usuarioId);
+    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+    await query("UPDATE notificacoes SET lida = 1 WHERE destinatario_id = ?", [usuarioId]);
+    res.json({ message: "Notificações marcadas como lidas." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao marcar notificações como lidas." });
   }
 });
 

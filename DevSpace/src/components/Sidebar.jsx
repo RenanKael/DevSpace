@@ -12,6 +12,13 @@ function fallbackAvatar(seed) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed || "usuario")}`;
 }
 
+const TEXTO_ATIVIDADE = {
+  curtida_post: "curtiu seu post",
+  comentario_post: "comentou no seu post",
+  curtida_comentario: "curtiu seu comentário",
+  mencao: "te mencionou em um post",
+};
+
 export default function Sidebar({
   isOpen,
   onToggle,
@@ -27,9 +34,11 @@ export default function Sidebar({
   onDeclineContact,
   unreadConversas = [],
   onOpenUnreadConversa,
+  activityNotifications = [],
+  onOpenActivityNotification,
 }) {
   const [notifAberta, setNotifAberta] = useState(false);
-  const totalNotificacoes = contactRequests.length + unreadConversas.length;
+  const totalNotificacoes = contactRequests.length + unreadConversas.length + activityNotifications.length;
 
   function protegido(acao, mensagem) {
     if (logado) {
@@ -190,6 +199,36 @@ export default function Sidebar({
                             {conv.naoLidas} mensage{conv.naoLidas === 1 ? "m" : "ns"} nova
                             {conv.naoLidas === 1 ? "" : "s"}
                           </span>
+                        </div>
+                      </button>
+                    ))}
+
+                    <h4>Atividade</h4>
+                    {activityNotifications.length === 0 && (
+                      <p className="sidebar-notif-empty">Nenhuma atividade nova.</p>
+                    )}
+                    {activityNotifications.map((notificacao) => (
+                      <button
+                        type="button"
+                        key={notificacao.id}
+                        className="sidebar-notif-item sidebar-notif-item-btn"
+                        onClick={() => {
+                          onOpenActivityNotification?.(notificacao);
+                          setNotifAberta(false);
+                        }}
+                      >
+                        <div
+                          className="sidebar-notif-avatar"
+                          style={{
+                            backgroundImage: `url(${notificacao.ator.fotoPerfil || fallbackAvatar(notificacao.ator.handle)})`,
+                          }}
+                        />
+                        <div className="sidebar-notif-info">
+                          <strong>{notificacao.ator.username}</strong>
+                          <span>{TEXTO_ATIVIDADE[notificacao.tipo] || "interagiu com você"}</span>
+                          {notificacao.trecho && (
+                            <span className="sidebar-notif-trecho">"{notificacao.trecho}"</span>
+                          )}
                         </div>
                       </button>
                     ))}

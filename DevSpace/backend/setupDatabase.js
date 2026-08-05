@@ -304,6 +304,28 @@ const CREATE_STATEMENTS = [
     CONSTRAINT fk_solicitacoes_destinatario FOREIGN KEY (destinatario_id) REFERENCES usuarios (id) ON DELETE CASCADE,
     CONSTRAINT chk_solicitacao_partes_diferentes CHECK (remetente_id <> destinatario_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
+  // Notificacoes de atividade: curtida no post, comentario no post, curtida
+  // no comentario, mencao (@handle) no texto de um post.
+  `CREATE TABLE IF NOT EXISTS notificacoes (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    destinatario_id BIGINT NOT NULL,
+    ator_id BIGINT NOT NULL,
+    tipo VARCHAR(20) NOT NULL,
+    post_id BIGINT DEFAULT NULL,
+    comentario_id BIGINT DEFAULT NULL,
+    lida TINYINT(1) NOT NULL DEFAULT 0,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_notificacoes_destinatario (destinatario_id, lida),
+    KEY idx_notificacoes_post (post_id),
+    KEY idx_notificacoes_comentario (comentario_id),
+    CONSTRAINT fk_notificacoes_destinatario FOREIGN KEY (destinatario_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+    CONSTRAINT fk_notificacoes_ator FOREIGN KEY (ator_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+    CONSTRAINT fk_notificacoes_post FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
+    CONSTRAINT fk_notificacoes_comentario FOREIGN KEY (comentario_id) REFERENCES comentarios (id) ON DELETE CASCADE,
+    CONSTRAINT chk_notificacao_tipo CHECK (tipo IN ('curtida_post', 'comentario_post', 'curtida_comentario', 'mencao'))
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 ];
 
 async function addColumnIfMissing(conn, table, column, definition) {

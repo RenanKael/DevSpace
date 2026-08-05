@@ -157,6 +157,23 @@ export async function declineContactRequest(solicitacaoId, usuarioId) {
   });
 }
 
+export async function fetchNotifications(usuarioId) {
+  return request(`/users/${encodeURIComponent(usuarioId)}/notifications`);
+}
+
+export async function markNotificationAsRead(notificacaoId) {
+  return request(`/notifications/${encodeURIComponent(notificacaoId)}/read`, {
+    method: "POST",
+  });
+}
+
+export async function markAllNotificationsAsRead(usuarioId) {
+  return request("/notifications/read-all", {
+    method: "POST",
+    body: JSON.stringify({ usuarioId }),
+  });
+}
+
 export async function loginUser(emailOrHandle, senha) {
   return request("/auth/login", {
     method: "POST",

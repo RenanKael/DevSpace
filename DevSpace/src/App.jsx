@@ -19,6 +19,8 @@ import {
   acceptContactRequest,
   declineContactRequest,
   fetchUnreadConversas,
+  fetchNotifications,
+  markNotificationAsRead,
 } from "./api";
 
 function fakeAvatar(handle) {
@@ -318,6 +320,7 @@ function App() {
   const [authGateMsg, setAuthGateMsg] = useState(null);
   const [contactRequests, setContactRequests] = useState([]);
   const [unreadConversas, setUnreadConversas] = useState([]);
+  const [activityNotifications, setActivityNotifications] = useState([]);
   const [contactFeedback, setContactFeedback] = useState("");
   const pagina = route.pagina;
   const perfilAlvo = route.perfilAlvo;
@@ -349,20 +352,37 @@ function App() {
     }
   }
 
-  // Busca solicitacoes de contato pendentes e mensagens nao lidas ao logar
-  // e periodicamente (nao ha websocket, entao um polling leve serve como
+  async function recarregarNotificacoes() {
+    if (!usuario?.id) {
+      setActivityNotifications([]);
+      return;
+    }
+    try {
+      const lista = await fetchNotifications(usuario.id);
+      setActivityNotifications(Array.isArray(lista) ? lista : []);
+    } catch {
+      // backend indisponivel; mantem a lista atual
+    }
+  }
+
+  // Busca solicitacoes de contato pendentes, mensagens nao lidas e
+  // notificacoes de atividade (curtida/comentario/mencao) ao logar e
+  // periodicamente (nao ha websocket, entao um polling leve serve como
   // "notificacao").
   useEffect(() => {
     if (!usuario?.id) {
       setContactRequests([]);
       setUnreadConversas([]);
+      setActivityNotifications([]);
       return;
     }
     recarregarContactRequests();
     recarregarMensagensNaoLidas();
+    recarregarNotificacoes();
     const intervalo = window.setInterval(() => {
       recarregarContactRequests();
       recarregarMensagensNaoLidas();
+      recarregarNotificacoes();
     }, 20000);
     return () => window.clearInterval(intervalo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -775,6 +795,18 @@ function App() {
     navigate({ pagina: "chat", perfilAlvo: null });
   }
 
+  // Clicar numa notificacao de atividade (curtida/comentario/mencao) marca
+  // como lida e leva pro feed, reaproveitando o mesmo "rolar ate o post e
+  // destacar" que ja existe pra quando voce acabou de postar.
+  function abrirNotificacaoAtividade(notificacao) {
+    setActivityNotifications((prev) => prev.filter((n) => n.id !== notificacao.id));
+    markNotificationAsRead(notificacao.id).catch(() => {});
+    if (notificacao.postId) {
+      setLastCreatedPostId(notificacao.postId);
+    }
+    navigate({ pagina: "home", perfilAlvo: null });
+  }
+
   function handlePostCreated(post) {
     try {
       const rawPosts = JSON.parse(localStorage.getItem("posts")) || [];
@@ -876,6 +908,8 @@ function App() {
           onDeclineContact={recusarSolicitacaoContato}
           unreadConversas={unreadConversas}
           onOpenUnreadConversa={abrirConversaNaoLida}
+          activityNotifications={activityNotifications}
+          onOpenActivityNotification={abrirNotificacaoAtividade}
         />
 
         <PostModal
@@ -912,6 +946,8 @@ function App() {
           onDeclineContact={recusarSolicitacaoContato}
           unreadConversas={unreadConversas}
           onOpenUnreadConversa={abrirConversaNaoLida}
+          activityNotifications={activityNotifications}
+          onOpenActivityNotification={abrirNotificacaoAtividade}
         />
 
         <PostModal
@@ -945,6 +981,8 @@ function App() {
           onDeclineContact={recusarSolicitacaoContato}
           unreadConversas={unreadConversas}
           onOpenUnreadConversa={abrirConversaNaoLida}
+          activityNotifications={activityNotifications}
+          onOpenActivityNotification={abrirNotificacaoAtividade}
         />
 
         <PostModal
@@ -980,6 +1018,8 @@ function App() {
           onDeclineContact={recusarSolicitacaoContato}
           unreadConversas={unreadConversas}
           onOpenUnreadConversa={abrirConversaNaoLida}
+          activityNotifications={activityNotifications}
+          onOpenActivityNotification={abrirNotificacaoAtividade}
         />
 
         <PostModal
@@ -1015,6 +1055,8 @@ function App() {
         onDeclineContact={recusarSolicitacaoContato}
         unreadConversas={unreadConversas}
         onOpenUnreadConversa={abrirConversaNaoLida}
+        activityNotifications={activityNotifications}
+        onOpenActivityNotification={abrirNotificacaoAtividade}
         onLogout={() => setLogado(false)}
       />
 
