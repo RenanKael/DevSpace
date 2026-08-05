@@ -82,13 +82,43 @@ export default function Login({ onLogin, onVoltar }) {
     setSucesso("");
   }
 
+  // Tenta salvar; se o storage estiver cheio (comum com foto/capa em base64
+  // acumuladas), libera espaco removendo cache que pode ser buscado nvamente
+  // do backend, e so em ultimo caso salva sem foto/capa (evita travar o login).
+  function salvarComResiliencia(storage, chave, usuario) {
+    const salvarTentativa = (dados) => {
+      try {
+        storage.setItem(chave, JSON.stringify(dados));
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (salvarTentativa(usuario)) return;
+
+    try {
+      localStorage.removeItem("posts");
+    } catch {
+      // ignora
+    }
+    if (salvarTentativa(usuario)) return;
+
+    const { fotoPerfil: _fotoPerfil, fotoCapa: _fotoCapa, ...usuarioSemFotos } = usuario;
+    salvarTentativa(usuarioSemFotos);
+  }
+
   function salvarSessao(usuario) {
     if (lembrarMe) {
-      localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
-      localStorage.setItem("lembrarMe", "true");
+      salvarComResiliencia(localStorage, "usuarioLogado", usuario);
+      try {
+        localStorage.setItem("lembrarMe", "true");
+      } catch {
+        // ignora
+      }
       sessionStorage.removeItem("usuarioLogado");
     } else {
-      sessionStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+      salvarComResiliencia(sessionStorage, "usuarioLogado", usuario);
       localStorage.removeItem("usuarioLogado");
       localStorage.removeItem("lembrarMe");
     }
