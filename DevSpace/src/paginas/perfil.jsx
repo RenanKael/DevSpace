@@ -7,7 +7,7 @@ import { deletePost as deletePostRequest, updateUser as updateUserRequest, updat
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
-export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification }) {
+export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
@@ -907,6 +907,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
           onOpenUnreadConversa={onOpenUnreadConversa}
           activityNotifications={activityNotifications}
           onOpenActivityNotification={onOpenActivityNotification}
+          irNotificacoes={irNotificacoes}
         />
         <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
           <h1>Carregando...</h1>
@@ -941,6 +942,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
         onOpenUnreadConversa={onOpenUnreadConversa}
         activityNotifications={activityNotifications}
         onOpenActivityNotification={onOpenActivityNotification}
+        irNotificacoes={irNotificacoes}
       />
 
       <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>

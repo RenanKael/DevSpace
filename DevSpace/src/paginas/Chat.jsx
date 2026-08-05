@@ -49,6 +49,7 @@ export default function Chat({
   onOpenUnreadConversa,
   activityNotifications,
   onOpenActivityNotification,
+  irNotificacoes,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   // Le o usuario logado direto do storage (local ou sessao) apenas uma vez, no mount
@@ -301,6 +302,7 @@ export default function Chat({
         onOpenUnreadConversa={onOpenUnreadConversa}
         activityNotifications={activityNotifications}
         onOpenActivityNotification={onOpenActivityNotification}
+        irNotificacoes={irNotificacoes}
       />
 
       <div className={`chat-page${sidebarOpen ? "" : " sidebar-closed"}`}>

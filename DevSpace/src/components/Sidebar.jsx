@@ -36,6 +36,7 @@ export default function Sidebar({
   onOpenUnreadConversa,
   activityNotifications = [],
   onOpenActivityNotification,
+  irNotificacoes,
 }) {
   const [notifAberta, setNotifAberta] = useState(false);
   const totalNotificacoes = contactRequests.length + unreadConversas.length + activityNotifications.length;
@@ -232,6 +233,17 @@ export default function Sidebar({
                         </div>
                       </button>
                     ))}
+
+                    <button
+                      type="button"
+                      className="sidebar-notif-view-all"
+                      onClick={() => {
+                        irNotificacoes?.();
+                        setNotifAberta(false);
+                      }}
+                    >
+                      Ver todas as notificações
+                    </button>
                   </div>
                 </>
               )}

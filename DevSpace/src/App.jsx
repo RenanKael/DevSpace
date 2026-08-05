@@ -6,6 +6,7 @@ import Perfil from "./paginas/Perfil";
 import PerfilColecao from "./paginas/PerfilColecao";
 import Explorar from "./paginas/explorar";
 import Chat from "./paginas/Chat";
+import Notificacoes from "./paginas/Notificacoes";
 import PostModal from "./components/PostModal";
 import {
   isSameUser,
@@ -156,6 +157,10 @@ function getRouteFromLocation() {
     return { pagina: "chat", perfilAlvo: null, perfilCollection: "curtidos" };
   }
 
+  if (parts[0] === "notificacoes") {
+    return { pagina: "notificacoes", perfilAlvo: null, perfilCollection: "curtidos" };
+  }
+
   if (parts[0] === "perfil" && parts[1] === "colecao" && COLLECTION_TYPES.has(parts[2])) {
     return { pagina: "perfilColecao", perfilAlvo: null, perfilCollection: parts[2] };
   }
@@ -175,6 +180,7 @@ function getRouteFromLocation() {
 function buildRouteUrl(pagina, perfilAlvo, perfilCollection) {
   if (pagina === "explorar") return "/explorar";
   if (pagina === "chat") return "/chat";
+  if (pagina === "notificacoes") return "/notificacoes";
   if (pagina === "perfilColecao") return `/perfil/colecao/${perfilCollection || "curtidos"}`;
   if (pagina === "perfil") {
     const handle = (perfilAlvo?.handle || "").replace(/^@+/, "").trim();
@@ -870,6 +876,7 @@ function App() {
   const paginaExigeLogin =
     pagina === "chat" ||
     pagina === "perfilColecao" ||
+    pagina === "notificacoes" ||
     (pagina === "perfil" && !perfilAlvo);
 
   if (mostrarLogin || (!logado && paginaExigeLogin)) {
@@ -910,6 +917,7 @@ function App() {
           onOpenUnreadConversa={abrirConversaNaoLida}
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
+          irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
         />
 
         <PostModal
@@ -948,6 +956,7 @@ function App() {
           onOpenUnreadConversa={abrirConversaNaoLida}
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
+          irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
         />
 
         <PostModal
@@ -983,6 +992,7 @@ function App() {
           onOpenUnreadConversa={abrirConversaNaoLida}
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
+          irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
         />
 
         <PostModal
@@ -1011,6 +1021,42 @@ function App() {
           onOpenUserProfile={abrirPerfilAlvo}
           chatAlvo={chatAlvo}
           onChatAlvoConsumido={() => setChatAlvo(null)}
+          logado={logado}
+          onRequireAuth={solicitarLogin}
+          contactRequests={contactRequests}
+          onAcceptContact={aceitarSolicitacaoContato}
+          onDeclineContact={recusarSolicitacaoContato}
+          unreadConversas={unreadConversas}
+          onOpenUnreadConversa={abrirConversaNaoLida}
+          activityNotifications={activityNotifications}
+          onOpenActivityNotification={abrirNotificacaoAtividade}
+          irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+        />
+
+        <PostModal
+          open={isPostModalOpen}
+          onClose={handleClosePost}
+          usuario={usuario}
+          onPostSaved={handlePostCreated}
+        />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        {authGateMsg && (
+          <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
+        )}
+        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
+      </>
+    );
+  }
+
+  if (pagina === "notificacoes") {
+    return (
+      <>
+        <Notificacoes
+          irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
+          irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
+          irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
+          irChat={() => navigate({ pagina: "chat", perfilAlvo: null })}
+          onOpenPost={handleOpenPost}
           logado={logado}
           onRequireAuth={solicitarLogin}
           contactRequests={contactRequests}
@@ -1057,6 +1103,7 @@ function App() {
         onOpenUnreadConversa={abrirConversaNaoLida}
         activityNotifications={activityNotifications}
         onOpenActivityNotification={abrirNotificacaoAtividade}
+        irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
         onLogout={() => setLogado(false)}
       />
 

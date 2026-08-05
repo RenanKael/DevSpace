@@ -1,0 +1,133 @@
+.notificacoes-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+}
+
+.notif-section {
+  margin-bottom: 28px;
+}
+
+.notif-section h4 {
+  padding: 6px 4px 12px;
+  font-size: 13px;
+  color: #9aa4b2;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid #23272f;
+  margin-bottom: 4px;
+}
+
+.notif-section-empty {
+  padding: 22px 10px;
+  font-size: 13px;
+  color: #7a8492;
+  text-align: center;
+}
+
+.notif-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 6px;
+  border-radius: 10px;
+  border-bottom: 1px solid #1c2027;
+}
+
+.notif-row:last-child {
+  border-bottom: none;
+}
+
+button.notif-row {
+  width: 100%;
+  background: none;
+  border: none;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notif-row:hover {
+  background: #14171c;
+}
+
+.notif-row-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: #2c313b;
+  flex-shrink: 0;
+}
+
+.notif-row-info {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.notif-row-info strong {
+  display: block;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-row-info span {
+  color: #b7bec9;
+}
+
+.notif-row-trecho {
+  display: block;
+  margin-top: 2px;
+  color: #7a8492;
+  font-size: 13px;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-row-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.notif-row-actions button {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.notif-aceitar {
+  background: #2f6fed;
+  color: #fff;
+}
+
+.notif-aceitar:hover {
+  background: #4a83f0;
+}
+
+.notif-recusar {
+  background: #23272f;
+  color: #ccc;
+}
+
+.notif-recusar:hover {
+  background: #2c313b;
+}
+
+.notif-page-empty {
+  padding: 60px 10px;
+  text-align: center;
+  color: #7a8492;
+  font-size: 14px;
+}
