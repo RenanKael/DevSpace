@@ -109,6 +109,16 @@ export default function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sem websocket, entao "quase tempo real" e um polling curto: busca
+  // mensagens novas a cada poucos segundos enquanto a tela de chat estiver
+  // aberta (tanto a lista quanto a conversa ativa vem no mesmo fetch).
+  useEffect(() => {
+    if (!usuarioLogado?.id) return;
+    const intervalo = window.setInterval(recarregarConversas, 3000);
+    return () => window.clearInterval(intervalo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuarioLogado?.id]);
+
   // Busca em lote as imagens de bot ainda faltando no cache (mensagens reais
   // ja trazem a imagem embutida, entao isso so afeta conversas locais)
   useEffect(() => {

@@ -191,25 +191,28 @@ body {
 
 .sidebar-notif-icon-wrap {
   position: relative;
-  display: inline-flex;
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
 
 .sidebar-notif-badge {
   position: absolute;
-  top: -7px;
-  right: -9px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
   background: #ef4444;
   color: #fff;
   font-size: 10px;
-  line-height: 18px;
+  line-height: 16px;
   font-weight: 700;
   font-family: Arial, sans-serif;
   text-align: center;
-  border-radius: 999px;
-  box-shadow: 0 0 0 2px #000;
+  border-radius: 8px;
+  z-index: 2;
 }
 
 .sidebar-notif-panel {
