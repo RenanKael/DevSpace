@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
+import CameraIcon from "../components/CameraIcon";
 import "../style/chat.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 import {
@@ -317,10 +318,18 @@ export default function Chat({
                 />
                 <div className="chat-list-item-info">
                   <strong>{outro.username}</strong>
-                  <span>
-                    {!ultimaMsg
-                      ? "Diga oi!"
-                      : ultimaMsg.texto || (ultimaMsg.imagem || ultimaMsg.imagemId ? "📷 Imagem" : "")}
+                  <span className="chat-list-item-preview">
+                    {!ultimaMsg ? (
+                      "Diga oi!"
+                    ) : ultimaMsg.texto ? (
+                      ultimaMsg.texto
+                    ) : ultimaMsg.imagem || ultimaMsg.imagemId ? (
+                      <>
+                        <CameraIcon size={14} /> Imagem
+                      </>
+                    ) : (
+                      ""
+                    )}
                   </span>
                 </div>
               </button>
@@ -405,7 +414,7 @@ export default function Chat({
                     title="Enviar imagem"
                     onClick={() => arquivoInputRef.current?.click()}
                   >
-                    🖼️
+                    <CameraIcon size={19} />
                   </button>
 
                   {/* Botao + painel do seletor de emojis (lista EMOJIS definida no topo do arquivo) */}
