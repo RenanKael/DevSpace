@@ -387,9 +387,17 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(400).json({ message: "Email/@ e senha são obrigatórios." });
     }
 
+    // Aceita login por email, @ (username) ou telefone (comparado so pelos
+    // digitos, pra tolerar espacos/traco/parenteses no que a pessoa digitar).
+    const identificador = emailOrHandle.trim();
+    const somenteDigitos = identificador.replace(/\D/g, "");
+
     const row = await queryOne(
-      "SELECT * FROM usuarios WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)",
-      [emailOrHandle, emailOrHandle]
+      `SELECT * FROM usuarios
+       WHERE LOWER(email) = LOWER(?)
+          OR LOWER(username) = LOWER(?)
+          OR (telefone IS NOT NULL AND telefone <> '' AND ? <> '' AND telefone = ?)`,
+      [identificador, identificador, somenteDigitos, somenteDigitos]
     );
 
     const senhaOk = row ? await bcrypt.compare(senha, row.senha_hash) : false;
