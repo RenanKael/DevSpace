@@ -24,6 +24,12 @@ const CREATE_STATEMENTS = [
     site_url TEXT,
     disponivel_contratacao TINYINT(1) NOT NULL DEFAULT 0,
     is_admin TINYINT(1) NOT NULL DEFAULT 0,
+    pos_perfil_x SMALLINT NOT NULL DEFAULT 50,
+    pos_perfil_y SMALLINT NOT NULL DEFAULT 50,
+    pos_capa_x SMALLINT NOT NULL DEFAULT 50,
+    pos_capa_y SMALLINT NOT NULL DEFAULT 50,
+    zoom_perfil SMALLINT NOT NULL DEFAULT 100,
+    zoom_capa SMALLINT NOT NULL DEFAULT 100,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -359,6 +365,12 @@ async function main() {
   await addColumnIfMissing(conn, "usuarios", "foto_capa_url", "foto_capa_url LONGTEXT AFTER avatar_url");
   await addColumnIfMissing(conn, "usuarios", "disponivel_contratacao", "disponivel_contratacao TINYINT(1) NOT NULL DEFAULT 0 AFTER site_url");
   await addColumnIfMissing(conn, "usuarios", "is_admin", "is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER disponivel_contratacao");
+  await addColumnIfMissing(conn, "usuarios", "pos_perfil_x", "pos_perfil_x SMALLINT NOT NULL DEFAULT 50 AFTER is_admin");
+  await addColumnIfMissing(conn, "usuarios", "pos_perfil_y", "pos_perfil_y SMALLINT NOT NULL DEFAULT 50 AFTER pos_perfil_x");
+  await addColumnIfMissing(conn, "usuarios", "pos_capa_x", "pos_capa_x SMALLINT NOT NULL DEFAULT 50 AFTER pos_perfil_y");
+  await addColumnIfMissing(conn, "usuarios", "pos_capa_y", "pos_capa_y SMALLINT NOT NULL DEFAULT 50 AFTER pos_capa_x");
+  await addColumnIfMissing(conn, "usuarios", "zoom_perfil", "zoom_perfil SMALLINT NOT NULL DEFAULT 100 AFTER pos_capa_y");
+  await addColumnIfMissing(conn, "usuarios", "zoom_capa", "zoom_capa SMALLINT NOT NULL DEFAULT 100 AFTER zoom_perfil");
 
   // Niveis de estrela padrao (usados por user_star_stats). So insere o que faltar.
   const niveis = [

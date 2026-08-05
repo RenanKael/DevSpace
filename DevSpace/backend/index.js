@@ -104,6 +104,10 @@ async function mapUsuario(row) {
     linguagemPrincipal: row.linguagem_principal || "",
     disponivelContratacao: !!row.disponivel_contratacao,
     isAdmin,
+    posPerfil: { x: Number(row.pos_perfil_x ?? 50), y: Number(row.pos_perfil_y ?? 50) },
+    posCapa: { x: Number(row.pos_capa_x ?? 50), y: Number(row.pos_capa_y ?? 50) },
+    zoomPerfil: Number(row.zoom_perfil ?? 100),
+    zoomCapa: Number(row.zoom_capa ?? 100),
     criadoEm: row.criado_em,
     seguidores: Number(seguidoresRows[0]?.c || 0),
     seguindo: seguindoRows.map((r) => r.username),
@@ -161,6 +165,8 @@ app.put("/api/users/:id(\\d+)", async (req, res) => {
       stack: "stack",
       linguagemPrincipal: "linguagem_principal",
       disponivelContratacao: "disponivel_contratacao",
+      zoomPerfil: "zoom_perfil",
+      zoomCapa: "zoom_capa",
     };
 
     const fields = [];
@@ -172,6 +178,16 @@ app.put("/api/users/:id(\\d+)", async (req, res) => {
       fields.push(`${column} = ?`);
       values.push(key === "disponivelContratacao" ? (value ? 1 : 0) : value);
     });
+
+    // posPerfil/posCapa sao objetos {x, y}, cada um mapeando pra duas colunas
+    if (updates.posPerfil && typeof updates.posPerfil === "object") {
+      fields.push("pos_perfil_x = ?", "pos_perfil_y = ?");
+      values.push(Number(updates.posPerfil.x) || 50, Number(updates.posPerfil.y) || 50);
+    }
+    if (updates.posCapa && typeof updates.posCapa === "object") {
+      fields.push("pos_capa_x = ?", "pos_capa_y = ?");
+      values.push(Number(updates.posCapa.x) || 50, Number(updates.posCapa.y) || 50);
+    }
 
     if (updates.senha) {
       const atual = await queryOne("SELECT senha_hash FROM usuarios WHERE id = ?", [req.params.id]);

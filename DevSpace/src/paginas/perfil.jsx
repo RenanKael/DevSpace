@@ -469,15 +469,18 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
           fotoPerfil: atualizado.fotoPerfil,
           fotoCapa: atualizado.fotoCapa,
           disponivelContratacao: atualizado.disponivelContratacao,
+          posPerfil: atualizado.posPerfil,
+          posCapa: atualizado.posCapa,
+          zoomPerfil: atualizado.zoomPerfil,
+          zoomCapa: atualizado.zoomCapa,
         };
         if (querAlterarSenha) {
           payload.senha = novaSenhaPerfil;
           payload.senhaAtual = senhaAtualPerfil;
         }
         const backendUser = await updateUserRequest(usuario.id, payload);
-        // backendUser nao inclui posPerfil/posCapa/zoom/senha (preferencias
-        // locais de UI e senha nunca voltam do servidor), entao o spread so
-        // atualiza os campos que o backend realmente controla.
+        // backendUser ja inclui posPerfil/posCapa/zoom confirmados pelo
+        // servidor; so a senha nunca volta (nem deveria).
         atualizado = { ...atualizado, ...backendUser, senha: atualizado.senha };
       } catch (error) {
         setErro(error.message || "Erro ao salvar perfil no servidor.");
