@@ -164,6 +164,13 @@ export async function loginUser(emailOrHandle, senha) {
   });
 }
 
+export async function resetPasswordApi(emailOrHandle, novaSenha) {
+  return request("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ emailOrHandle, novaSenha }),
+  });
+}
+
 export async function registerUser(user) {
   return request("/auth/register", {
     method: "POST",

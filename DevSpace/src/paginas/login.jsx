@@ -3,7 +3,7 @@ import "../style/login.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
 import googleIcon from "../assets/IMGS/Google.png";
-import { loginUser, registerUser, fetchUsers } from "../api";
+import { loginUser, registerUser, fetchUsers, resetPasswordApi } from "../api";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -281,19 +281,17 @@ export default function Login({ onLogin, onVoltar }) {
       return;
     }
 
+    // A checagem local e so pra exibir o email/@ na tela de confirmacao;
+    // quem realmente valida se a conta existe e o backend, la no final
+    // (salvarNovaSenhaRecuperada), entao nao bloqueia se nao achar aqui.
     const usuarios = getUsuarios();
     const usuarioEncontrado = encontrarUsuarioPorLogin(usuarios, contatoLimpo);
 
-    if (!usuarioEncontrado) {
-      setErro("Nao encontramos uma conta com esses dados.");
-      return;
-    }
-
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-    setRecSenhaUsuario(usuarioEncontrado);
+    setRecSenhaUsuario(usuarioEncontrado || { email: contatoLimpo, username: contatoLimpo, handle: contatoLimpo });
     setRecSenhaCodigoEnviado(codigo);
     setRecSenhaCodigoDigitado("");
-    setSucesso(`Codigo enviado para ${usuarioEncontrado.email}.`);
+    setSucesso(`Codigo enviado para ${usuarioEncontrado?.email || contatoLimpo}.`);
     setEtapa("esqueciSenhaCodigo");
   }
 
@@ -309,7 +307,7 @@ export default function Login({ onLogin, onVoltar }) {
     setEtapa("esqueciSenhaNova");
   }
 
-  function salvarNovaSenhaRecuperada() {
+  async function salvarNovaSenhaRecuperada() {
     limparAvisos();
 
     if (recSenhaNovaSenha.length < 6) {
@@ -322,16 +320,23 @@ export default function Login({ onLogin, onVoltar }) {
       return;
     }
 
+    try {
+      await resetPasswordApi(recSenhaContato.trim(), recSenhaNovaSenha);
+    } catch (error) {
+      setErro(error.message || "Nao foi possivel redefinir a senha. Tente novamente.");
+      return;
+    }
+
+    // Mantem tambem a copia local em dia (contas antigas local-only).
     const usuarios = getUsuarios();
     const atualizados = usuarios.map((u) =>
-      (u.email || "").toLowerCase() === (recSenhaUsuario.email || "").toLowerCase()
+      (u.email || "").toLowerCase() === (recSenhaUsuario?.email || "").toLowerCase()
         ? { ...u, senha: recSenhaNovaSenha }
         : u
     );
-
     localStorage.setItem("usuarios", JSON.stringify(atualizados));
 
-    setLogin(recSenhaUsuario.email || recSenhaUsuario.handle || "");
+    setLogin(recSenhaUsuario?.email || recSenhaUsuario?.handle || recSenhaContato);
     setSenhaLogin("");
     setRecSenhaContato("");
     setRecSenhaCodigoEnviado("");

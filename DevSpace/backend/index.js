@@ -380,6 +380,21 @@ app.get("/api/users/:handle", async (req, res) => {
 
 // ---------- Autenticação ----------
 
+// Aceita email, @ (username) ou telefone (comparado so pelos digitos, pra
+// tolerar espacos/traco/parenteses no que a pessoa digitar).
+async function encontrarUsuarioPorIdentificador(identificadorBruto) {
+  const identificador = (identificadorBruto || "").trim();
+  const somenteDigitos = identificador.replace(/\D/g, "");
+
+  return queryOne(
+    `SELECT * FROM usuarios
+     WHERE LOWER(email) = LOWER(?)
+        OR LOWER(username) = LOWER(?)
+        OR (telefone IS NOT NULL AND telefone <> '' AND ? <> '' AND telefone = ?)`,
+    [identificador, identificador, somenteDigitos, somenteDigitos]
+  );
+}
+
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { emailOrHandle, senha } = req.body;
@@ -387,19 +402,7 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(400).json({ message: "Email/@ e senha são obrigatórios." });
     }
 
-    // Aceita login por email, @ (username) ou telefone (comparado so pelos
-    // digitos, pra tolerar espacos/traco/parenteses no que a pessoa digitar).
-    const identificador = emailOrHandle.trim();
-    const somenteDigitos = identificador.replace(/\D/g, "");
-
-    const row = await queryOne(
-      `SELECT * FROM usuarios
-       WHERE LOWER(email) = LOWER(?)
-          OR LOWER(username) = LOWER(?)
-          OR (telefone IS NOT NULL AND telefone <> '' AND ? <> '' AND telefone = ?)`,
-      [identificador, identificador, somenteDigitos, somenteDigitos]
-    );
-
+    const row = await encontrarUsuarioPorIdentificador(emailOrHandle);
     const senhaOk = row ? await bcrypt.compare(senha, row.senha_hash) : false;
     if (!row || !senhaOk) {
       return res.status(401).json({ message: "Email/@ ou senha incorretos." });
@@ -409,6 +412,34 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao autenticar o usuário." });
+  }
+});
+
+// A verificacao de identidade ("codigo enviado") acontece so no frontend
+// (simulada, sem SMS/email de verdade) -- por isso essa rota nao pede a
+// senha atual, so o identificador (ja "confirmado" pela etapa anterior).
+app.post("/api/auth/reset-password", async (req, res) => {
+  try {
+    const { emailOrHandle, novaSenha } = req.body;
+    if (!emailOrHandle || !novaSenha) {
+      return res.status(400).json({ message: "Identificador e nova senha são obrigatórios." });
+    }
+    if (novaSenha.length < 6) {
+      return res.status(400).json({ message: "A nova senha precisa ter pelo menos 6 caracteres." });
+    }
+
+    const row = await encontrarUsuarioPorIdentificador(emailOrHandle);
+    if (!row) {
+      return res.status(404).json({ message: "Não encontramos uma conta com esses dados." });
+    }
+
+    const hash = await bcrypt.hash(novaSenha, 10);
+    await query("UPDATE usuarios SET senha_hash = ? WHERE id = ?", [hash, row.id]);
+
+    res.json({ message: "Senha redefinida com sucesso." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao redefinir a senha." });
   }
 });
 
