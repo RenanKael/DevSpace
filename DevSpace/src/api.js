@@ -48,6 +48,79 @@ export async function deletePost(postId) {
   });
 }
 
+export async function likePost(postId, usuarioId) {
+  return request(`/posts/${encodeURIComponent(postId)}/like`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId }),
+  });
+}
+
+export async function sharePost(postId, usuarioId) {
+  return request(`/posts/${encodeURIComponent(postId)}/share`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId }),
+  });
+}
+
+export async function bookmarkPost(postId, usuarioId) {
+  return request(`/posts/${encodeURIComponent(postId)}/bookmark`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId }),
+  });
+}
+
+export async function votePoll(postId, usuarioId, optionIndex) {
+  return request(`/posts/${encodeURIComponent(postId)}/poll/vote`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId, optionIndex }),
+  });
+}
+
+export async function addComment(postId, usuarioId, texto, parentId) {
+  return request(`/posts/${encodeURIComponent(postId)}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId, texto, parentId }),
+  });
+}
+
+export async function deleteComment(commentId) {
+  return request(`/comments/${encodeURIComponent(commentId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function likeComment(commentId, usuarioId) {
+  return request(`/comments/${encodeURIComponent(commentId)}/like`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId }),
+  });
+}
+
+export async function followUser(usuarioAlvoId, seguidorId) {
+  return request(`/users/${encodeURIComponent(usuarioAlvoId)}/follow`, {
+    method: "POST",
+    body: JSON.stringify({ seguidorId }),
+  });
+}
+
+export async function fetchConversas(usuarioId) {
+  return request(`/conversas?usuarioId=${encodeURIComponent(usuarioId)}`);
+}
+
+export async function getOrCreateConversaApi(usuarioId, outroUsuarioId) {
+  return request("/conversas", {
+    method: "POST",
+    body: JSON.stringify({ usuarioId, outroUsuarioId }),
+  });
+}
+
+export async function enviarMensagemApi(conversaId, usuarioId, texto, imagem) {
+  return request(`/conversas/${encodeURIComponent(conversaId)}/mensagens`, {
+    method: "POST",
+    body: JSON.stringify({ usuarioId, texto, imagem }),
+  });
+}
+
 export async function loginUser(emailOrHandle, senha) {
   return request("/auth/login", {
     method: "POST",

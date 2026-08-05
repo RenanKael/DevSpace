@@ -4,7 +4,25 @@ import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
-import { fetchPosts, fetchUsers, deletePost as deletePostRequest } from "../api";
+import {
+  fetchPosts,
+  fetchUsers,
+  deletePost as deletePostRequest,
+  likePost,
+  sharePost,
+  bookmarkPost,
+  votePoll,
+  addComment,
+  deleteComment,
+  likeComment,
+  followUser,
+} from "../api";
+
+const ACTION_API_CALLS = {
+  likes: likePost,
+  shares: sharePost,
+  bookmarks: bookmarkPost,
+};
 import {
   recordUserCommentProgress,
   recordUserLikeProgress,
@@ -607,6 +625,12 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     if (salvarPosts(updatedPosts)) {
       setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
     }
+
+    if (!currentPost?.isSeedFake && usuario?.id) {
+      ACTION_API_CALLS[action]?.(postId, usuario.id).catch(() => {
+        // post local-only ou backend indisponivel; o estado otimista local ja foi aplicado
+      });
+    }
   }
 
   function togglePollVote(postId, optionIndex) {
@@ -619,6 +643,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     if (!userKey) return;
 
     const sourcePosts = getStoredPosts(posts);
+    const targetPost = sourcePosts.find((post) => post.id === postId);
     const updatedPosts = sourcePosts.map((post) => {
       if (post.id !== postId || !post.poll) return post;
 
@@ -645,6 +670,12 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     if (salvarPosts(updatedPosts)) {
       setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
     }
+
+    if (!targetPost?.isSeedFake && usuario?.id) {
+      votePoll(postId, usuario.id, optionIndex).catch(() => {
+        // post local-only ou backend indisponivel; o estado otimista local ja foi aplicado
+      });
+    }
   }
 
   function addCommentToPost(postId, texto, parentId = null, imagem = null) {
@@ -660,6 +691,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     const commentHandle = (usuarioAtualizado.handle || usuarioAtualizado.username || "usuario").replace(/\s+/g, "").toLowerCase();
 
     const sourcePosts = getStoredPosts(posts);
+    const targetPost = sourcePosts.find((post) => post.id === postId);
     let didUpdate = false;
     const updatedPosts = sourcePosts.map((post) => {
       if (post.id !== postId) return post;
@@ -692,6 +724,24 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     setUsuario(usuarioAtualizado);
     commitStarProgress(usuarioAtualizado, recordUserCommentProgress);
     setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
+
+    if (!targetPost?.isSeedFake && usuarioAtualizado?.id) {
+      addComment(postId, usuarioAtualizado.id, texto.trim(), parentId)
+        .then((fullPost) => {
+          // troca o comentario otimista (id temporario) pelos dados reais do
+          // backend, para que curtir/excluir esse comentario funcione depois
+          const reconciled = getStoredPosts(posts).map((post) =>
+            post.id === postId ? { ...post, ...fullPost, isSeedFake: false } : post
+          );
+          if (salvarPosts(reconciled)) {
+            setPosts(sortPostsByDate(hydratePostsForDisplay(reconciled, usuarios)));
+          }
+        })
+        .catch(() => {
+          // backend indisponivel; o estado otimista local ja foi aplicado
+        });
+    }
+
     return true;
   }
 
@@ -699,6 +749,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     if (!usuario) return;
 
     const sourcePosts = getStoredPosts(posts);
+    const targetPost = sourcePosts.find((post) => post.id === postId);
     const updatedPosts = sourcePosts.map((post) => {
       if (post.id !== postId) return post;
 
@@ -716,6 +767,12 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     if (salvarPosts(updatedPosts)) {
       setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
     }
+
+    if (!targetPost?.isSeedFake) {
+      deleteComment(commentId).catch(() => {
+        // comentario local-only ou backend indisponivel; o estado otimista local ja foi aplicado
+      });
+    }
   }
 
   function toggleCommentLike(postId, commentId) {
@@ -729,6 +786,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     if (!userKey) return;
 
     const sourcePosts = getStoredPosts(posts);
+    const targetPost = sourcePosts.find((post) => post.id === postId);
     const updatedPosts = sourcePosts.map((post) => {
       if (post.id !== postId) return post;
 
@@ -759,6 +817,12 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
 
     if (salvarPosts(updatedPosts)) {
       setPosts(sortPostsByDate(hydratePostsForDisplay(updatedPosts, usuarios)));
+    }
+
+    if (!targetPost?.isSeedFake && storedUser?.id) {
+      likeComment(commentId, storedUser.id).catch(() => {
+        // comentario local-only ou backend indisponivel; o estado otimista local ja foi aplicado
+      });
     }
   }
 
@@ -1331,6 +1395,14 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     }
     setUsuarios(nextUsers);
     setUsuario(nextLogged);
+
+    // profile.id so existe quando o perfil sugerido veio de fato do backend
+    // (perfis 100% ficticios do SUGGESTED_PROFILE_POOL nao tem id real)
+    if (usuario?.id && profile?.id) {
+      followUser(profile.id, usuario.id).catch(() => {
+        // backend indisponivel; o estado otimista local ja foi aplicado
+      });
+    }
   }
 
   const selectedPostData = selectedPost

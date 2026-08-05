@@ -2,14 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/chat.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
-import {
-  loadConversasDoUsuario,
-  getOrCreateConversa,
-  enviarMensagem,
-  normalizeHandle,
-} from "../utils/chat";
+import { normalizeHandle } from "../utils/chat";
 import { resizeImageForChat } from "../utils/image";
-import { carregarImagem } from "../utils/imageStore";
+import { fetchConversas, getOrCreateConversaApi, enviarMensagemApi } from "../api";
 
 // Gera um avatar padrao (via DiceBear) quando o usuario nao tem foto de perfil
 function fallbackAvatar(seed) {
@@ -48,86 +43,49 @@ export default function Chat({
   const [emojiAberto, setEmojiAberto] = useState(false); // controla se o seletor de emojis esta visivel
   const arquivoInputRef = useRef(null); // input file oculto, disparado pelo botao de imagem
   const textoInputRef = useRef(null); // usado para devolver o foco ao campo de texto
-  const idsEmBuscaRef = useRef(new Set()); // evita buscar a mesma imagem mais de uma vez em paralelo
   const mensagensFimRef = useRef(null); // sentinela no fim da lista, usado para rolar ate a ultima mensagem
   const conversaAnteriorIdRef = useRef(null); // guarda o id da conversa anterior, para saber se houve troca de conversa
-  const [imagensCache, setImagensCache] = useState({}); // mapa imagemId -> dataURL ja carregado
 
   const meuHandle = normalizeHandle(usuarioLogado?.handle || usuarioLogado?.username);
 
-  // Retorna a imagem a exibir na bolha da mensagem: inline (base64) ou buscada do cache por id
+  // Imagem ja vem embutida (base64) na mensagem retornada pelo backend
   function resolverImagemMensagem(mensagem) {
-    if (mensagem.imagem) return mensagem.imagem;
-    if (mensagem.imagemId) return imagensCache[mensagem.imagemId] || "";
-    return "";
+    return mensagem.imagem || "";
   }
 
-  // Recarrega a lista de conversas do usuario logado a partir do storage e atualiza o estado
-  function recarregarConversas() {
-    if (!usuarioLogado) return [];
-    const lista = loadConversasDoUsuario(meuHandle);
-    setConversas(lista);
-    return lista;
-  }
-
-  // No mount: carrega as conversas, seleciona a primeira como ativa e escuta
-  // o evento global "devspaceConversasUpdated" (disparado em utils/chat) para
-  // manter a lista sincronizada quando outra parte do app mexe nas conversas
-  useEffect(() => {
-    const lista = recarregarConversas();
-    if (!conversaAtivaId && lista.length > 0) {
-      setConversaAtivaId(lista[0].id);
+  // Recarrega a lista de conversas do usuario logado a partir do backend e atualiza o estado
+  async function recarregarConversas() {
+    if (!usuarioLogado?.id) return [];
+    try {
+      const lista = await fetchConversas(usuarioLogado.id);
+      setConversas(Array.isArray(lista) ? lista : []);
+      return Array.isArray(lista) ? lista : [];
+    } catch {
+      return [];
     }
+  }
 
-    const onUpdate = () => recarregarConversas();
-    window.addEventListener("devspaceConversasUpdated", onUpdate);
-    return () => window.removeEventListener("devspaceConversasUpdated", onUpdate);
+  // No mount: carrega as conversas do backend e seleciona a primeira como ativa
+  useEffect(() => {
+    recarregarConversas().then((lista) => {
+      if (!conversaAtivaId && lista.length > 0) {
+        setConversaAtivaId(lista[0].id);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Quando a pagina recebe um "chatAlvo" (ex: veio do botao "Contatar" de um perfil),
   // busca ou cria a conversa com essa pessoa e a abre automaticamente
   useEffect(() => {
-    if (!chatAlvo || !usuarioLogado) return;
-    const conversa = getOrCreateConversa(usuarioLogado, chatAlvo);
-    setConversaAtivaId(conversa.id);
-    recarregarConversas();
-    onChatAlvoConsumido?.();
+    if (!chatAlvo || !usuarioLogado?.id || !chatAlvo.id) return;
+    getOrCreateConversaApi(usuarioLogado.id, chatAlvo.id).then((conversa) => {
+      setConversaAtivaId(conversa.id);
+      recarregarConversas();
+      onChatAlvoConsumido?.();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatAlvo]);
-
-  // Mensagens com imagem grande guardam so um "imagemId" (nao a imagem inteira).
-  // Este efeito varre as conversas, descobre quais imagens ainda faltam no cache
-  // e as busca em lote (via carregarImagem) sem repetir buscas em andamento
-  useEffect(() => {
-    const idsFaltando = [];
-    conversas.forEach((c) => {
-      c.mensagens.forEach((m) => {
-        if (m.imagemId && !imagensCache[m.imagemId] && !idsEmBuscaRef.current.has(m.imagemId)) {
-          idsFaltando.push(m.imagemId);
-        }
-      });
-    });
-    if (idsFaltando.length === 0) return;
-
-    idsFaltando.forEach((id) => idsEmBuscaRef.current.add(id));
-
-    let cancelado = false;
-    Promise.all(idsFaltando.map((id) => carregarImagem(id).then((url) => [id, url]))).then((pares) => {
-      if (cancelado) return;
-      setImagensCache((atual) => {
-        const novo = { ...atual };
-        pares.forEach(([id, url]) => {
-          if (url) novo[id] = url;
-        });
-        return novo;
-      });
-    });
-
-    return () => {
-      cancelado = true;
-    };
-  }, [conversas, imagensCache]);
 
   const conversaAtiva = conversas.find((c) => c.id === conversaAtivaId) || null;
 
@@ -149,15 +107,22 @@ export default function Chat({
 
   // Envia a mensagem (texto e/ou imagem) da conversa ativa e limpa o formulario
   async function enviar() {
-    if (!conversaAtiva || (!texto.trim() && !imagemSelecionada)) return;
+    if (!conversaAtiva || !usuarioLogado?.id || (!texto.trim() && !imagemSelecionada)) return;
 
-    const enviada = await enviarMensagem(conversaAtiva.id, meuHandle, texto, imagemSelecionada);
-    if (!enviada) return;
-
-    setTexto("");
-    setImagemSelecionada("");
-    setEmojiAberto(false);
-    recarregarConversas();
+    try {
+      const conversaAtualizada = await enviarMensagemApi(
+        conversaAtiva.id,
+        usuarioLogado.id,
+        texto,
+        imagemSelecionada
+      );
+      setConversas((prev) => prev.map((c) => (c.id === conversaAtualizada.id ? conversaAtualizada : c)));
+      setTexto("");
+      setImagemSelecionada("");
+      setEmojiAberto(false);
+    } catch {
+      // falha ao enviar; mantem o texto/imagem no formulario para o usuario tentar de novo
+    }
   }
 
   // Submit do formulario (clique no botao enviar)
@@ -282,7 +247,7 @@ export default function Chat({
                 {conversaAtiva.mensagens.map((m, i) => {
                   const imgSrc = resolverImagemMensagem(m);
                   return (
-                    <div key={i} className={`chat-bubble${m.autor === meuHandle ? " own" : ""}`}>
+                    <div key={m.id ?? i} className={`chat-bubble${m.autor === meuHandle ? " own" : ""}`}>
                       {imgSrc && <img className="chat-bubble-imagem" src={imgSrc} alt="Imagem enviada" />}
                       {m.texto && <span>{m.texto}</span>}
                     </div>
