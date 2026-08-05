@@ -87,20 +87,20 @@ export default function Sidebar({
 
           <div
             className="nav-item"
-            data-label="Perfil"
-            onClick={() => protegido(irPerfil, "Entre para ver e editar seu perfil.")}
-          >
-            <img src={perfil} alt="" />
-            <span>Perfil</span>
-          </div>
-
-          <div
-            className="nav-item"
             data-label="Chat"
             onClick={() => protegido(irChat, "Entre para conversar com outras pessoas.")}
           >
             <ChatIcon />
             <span>Chat</span>
+          </div>
+
+          <div
+            className="nav-item"
+            data-label="Perfil"
+            onClick={() => protegido(irPerfil, "Entre para ver e editar seu perfil.")}
+          >
+            <img src={perfil} alt="" />
+            <span>Perfil</span>
           </div>
 
           {logado && (
