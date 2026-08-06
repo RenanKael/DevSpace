@@ -1162,7 +1162,11 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
   }, [refreshFeed]);
 
   useEffect(() => {
-    let lastScroll = 0;
+    // Comeca do scroll atual, nao de 0: se voce volta pro feed ja rolado
+    // (o navegador preserva a posicao entre paginas), comparar contra 0
+    // fazia a topbar sumir sozinha na primeira rolagem, mesmo sem ter
+    // rolado de verdade.
+    let lastScroll = window.scrollY;
 
     const handleScroll = () => {
       const currentScroll = window.scrollY;
