@@ -262,6 +262,72 @@ app.post("/api/users/:id(\\d+)/follow", async (req, res) => {
   }
 });
 
+// ---------- Bloqueios ----------
+// Bloquear e uma via so: quem bloqueia deixa de ver o perfil/posts de quem
+// bloqueou (filtrado no frontend com a lista de bloqueados). Mensagem e
+// solicitacao de contato, porem, ficam proibidas nos dois sentidos enquanto
+// o bloqueio existir (checkForaBloqueado abaixo).
+async function isBlocked(usuarioAId, usuarioBId) {
+  const row = await queryOne(
+    "SELECT id FROM bloqueios WHERE (usuario_id = ? AND bloqueado_id = ?) OR (usuario_id = ? AND bloqueado_id = ?) LIMIT 1",
+    [usuarioAId, usuarioBId, usuarioBId, usuarioAId]
+  );
+  return !!row;
+}
+
+app.post("/api/users/:id(\\d+)/block", async (req, res) => {
+  try {
+    const bloqueadoId = Number(req.params.id);
+    const bloqueadorId = Number(req.body?.bloqueadorId);
+    if (!bloqueadorId || bloqueadorId === bloqueadoId) {
+      return res.status(400).json({ message: "bloqueadorId inválido." });
+    }
+
+    await query(
+      "INSERT IGNORE INTO bloqueios (usuario_id, bloqueado_id) VALUES (?, ?)",
+      [bloqueadorId, bloqueadoId]
+    );
+    res.json({ message: "Perfil bloqueado." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao bloquear usuário." });
+  }
+});
+
+app.post("/api/users/:id(\\d+)/unblock", async (req, res) => {
+  try {
+    const bloqueadoId = Number(req.params.id);
+    const bloqueadorId = Number(req.body?.bloqueadorId);
+    if (!bloqueadorId) {
+      return res.status(400).json({ message: "bloqueadorId inválido." });
+    }
+
+    await query("DELETE FROM bloqueios WHERE usuario_id = ? AND bloqueado_id = ?", [
+      bloqueadorId,
+      bloqueadoId,
+    ]);
+    res.json({ message: "Perfil desbloqueado." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao desbloquear usuário." });
+  }
+});
+
+app.get("/api/users/:id(\\d+)/blocked", async (req, res) => {
+  try {
+    const usuarioId = Number(req.params.id);
+    const rows = await query(
+      `SELECT u.* FROM bloqueios b JOIN usuarios u ON u.id = b.bloqueado_id
+       WHERE b.usuario_id = ? ORDER BY b.criado_em DESC`,
+      [usuarioId]
+    );
+    res.json(await Promise.all(rows.map(mapUsuario)));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar perfis bloqueados." });
+  }
+});
+
 // ---------- Solicitacoes de contato ----------
 // Clicar em "Contatar" em alguem com quem ainda nao existe conversa cria uma
 // solicitacao pendente (notificacao); aceitar cria/reaproveita a conversa,
@@ -286,6 +352,10 @@ app.post("/api/users/:id(\\d+)/contact-request", async (req, res) => {
     const remetenteId = Number(req.body?.remetenteId);
     if (!remetenteId || remetenteId === destinatarioId) {
       return res.status(400).json({ message: "remetenteId inválido." });
+    }
+
+    if (await isBlocked(remetenteId, destinatarioId)) {
+      return res.status(403).json({ message: "Não é possível contatar este perfil." });
     }
 
     const conversaExistente = await encontrarConversaExistente(remetenteId, destinatarioId);
@@ -1130,6 +1200,10 @@ app.post("/api/conversas", async (req, res) => {
       return res.status(400).json({ message: "usuarioId e outroUsuarioId (diferentes) são obrigatórios." });
     }
 
+    if (await isBlocked(usuarioId, outroUsuarioId)) {
+      return res.status(403).json({ message: "Não é possível conversar com este perfil." });
+    }
+
     const conversaId = await criarOuBuscarConversa(usuarioId, outroUsuarioId);
     res.status(201).json(await mapConversa(conversaId));
   } catch (error) {
@@ -1151,6 +1225,14 @@ app.post("/api/conversas/:id(\\d+)/mensagens", async (req, res) => {
       [conversaId, usuarioId]
     );
     if (!participante) return res.status(403).json({ message: "Usuário não participa dessa conversa." });
+
+    const outroParticipante = await queryOne(
+      "SELECT usuario_id FROM conversa_participantes WHERE conversa_id = ? AND usuario_id <> ?",
+      [conversaId, usuarioId]
+    );
+    if (outroParticipante && (await isBlocked(usuarioId, outroParticipante.usuario_id))) {
+      return res.status(403).json({ message: "Não é possível enviar mensagem para este perfil." });
+    }
 
     const result = await query(
       "INSERT INTO mensagens (conversa_id, remetente_id, conteudo) VALUES (?, ?, ?)",

@@ -4,7 +4,7 @@ import { useOverlayClose } from "../hooks/useOverlayClose";
 import lupa from "../assets/IMGS/Lupa.svg";
 import semFoto from "../assets/IMGS/NoPerfil.png";
 
-export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true, onOpenUserProfile, onLogout }) {
+export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true, onOpenUserProfile, onOpenSettings, onLogout }) {
   const [query, setQuery] = useState("");
   const [menuAberto, setMenuAberto] = useState(false);
 
@@ -70,6 +70,16 @@ export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true,
                 }}
               >
                 Ver perfil
+              </button>
+              <button
+                type="button"
+                className="profile-menu-item"
+                onClick={() => {
+                  setMenuAberto(false);
+                  onOpenSettings?.();
+                }}
+              >
+                Configurações
               </button>
               <button type="button" className="profile-menu-item profile-menu-sair" onClick={sair}>
                 Sair da conta

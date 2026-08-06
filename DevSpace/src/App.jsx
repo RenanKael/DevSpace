@@ -7,6 +7,7 @@ import PerfilColecao from "./paginas/PerfilColecao";
 import Explorar from "./paginas/explorar";
 import Chat from "./paginas/Chat";
 import Notificacoes from "./paginas/Notificacoes";
+import Configuracoes from "./paginas/Configuracoes";
 import PostModal from "./components/PostModal";
 import {
   isSameUser,
@@ -22,6 +23,9 @@ import {
   fetchUnreadConversas,
   fetchNotifications,
   markNotificationAsRead,
+  blockUser,
+  unblockUser,
+  fetchBlockedUsers,
 } from "./api";
 
 function fakeAvatar(handle) {
@@ -161,6 +165,10 @@ function getRouteFromLocation() {
     return { pagina: "notificacoes", perfilAlvo: null, perfilCollection: "curtidos" };
   }
 
+  if (parts[0] === "configuracoes") {
+    return { pagina: "configuracoes", perfilAlvo: null, perfilCollection: "curtidos" };
+  }
+
   if (parts[0] === "perfil" && parts[1] === "colecao" && COLLECTION_TYPES.has(parts[2])) {
     return { pagina: "perfilColecao", perfilAlvo: null, perfilCollection: parts[2] };
   }
@@ -181,6 +189,7 @@ function buildRouteUrl(pagina, perfilAlvo, perfilCollection) {
   if (pagina === "explorar") return "/explorar";
   if (pagina === "chat") return "/chat";
   if (pagina === "notificacoes") return "/notificacoes";
+  if (pagina === "configuracoes") return "/configuracoes";
   if (pagina === "perfilColecao") return `/perfil/colecao/${perfilCollection || "curtidos"}`;
   if (pagina === "perfil") {
     const handle = (perfilAlvo?.handle || "").replace(/^@+/, "").trim();
@@ -324,22 +333,90 @@ function App() {
   const [chatAlvo, setChatAlvo] = useState(null);
   const [mostrarLogin, setMostrarLogin] = useState(false);
   const [authGateMsg, setAuthGateMsg] = useState(null);
-  const [contactRequests, setContactRequests] = useState([]);
-  const [unreadConversas, setUnreadConversas] = useState([]);
-  const [activityNotifications, setActivityNotifications] = useState([]);
+  const [contactRequestsRaw, setContactRequestsRaw] = useState([]);
+  const [unreadConversasRaw, setUnreadConversasRaw] = useState([]);
+  const [activityNotificationsRaw, setActivityNotificationsRaw] = useState([]);
+  const [notifPrefs, setNotifPrefs] = useState({ contatos: true, mensagens: true, atividade: true });
+  const [blockedUsers, setBlockedUsers] = useState([]);
   const [contactFeedback, setContactFeedback] = useState("");
   const pagina = route.pagina;
   const perfilAlvo = route.perfilAlvo;
   const perfilCollection = route.perfilCollection;
 
+  // Preferencias de notificacao sao so um "mudo" local por categoria: as
+  // notificacoes continuam sendo geradas no backend normalmente, mas a
+  // categoria desativada some da lista/badge em todo o site.
+  const contactRequests = notifPrefs.contatos ? contactRequestsRaw : [];
+  const unreadConversas = notifPrefs.mensagens ? unreadConversasRaw : [];
+  const activityNotifications = notifPrefs.atividade ? activityNotificationsRaw : [];
+
+  const blockedIds = new Set(blockedUsers.map((u) => u.id));
+  const blockedHandles = new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase()));
+
+  function isUsuarioBloqueado(userRef) {
+    if (!userRef) return false;
+    if (userRef.id && blockedIds.has(userRef.id)) return true;
+    const handle = (userRef.handle || userRef.username || "").toLowerCase();
+    return handle ? blockedHandles.has(handle) : false;
+  }
+
+  function notifPrefsStorageKey() {
+    return `notifPrefs_${usuario?.id || usuario?.handle || usuario?.email || "anon"}`;
+  }
+
+  function atualizarNotifPref(tipo, valor) {
+    setNotifPrefs((prev) => {
+      const next = { ...prev, [tipo]: valor };
+      try {
+        localStorage.setItem(notifPrefsStorageKey(), JSON.stringify(next));
+      } catch {
+        // ignora; a preferencia so nao persiste entre sessoes
+      }
+      return next;
+    });
+  }
+
+  async function recarregarBloqueados() {
+    if (!usuario?.id) {
+      setBlockedUsers([]);
+      return;
+    }
+    try {
+      const lista = await fetchBlockedUsers(usuario.id);
+      setBlockedUsers(Array.isArray(lista) ? lista : []);
+    } catch {
+      // backend indisponivel; mantem a lista atual
+    }
+  }
+
+  async function bloquearUsuario(usuarioAlvoId) {
+    if (!usuario?.id || !usuarioAlvoId) return;
+    try {
+      await blockUser(usuarioAlvoId, usuario.id);
+      await recarregarBloqueados();
+    } catch (error) {
+      setContactFeedback(error.message || "Não foi possível bloquear este perfil.");
+    }
+  }
+
+  async function desbloquearUsuario(usuarioAlvoId) {
+    if (!usuario?.id || !usuarioAlvoId) return;
+    try {
+      await unblockUser(usuarioAlvoId, usuario.id);
+      setBlockedUsers((prev) => prev.filter((u) => u.id !== usuarioAlvoId));
+    } catch (error) {
+      setContactFeedback(error.message || "Não foi possível desbloquear este perfil.");
+    }
+  }
+
   async function recarregarContactRequests() {
     if (!usuario?.id) {
-      setContactRequests([]);
+      setContactRequestsRaw([]);
       return;
     }
     try {
       const lista = await fetchContactRequests(usuario.id);
-      setContactRequests(Array.isArray(lista) ? lista : []);
+      setContactRequestsRaw(Array.isArray(lista) ? lista : []);
     } catch {
       // backend indisponivel; mantem a lista atual
     }
@@ -347,12 +424,12 @@ function App() {
 
   async function recarregarMensagensNaoLidas() {
     if (!usuario?.id) {
-      setUnreadConversas([]);
+      setUnreadConversasRaw([]);
       return;
     }
     try {
       const lista = await fetchUnreadConversas(usuario.id);
-      setUnreadConversas(Array.isArray(lista) ? lista : []);
+      setUnreadConversasRaw(Array.isArray(lista) ? lista : []);
     } catch {
       // backend indisponivel; mantem a lista atual
     }
@@ -360,12 +437,12 @@ function App() {
 
   async function recarregarNotificacoes() {
     if (!usuario?.id) {
-      setActivityNotifications([]);
+      setActivityNotificationsRaw([]);
       return;
     }
     try {
       const lista = await fetchNotifications(usuario.id);
-      setActivityNotifications(Array.isArray(lista) ? lista : []);
+      setActivityNotificationsRaw(Array.isArray(lista) ? lista : []);
     } catch {
       // backend indisponivel; mantem a lista atual
     }
@@ -377,18 +454,31 @@ function App() {
   // "notificacao").
   useEffect(() => {
     if (!usuario?.id) {
-      setContactRequests([]);
-      setUnreadConversas([]);
-      setActivityNotifications([]);
+      setContactRequestsRaw([]);
+      setUnreadConversasRaw([]);
+      setActivityNotificationsRaw([]);
+      setBlockedUsers([]);
       return;
+    }
+    try {
+      const salvo = JSON.parse(localStorage.getItem(notifPrefsStorageKey()));
+      setNotifPrefs({
+        contatos: salvo?.contatos !== false,
+        mensagens: salvo?.mensagens !== false,
+        atividade: salvo?.atividade !== false,
+      });
+    } catch {
+      setNotifPrefs({ contatos: true, mensagens: true, atividade: true });
     }
     recarregarContactRequests();
     recarregarMensagensNaoLidas();
     recarregarNotificacoes();
+    recarregarBloqueados();
     const intervalo = window.setInterval(() => {
       recarregarContactRequests();
       recarregarMensagensNaoLidas();
       recarregarNotificacoes();
+      recarregarBloqueados();
     }, 20000);
     return () => window.clearInterval(intervalo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -731,6 +821,11 @@ function App() {
   async function abrirChatCom(userRef) {
     if (!userRef) return;
 
+    if (isUsuarioBloqueado(userRef)) {
+      setContactFeedback("Não é possível contatar este perfil.");
+      return;
+    }
+
     if (!usuario?.id) {
       setChatAlvo(userRef);
       navigate({ pagina: "chat", perfilAlvo: null });
@@ -773,7 +868,7 @@ function App() {
     const solicitacao = contactRequests.find((r) => r.id === solicitacaoId);
     try {
       await acceptContactRequest(solicitacaoId, usuario.id);
-      setContactRequests((prev) => prev.filter((r) => r.id !== solicitacaoId));
+      setContactRequestsRaw((prev) => prev.filter((r) => r.id !== solicitacaoId));
       if (solicitacao?.remetente) {
         setChatAlvo(solicitacao.remetente);
         navigate({ pagina: "chat", perfilAlvo: null });
@@ -787,7 +882,7 @@ function App() {
     if (!usuario?.id) return;
     try {
       await declineContactRequest(solicitacaoId, usuario.id);
-      setContactRequests((prev) => prev.filter((r) => r.id !== solicitacaoId));
+      setContactRequestsRaw((prev) => prev.filter((r) => r.id !== solicitacaoId));
     } catch (error) {
       setContactFeedback(error.message || "Não foi possível recusar a solicitação.");
     }
@@ -796,7 +891,7 @@ function App() {
   // Clicar numa notificacao de mensagem nova abre a conversa direto (o id ja
   // e conhecido, nao precisa passar pela solicitacao de contato).
   function abrirConversaNaoLida(conversaId, outroParticipante) {
-    setUnreadConversas((prev) => prev.filter((c) => c.conversaId !== conversaId));
+    setUnreadConversasRaw((prev) => prev.filter((c) => c.conversaId !== conversaId));
     setChatAlvo({ conversaId, ...outroParticipante });
     navigate({ pagina: "chat", perfilAlvo: null });
   }
@@ -805,7 +900,7 @@ function App() {
   // como lida e leva pro feed, reaproveitando o mesmo "rolar ate o post e
   // destacar" que ja existe pra quando voce acabou de postar.
   function abrirNotificacaoAtividade(notificacao) {
-    setActivityNotifications((prev) => prev.filter((n) => n.id !== notificacao.id));
+    setActivityNotificationsRaw((prev) => prev.filter((n) => n.id !== notificacao.id));
     markNotificationAsRead(notificacao.id).catch(() => {});
     if (notificacao.postId) {
       setLastCreatedPostId(notificacao.postId);
@@ -877,6 +972,7 @@ function App() {
     pagina === "chat" ||
     pagina === "perfilColecao" ||
     pagina === "notificacoes" ||
+    pagina === "configuracoes" ||
     (pagina === "perfil" && !perfilAlvo);
 
   if (mostrarLogin || (!logado && paginaExigeLogin)) {
@@ -918,6 +1014,9 @@ function App() {
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+          blockedUsers={blockedUsers}
+          onBlockUser={bloquearUsuario}
+          onUnblockUser={desbloquearUsuario}
         />
 
         <PostModal
@@ -993,6 +1092,7 @@ function App() {
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+          blockedUsers={blockedUsers}
         />
 
         <PostModal
@@ -1031,6 +1131,7 @@ function App() {
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+          blockedUsers={blockedUsers}
         />
 
         <PostModal
@@ -1066,6 +1167,46 @@ function App() {
           onOpenUnreadConversa={abrirConversaNaoLida}
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
+          notifPrefs={notifPrefs}
+          onUpdateNotifPref={atualizarNotifPref}
+        />
+
+        <PostModal
+          open={isPostModalOpen}
+          onClose={handleClosePost}
+          usuario={usuario}
+          onPostSaved={handlePostCreated}
+        />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        {authGateMsg && (
+          <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
+        )}
+        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
+      </>
+    );
+  }
+
+  if (pagina === "configuracoes") {
+    return (
+      <>
+        <Configuracoes
+          irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
+          irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
+          irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
+          irChat={() => navigate({ pagina: "chat", perfilAlvo: null })}
+          onOpenPost={handleOpenPost}
+          logado={logado}
+          onRequireAuth={solicitarLogin}
+          contactRequests={contactRequests}
+          onAcceptContact={aceitarSolicitacaoContato}
+          onDeclineContact={recusarSolicitacaoContato}
+          unreadConversas={unreadConversas}
+          onOpenUnreadConversa={abrirConversaNaoLida}
+          activityNotifications={activityNotifications}
+          onOpenActivityNotification={abrirNotificacaoAtividade}
+          irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+          blockedUsers={blockedUsers}
+          onUnblockUser={desbloquearUsuario}
         />
 
         <PostModal
@@ -1104,6 +1245,8 @@ function App() {
         activityNotifications={activityNotifications}
         onOpenActivityNotification={abrirNotificacaoAtividade}
         irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+        irConfiguracoes={() => navigate({ pagina: "configuracoes", perfilAlvo: null })}
+        blockedUsers={blockedUsers}
         onLogout={() => setLogado(false)}
       />
 

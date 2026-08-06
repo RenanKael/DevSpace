@@ -50,6 +50,7 @@ export default function Chat({
   activityNotifications,
   onOpenActivityNotification,
   irNotificacoes,
+  blockedUsers = [],
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   // Le o usuario logado direto do storage (local ou sessao) apenas uma vez, no mount
@@ -71,6 +72,7 @@ export default function Chat({
   const [imagensCache, setImagensCache] = useState({}); // mapa imagemId -> dataURL ja carregado (so conversas com bot)
 
   const meuHandle = normalizeHandle(usuarioLogado?.handle || usuarioLogado?.username);
+  const blockedHandles = new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase()));
 
   // Mensagens reais (backend) ja vem com a imagem embutida; mensagens de bot
   // (locais) guardam so um imagemId, buscado do IndexedDB via imagensCache.
@@ -95,9 +97,9 @@ export default function Chat({
       }
     }
 
-    const combinadas = [...reais, ...botConversas].sort(
-      (a, b) => new Date(b.atualizadoEm).getTime() - new Date(a.atualizadoEm).getTime()
-    );
+    const combinadas = [...reais, ...botConversas]
+      .filter((c) => !c.participantes.some((p) => p.handle !== meuHandle && blockedHandles.has(p.handle)))
+      .sort((a, b) => new Date(b.atualizadoEm).getTime() - new Date(a.atualizadoEm).getTime());
     setConversas(combinadas);
     return combinadas;
   }

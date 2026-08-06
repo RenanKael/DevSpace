@@ -15,6 +15,12 @@ const TEXTO_ATIVIDADE = {
   mencao: "te mencionou em um post",
 };
 
+const NOTIF_PREF_LABELS = {
+  contatos: "Solicitações de contato",
+  mensagens: "Mensagens",
+  atividade: "Atividade (curtidas, comentários e menções)",
+};
+
 export default function Notificacoes({
   irHome,
   irPerfil,
@@ -30,6 +36,8 @@ export default function Notificacoes({
   onOpenUnreadConversa,
   activityNotifications = [],
   onOpenActivityNotification,
+  notifPrefs = { contatos: true, mensagens: true, atividade: true },
+  onUpdateNotifPref,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
 
@@ -65,7 +73,8 @@ export default function Notificacoes({
           <h3>Notificações</h3>
         </div>
 
-        <div className="notificacoes-page">
+        <div className="notificacoes-layout">
+          <div className="notificacoes-page">
           {totalNotificacoes === 0 && (
             <div className="notif-page-empty">Você está em dia, nenhuma notificação por aqui.</div>
           )}
@@ -161,6 +170,23 @@ export default function Notificacoes({
               ))}
             </div>
           )}
+        </div>
+
+        <aside className="notificacoes-config">
+          <h4>Preferências</h4>
+          <p className="notif-config-hint">Escolha quais notificações você quer ver.</p>
+          {Object.entries(NOTIF_PREF_LABELS).map(([tipo, label]) => (
+            <label key={tipo} className="notif-toggle">
+              <input
+                type="checkbox"
+                checked={!!notifPrefs[tipo]}
+                onChange={(e) => onUpdateNotifPref?.(tipo, e.target.checked)}
+              />
+              <span className="notif-toggle-track" aria-hidden="true" />
+              <span className="notif-toggle-label">{label}</span>
+            </label>
+          ))}
+        </aside>
         </div>
       </div>
     </div>

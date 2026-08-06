@@ -174,6 +174,24 @@ export async function markAllNotificationsAsRead(usuarioId) {
   });
 }
 
+export async function blockUser(bloqueadoId, bloqueadorId) {
+  return request(`/users/${encodeURIComponent(bloqueadoId)}/block`, {
+    method: "POST",
+    body: JSON.stringify({ bloqueadorId }),
+  });
+}
+
+export async function unblockUser(bloqueadoId, bloqueadorId) {
+  return request(`/users/${encodeURIComponent(bloqueadoId)}/unblock`, {
+    method: "POST",
+    body: JSON.stringify({ bloqueadorId }),
+  });
+}
+
+export async function fetchBlockedUsers(usuarioId) {
+  return request(`/users/${encodeURIComponent(usuarioId)}/blocked`);
+}
+
 export async function loginUser(emailOrHandle, senha) {
   return request("/auth/login", {
     method: "POST",

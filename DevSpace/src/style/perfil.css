@@ -478,6 +478,21 @@ button.perfil-post-card:hover {
   border-radius: 14px;
 }
 
+.perfil-bloqueado-aviso {
+  margin: 40px auto;
+  max-width: 420px;
+  text-align: center;
+  color: #ccc;
+  background: #111;
+  border-radius: 14px;
+  padding: 32px 24px;
+}
+
+.perfil-bloqueado-aviso p {
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
 .collection-top h3 {
   left: 62px;
 }

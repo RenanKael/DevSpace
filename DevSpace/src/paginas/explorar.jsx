@@ -85,7 +85,7 @@ function groupPostsAsRecommendations() {
   );
 }
 
-export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenUserProfile, logado, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes }) {
+export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenUserProfile, logado, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, blockedUsers = [] }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [tab, setTab] = useState("momento");
   const [search, setSearch] = useState("");
@@ -93,9 +93,27 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
   const [backendPosts, setBackendPosts] = useState([]);
   const [backendUsers, setBackendUsers] = useState([]);
 
+  const blockedHandles = useMemo(
+    () => new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase())),
+    [blockedUsers]
+  );
+  const blockedEmails = useMemo(
+    () => new Set(blockedUsers.map((u) => (u.email || "").toLowerCase())),
+    [blockedUsers]
+  );
+  function ehBloqueado(entidade) {
+    const handle = normalizeHandle(entidade?.handle || entidade?.username);
+    const email = String(entidade?.email || "").toLowerCase();
+    return (handle && blockedHandles.has(handle)) || (email && blockedEmails.has(email));
+  }
+
   const exploreData = useMemo(() => {
-    const posts = backendPosts.length > 0 ? backendPosts : JSON.parse(localStorage.getItem("posts")) || [];
-    const savedUsers = backendUsers.length > 0 ? backendUsers : JSON.parse(localStorage.getItem("usuarios")) || [];
+    const posts = (backendPosts.length > 0 ? backendPosts : JSON.parse(localStorage.getItem("posts")) || []).filter(
+      (post) => !ehBloqueado(post)
+    );
+    const savedUsers = (backendUsers.length > 0 ? backendUsers : JSON.parse(localStorage.getItem("usuarios")) || []).filter(
+      (user) => !ehBloqueado(user)
+    );
     const users = [...(Array.isArray(savedUsers) ? savedUsers : []), ...KNOWN_PROFILES];
     const currentUser =
       JSON.parse(localStorage.getItem("usuarioLogado")) ||
@@ -124,7 +142,8 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
       posts: recommendedPosts.length > 0 ? recommendedPosts : fallbackPosts,
       profiles: recommendedProfiles,
     };
-  }, [tab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, blockedHandles, blockedEmails]);
 
   const filteredProfiles = useMemo(() => {
     const q = normalizeHandle(search);
@@ -139,7 +158,9 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
       fotoPerfil: post.fotoPerfil,
       fotoCapa: post.fotoCapa,
     }));
-    const profiles = [...(Array.isArray(savedUsers) ? savedUsers : []), ...postAuthors, ...KNOWN_PROFILES];
+    const profiles = [...(Array.isArray(savedUsers) ? savedUsers : []), ...postAuthors, ...KNOWN_PROFILES].filter(
+      (profile) => !ehBloqueado(profile)
+    );
     const deduped = new Map();
 
     profiles.forEach((profile) => {
@@ -158,7 +179,8 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
     });
 
     return [...deduped.values()].slice(0, 12);
-  }, [search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, blockedHandles, blockedEmails]);
 
   const filteredGroups = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -201,9 +223,10 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
     if (!selectedGroupId) return [];
     const posts = JSON.parse(localStorage.getItem("posts")) || [];
     return (Array.isArray(posts) ? posts : [])
-      .filter((post) => post?.tag === selectedGroupId && post?.texto)
+      .filter((post) => post?.tag === selectedGroupId && post?.texto && !ehBloqueado(post))
       .sort((a, b) => new Date(b.criadoEm || 0).getTime() - new Date(a.criadoEm || 0).getTime());
-  }, [selectedGroupId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGroupId, blockedHandles, blockedEmails]);
 
   return (
     <div className="home">

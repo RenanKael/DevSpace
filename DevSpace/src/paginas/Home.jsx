@@ -414,7 +414,7 @@ function savePostsToStorage(posts) {
   return storagePosts;
 }
 
-export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement, onRequireAuth, highlightPostId, onHighlightPostShown, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, onLogout }) {
+export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement, onRequireAuth, highlightPostId, onHighlightPostShown, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, irConfiguracoes, blockedUsers = [], onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [suggestionsWidth, setSuggestionsWidth] = useState(() => {
     const salva = localStorage.getItem("suggestionsWidth");
@@ -1252,7 +1252,13 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     }, 1000);
   };
 
+  const blockedHandles = new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase()));
+  const blockedEmails = new Set(blockedUsers.map((u) => (u.email || "").toLowerCase()));
+
   const filteredPosts = posts.filter((post) => {
+    if (blockedHandles.has((post.handle || "").toLowerCase())) return false;
+    if (blockedEmails.has((post.email || "").toLowerCase())) return false;
+
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
     if (query.startsWith("@")) return false;
@@ -1545,6 +1551,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
           onSearch={setSearchQuery}
           sidebarOpen={sidebarOpen}
           onOpenUserProfile={() => usuario && onOpenUserProfile?.(usuario)}
+          onOpenSettings={irConfiguracoes}
           onLogout={onLogout}
         />
 

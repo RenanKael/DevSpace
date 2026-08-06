@@ -7,7 +7,7 @@ import { deletePost as deletePostRequest, updateUser as updateUserRequest, updat
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
-export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes }) {
+export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, blockedUsers = [], onBlockUser, onUnblockUser }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
@@ -17,6 +17,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
   const [editingPost, setEditingPost] = useState(null);
   const [editingText, setEditingText] = useState("");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [perfilOpcoesAberto, setPerfilOpcoesAberto] = useState(false);
   const [postMenuPosition, setPostMenuPosition] = useState(null);
   const [adminMode, setAdminMode] = useState(false);
   const [adminOverrideStars, setAdminOverrideStars] = useState(null);
@@ -310,6 +311,14 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
 
   const isAdmin = usuarioLogado?.email === "renan.kael@gmail.com";
 
+  const isBlockedByMe = useMemo(() => {
+    if (!usuario || isOwnProfile) return false;
+    const handle = (usuario.handle || usuario.username || "").toLowerCase();
+    return blockedUsers.some(
+      (u) => (usuario.id && u.id === usuario.id) || (handle && (u.handle || "").toLowerCase() === handle)
+    );
+  }, [usuario, isOwnProfile, blockedUsers]);
+
   useEffect(() => {
     if (!usuario) return;
 
@@ -340,6 +349,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
         setEditandoImagem(null);
         setFotoPerfilAberta(false);
         setProfileMenuOpen(false);
+        setPerfilOpcoesAberto(false);
       }
     };
 
@@ -916,6 +926,50 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     );
   }
 
+  if (isBlockedByMe) {
+    return (
+      <div className="home">
+        <Sidebar
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen((open) => !open)}
+          onReload={irHome}
+          irPerfil={irPerfil}
+          irExplorar={irExplorar}
+          irChat={irChat}
+          onOpenPost={onOpenPost}
+          logado={!!usuarioLogado}
+          onRequireAuth={onRequireAuth}
+          contactRequests={contactRequests}
+          onAcceptContact={onAcceptContact}
+          onDeclineContact={onDeclineContact}
+          unreadConversas={unreadConversas}
+          onOpenUnreadConversa={onOpenUnreadConversa}
+          activityNotifications={activityNotifications}
+          onOpenActivityNotification={onOpenActivityNotification}
+          irNotificacoes={irNotificacoes}
+        />
+        <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
+          <div className="topo-perfil">
+            <button className="back-arrow-btn" onClick={irHome} type="button" title="Voltar">
+              <img src={backArrow} alt="Voltar" />
+            </button>
+            <h3>Perfil bloqueado</h3>
+          </div>
+          <div className="perfil-bloqueado-aviso">
+            <p>Você bloqueou este perfil. Ele não aparece mais pra você no site, e vocês não podem trocar mensagens.</p>
+            <button
+              type="button"
+              className="btn-editar"
+              onClick={() => onUnblockUser?.(usuario.id)}
+            >
+              Desbloquear perfil
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const starCount = 5;
   const activeStars = Number(usuario.avaliacao || usuario.estrelas || 0);
   const displayActiveStars = adminOverrideStars !== null ? adminOverrideStars : activeStars;
@@ -995,6 +1049,35 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                     )}
                     <button type="button" className="danger" onClick={logout}>
                       Sair da conta
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!isOwnProfile && usuario.id && (
+              <div className="perfil-settings-wrap">
+                <button
+                  type="button"
+                  className="perfil-settings-btn"
+                  onClick={() => setPerfilOpcoesAberto((open) => !open)}
+                  aria-label="Mais opções deste perfil"
+                  aria-expanded={perfilOpcoesAberto}
+                >
+                  ⋯
+                </button>
+
+                {perfilOpcoesAberto && (
+                  <div className="perfil-settings-menu">
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => {
+                        setPerfilOpcoesAberto(false);
+                        onBlockUser?.(usuario.id);
+                      }}
+                    >
+                      Bloquear perfil
                     </button>
                   </div>
                 )}

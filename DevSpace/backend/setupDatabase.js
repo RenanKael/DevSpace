@@ -326,6 +326,22 @@ const CREATE_STATEMENTS = [
     CONSTRAINT fk_notificacoes_comentario FOREIGN KEY (comentario_id) REFERENCES comentarios (id) ON DELETE CASCADE,
     CONSTRAINT chk_notificacao_tipo CHECK (tipo IN ('curtida_post', 'comentario_post', 'curtida_comentario', 'mencao'))
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
+  // Bloqueios entre usuarios: quem bloqueia deixa de ver posts/perfil de
+  // quem bloqueou, e nenhum dos dois consegue mandar mensagem/solicitacao
+  // de contato pro outro enquanto o bloqueio existir.
+  `CREATE TABLE IF NOT EXISTS bloqueios (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    usuario_id BIGINT NOT NULL,
+    bloqueado_id BIGINT NOT NULL,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_bloqueio_par (usuario_id, bloqueado_id),
+    KEY idx_bloqueios_bloqueado (bloqueado_id),
+    CONSTRAINT fk_bloqueios_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+    CONSTRAINT fk_bloqueios_bloqueado FOREIGN KEY (bloqueado_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+    CONSTRAINT chk_bloqueio_partes_diferentes CHECK (usuario_id <> bloqueado_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 ];
 
 async function addColumnIfMissing(conn, table, column, definition) {
