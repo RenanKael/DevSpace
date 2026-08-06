@@ -23,6 +23,7 @@ import {
   fetchUnreadConversas,
   fetchNotifications,
   markNotificationAsRead,
+  markAllNotificationsAsRead,
   blockUser,
   unblockUser,
   fetchBlockedUsers,
@@ -442,9 +443,26 @@ function App() {
     }
     try {
       const lista = await fetchNotifications(usuario.id);
-      setActivityNotificationsRaw(Array.isArray(lista) ? lista : []);
+      // So mantem as nao lidas: sem isso, uma notificacao ja vista/marcada
+      // como lida voltava a aparecer no proximo polling (o backend devolve
+      // o historico inteiro, lidas e nao lidas, nessa mesma rota).
+      setActivityNotificationsRaw(Array.isArray(lista) ? lista.filter((n) => !n.lida) : []);
     } catch {
       // backend indisponivel; mantem a lista atual
+    }
+  }
+
+  // So a categoria "Atividade" (curtida/comentario/mencao) some sozinha ao
+  // ser vista: e so um aviso informativo, sem acao pendente. Solicitacao de
+  // contato e mensagem nao lida continuam exigindo uma acao explicita
+  // (aceitar/recusar, ou realmente abrir a conversa) antes de sumir.
+  async function marcarAtividadeComoVista() {
+    if (!usuario?.id || activityNotificationsRaw.length === 0) return;
+    setActivityNotificationsRaw([]);
+    try {
+      await markAllNotificationsAsRead(usuario.id);
+    } catch {
+      // backend indisponivel; o proximo polling tenta de novo
     }
   }
 
@@ -1167,6 +1185,7 @@ function App() {
           onOpenUnreadConversa={abrirConversaNaoLida}
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
+          onViewActivityNotifications={marcarAtividadeComoVista}
           notifPrefs={notifPrefs}
           onUpdateNotifPref={atualizarNotifPref}
         />

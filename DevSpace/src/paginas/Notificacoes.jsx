@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import "../style/notificacoes.css";
@@ -36,6 +37,7 @@ export default function Notificacoes({
   onOpenUnreadConversa,
   activityNotifications = [],
   onOpenActivityNotification,
+  onViewActivityNotifications,
   notifPrefs = { contatos: true, mensagens: true, atividade: true },
   onUpdateNotifPref,
 }) {
@@ -43,6 +45,14 @@ export default function Notificacoes({
 
   const totalNotificacoes =
     contactRequests.length + unreadConversas.length + activityNotifications.length;
+
+  // So de ver essa pagina ja conta como "vista": a categoria Atividade
+  // (curtida/comentario/mencao) e so um aviso, sem acao pendente, entao some
+  // sozinha mesmo que voce nao clique em nenhuma delas.
+  useEffect(() => {
+    onViewActivityNotifications?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="home">
