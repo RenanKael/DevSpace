@@ -48,11 +48,15 @@ export default function Notificacoes({
 
   // So de ver essa pagina ja conta como "vista": a categoria Atividade
   // (curtida/comentario/mencao) e so um aviso, sem acao pendente, entao some
-  // sozinha mesmo que voce nao clique em nenhuma delas.
+  // sozinha mesmo que voce nao clique em nenhuma delas. Reage a mudancas na
+  // lista (nao so no mount) para tambem pegar notificacoes que cheguem
+  // enquanto essa pagina ja esta aberta (ex: a busca inicial ainda nao tinha
+  // terminado, ou uma nova curtida chegou pelo polling).
   useEffect(() => {
+    if (activityNotifications.length === 0) return;
     onViewActivityNotifications?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activityNotifications.length]);
 
   return (
     <div className="home">
