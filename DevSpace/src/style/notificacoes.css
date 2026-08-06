@@ -1,64 +1,47 @@
 .config-layout {
   display: flex;
-  justify-content: center;
   align-items: flex-start;
   gap: 32px;
-  max-width: 680px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 20px 24px 60px;
 }
 
 .config-nav {
-  width: 150px;
+  width: 120px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 18px;
   position: sticky;
   top: 20px;
 }
 
 .config-nav-item {
-  text-align: left;
+  align-self: flex-start;
   background: none;
   border: none;
-  border-left: 2px solid transparent;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  padding: 0 0 6px;
+  font-size: 14px;
   font-weight: 600;
   color: #9aa4b2;
   cursor: pointer;
 }
 
 .config-nav-item:hover {
-  background: #14171c;
   color: #e5e9f0;
 }
 
 .config-nav-item.active {
   color: #fff;
-  background: #14171c;
-  border-left-color: #2f6fed;
+  border-bottom-color: #fff;
 }
 
 .config-content {
   flex: 1;
   min-width: 0;
-  max-width: 520px;
-}
-
-@media (max-width: 760px) {
-  .config-layout {
-    flex-direction: column;
-  }
-
-  .config-nav {
-    flex-direction: row;
-    width: 100%;
-    overflow-x: auto;
-    position: static;
-  }
+  max-width: 420px;
 }
 
 .config-field {
