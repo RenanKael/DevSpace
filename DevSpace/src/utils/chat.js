@@ -19,15 +19,41 @@ export function loadConversas() {
   }
 }
 
+// Salva com resiliencia a estouro de cota do localStorage: sem isso, um
+// setItem que falha silenciosamente apagava a conversa (ela sumia no dia
+// seguinte, pois nunca tinha sido persistida de verdade). Libera espaco
+// removendo o cache de posts (refazivel via backend) e, em ultimo caso,
+// mantem so as conversas mais recentes.
 export function saveConversas(conversas) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversas));
-  } catch {
-    window.dispatchEvent(new CustomEvent("devspaceConversasUpdated"));
-    return false;
+  const salvarTentativa = (dados) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  let sucesso = salvarTentativa(conversas);
+
+  if (!sucesso) {
+    try {
+      localStorage.removeItem("posts");
+    } catch {
+      // ignora
+    }
+    sucesso = salvarTentativa(conversas);
   }
+
+  if (!sucesso) {
+    const maisRecentes = [...conversas]
+      .sort((a, b) => new Date(b.atualizadoEm) - new Date(a.atualizadoEm))
+      .slice(0, 20);
+    sucesso = salvarTentativa(maisRecentes);
+  }
+
   window.dispatchEvent(new CustomEvent("devspaceConversasUpdated"));
-  return true;
+  return sucesso;
 }
 
 function toParticipante(user) {
