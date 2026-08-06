@@ -1094,62 +1094,71 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
   }, [refreshFeed]);
 
   const [loading, setLoading] = useState(false);
+  const montadoRef = useRef(true);
 
   useEffect(() => {
-    let canceled = false;
+    montadoRef.current = true;
+    return () => {
+      montadoRef.current = false;
+    };
+  }, []);
 
-    async function loadFeedFromBackend() {
-      setLoading(true);
+  // Busca posts/usuarios atuais do backend. Usada tanto no carregamento
+  // inicial (e sempre que um post novo e criado, via refreshFeed) quanto no
+  // reload manual pelo logo/"Pagina Inicial" da sidebar -- assim clicar ali
+  // realmente traz posts novos de outras pessoas, em vez de so re-ler o que
+  // ja estava salvo localmente.
+  const loadFeedFromBackend = useCallback(async () => {
+    setLoading(true);
 
-      try {
-        const [backendPosts, backendUsers] = await Promise.all([fetchPosts(), fetchUsers()]);
+    try {
+      const [backendPosts, backendUsers] = await Promise.all([fetchPosts(), fetchUsers()]);
 
-        if (canceled) return;
+      if (!montadoRef.current) return;
 
-        if (Array.isArray(backendUsers)) {
-          setUsuarios((prevUsuarios) => {
-            const backendHandles = new Set(
-              backendUsers.map((u) => normalizeHandle(u.handle || u.username))
-            );
-            // preserva contas que so existem localmente (perfis sugeridos e
-            // qualquer conta que ainda nao tenha sido migrada pro backend)
-            const localOnlyUsuarios = prevUsuarios.filter(
-              (u) => !backendHandles.has(normalizeHandle(u.handle || u.username))
-            );
-            const mergedUsuarios = [...backendUsers, ...localOnlyUsuarios];
-            try {
-              localStorage.setItem("usuarios", JSON.stringify(mergedUsuarios));
-            } catch {
-              // ignore storage failures
-            }
-            return mergedUsuarios;
-          });
-        }
+      if (Array.isArray(backendUsers)) {
+        setUsuarios((prevUsuarios) => {
+          const backendHandles = new Set(
+            backendUsers.map((u) => normalizeHandle(u.handle || u.username))
+          );
+          // preserva contas que so existem localmente (perfis sugeridos e
+          // qualquer conta que ainda nao tenha sido migrada pro backend)
+          const localOnlyUsuarios = prevUsuarios.filter(
+            (u) => !backendHandles.has(normalizeHandle(u.handle || u.username))
+          );
+          const mergedUsuarios = [...backendUsers, ...localOnlyUsuarios];
+          try {
+            localStorage.setItem("usuarios", JSON.stringify(mergedUsuarios));
+          } catch {
+            // ignore storage failures
+          }
+          return mergedUsuarios;
+        });
+      }
 
-        if (Array.isArray(backendPosts) && backendPosts.length > 0) {
-          setPosts((prevPosts) => {
-            const backendIds = new Set(backendPosts.map((post) => String(post.id)));
-            const localOnlyPosts = prevPosts.filter(
-              (post) => post.isSeedFake || !backendIds.has(String(post.id))
-            );
-            const mergedPosts = [...backendPosts, ...localOnlyPosts];
-            savePostsToStorage(mergedPosts);
-            return sortPostsByDate(hydratePostsForDisplay(mergedPosts, backendUsers));
-          });
-        }
-      } catch (error) {
-        console.warn("Erro ao carregar feed do backend:", error);
-      } finally {
-        if (!canceled) {
-          setLoading(false);
-        }
+      if (Array.isArray(backendPosts) && backendPosts.length > 0) {
+        setPosts((prevPosts) => {
+          const backendIds = new Set(backendPosts.map((post) => String(post.id)));
+          const localOnlyPosts = prevPosts.filter(
+            (post) => post.isSeedFake || !backendIds.has(String(post.id))
+          );
+          const mergedPosts = [...backendPosts, ...localOnlyPosts];
+          savePostsToStorage(mergedPosts);
+          return sortPostsByDate(hydratePostsForDisplay(mergedPosts, backendUsers));
+        });
+      }
+    } catch (error) {
+      console.warn("Erro ao carregar feed do backend:", error);
+    } finally {
+      if (montadoRef.current) {
+        setLoading(false);
       }
     }
+  }, []);
 
+  useEffect(() => {
     loadFeedFromBackend();
-    return () => {
-      canceled = true;
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshFeed]);
 
   useEffect(() => {
@@ -1278,14 +1287,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
 
   const reloadFeed = () => {
     if (loading) return;
-
-    setLoading(true);
-    setTimeout(() => {
-      const saved = JSON.parse(localStorage.getItem("posts")) || [];
-      const savedUsers = JSON.parse(localStorage.getItem("usuarios")) || [];
-      setPosts(sortPostsByDate(hydratePostsForDisplay(saved, savedUsers)));
-      setLoading(false);
-    }, 1000);
+    loadFeedFromBackend();
   };
 
   const blockedHandles = new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase()));
