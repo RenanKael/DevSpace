@@ -10,6 +10,11 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   namedPlaceholders: false,
+  // O banco fica atras de uma VPN; sem keep-alive, uma conexao ociosa por
+  // muito tempo (ex: durante a madrugada) pode ser derrubada em silencio no
+  // meio do caminho, e a proxima query nela falha com erro generico.
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
 });
 
 export async function query(sql, params = []) {
