@@ -16,6 +16,11 @@ export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true,
     sessionStorage.removeItem("usuarioLogado");
     setMenuAberto(false);
     onLogout?.();
+    // Home.jsx guarda sua propria copia do usuario (lida do storage so no
+    // mount), entao so limpar o estado global do App nao atualiza o nome/
+    // foto que ja estao na tela. Um reload garante que tudo reparte do zero
+    // ja sem sessao.
+    window.location.href = "/";
   }
 
   return (

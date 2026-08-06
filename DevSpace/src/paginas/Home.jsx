@@ -1095,16 +1095,11 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
 
   const [loading, setLoading] = useState(false);
 
-  // Sem websocket, entao "tempo real" e um polling curto (igual ao Chat):
-  // busca posts/usuarios novos a cada poucos segundos. So mostra "Carregando"
-  // na primeira busca de cada vez que o efeito roda; as buscas seguintes do
-  // polling atualizam o feed em silencio, sem piscar loading.
   useEffect(() => {
     let canceled = false;
-    let primeiraCarga = true;
 
     async function loadFeedFromBackend() {
-      if (primeiraCarga) setLoading(true);
+      setLoading(true);
 
       try {
         const [backendPosts, backendUsers] = await Promise.all([fetchPosts(), fetchUsers()]);
@@ -1148,15 +1143,12 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
         if (!canceled) {
           setLoading(false);
         }
-        primeiraCarga = false;
       }
     }
 
     loadFeedFromBackend();
-    const intervalo = window.setInterval(loadFeedFromBackend, 5000);
     return () => {
       canceled = true;
-      window.clearInterval(intervalo);
     };
   }, [refreshFeed]);
 
