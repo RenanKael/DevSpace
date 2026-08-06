@@ -1,3 +1,19 @@
+.config-popup {
+  width: 100%;
+  max-width: 420px;
+  max-height: none;
+}
+
+.config-popup .erro {
+  color: #ff4d4d;
+  font-size: 14px;
+}
+
+.config-popup .sucesso {
+  color: #4dff88;
+  font-size: 14px;
+}
+
 .notificacoes-layout {
   display: flex;
   align-items: flex-start;
