@@ -38,6 +38,7 @@ export default function Configuracoes({
   onUnblockUser,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
+  const [secaoAtiva, setSecaoAtiva] = useState("perfil");
 
   const [usuarioLogado, setUsuarioLogado] = useState(getUsuarioLogadoDoStorage);
   const [form, setForm] = useState(() => getUsuarioLogadoDoStorage() || {});
@@ -172,92 +173,142 @@ export default function Configuracoes({
           <h3>Configurações</h3>
         </div>
 
-        <div className="notificacoes-page">
-          {usuarioLogado && (
+        <div className="config-layout">
+          <nav className="config-nav">
+            <button
+              type="button"
+              className={`config-nav-item${secaoAtiva === "perfil" ? " active" : ""}`}
+              onClick={() => setSecaoAtiva("perfil")}
+            >
+              Editar perfil
+            </button>
+            <button
+              type="button"
+              className={`config-nav-item${secaoAtiva === "bloqueados" ? " active" : ""}`}
+              onClick={() => setSecaoAtiva("bloqueados")}
+            >
+              Perfis bloqueados
+            </button>
+          </nav>
+
+          <div className="config-content">
+          {secaoAtiva === "perfil" && usuarioLogado && (
             <div className="notif-section">
               <h4>Editar perfil</h4>
-              <form className="popup config-popup" onSubmit={salvarConfiguracoesPerfil}>
-                <input
-                  value={form.username || ""}
-                  onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  placeholder="Nome"
-                />
-                <input
-                  value={form.handle || ""}
-                  onChange={(e) => setForm({ ...form, handle: e.target.value.replace(/\s+/g, "") })}
-                  placeholder="@usuário"
-                />
-                <input
-                  value={form.bio || ""}
-                  onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                  placeholder="Bio"
-                />
+              <p className="notif-config-hint">
+                Essas informações ficam visíveis para qualquer pessoa que veja seu perfil.
+              </p>
 
-                <label className="contrato-toggle">
+              <form onSubmit={salvarConfiguracoesPerfil}>
+                <div className="config-field">
+                  <label htmlFor="config-nome">Nome</label>
+                  <input
+                    id="config-nome"
+                    value={form.username || ""}
+                    onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  />
+                </div>
+
+                <div className="config-field">
+                  <label htmlFor="config-handle">@usuário</label>
+                  <input
+                    id="config-handle"
+                    value={form.handle || ""}
+                    onChange={(e) => setForm({ ...form, handle: e.target.value.replace(/\s+/g, "") })}
+                  />
+                </div>
+
+                <div className="config-field">
+                  <label htmlFor="config-bio">Bio</label>
+                  <input
+                    id="config-bio"
+                    value={form.bio || ""}
+                    onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                  />
+                </div>
+
+                <label className="notif-toggle">
                   <input
                     type="checkbox"
                     checked={!!form.disponivelContratacao}
                     onChange={(e) => setForm({ ...form, disponivelContratacao: e.target.checked })}
                   />
-                  Disponível para ser contratado
+                  <span className="notif-toggle-track" aria-hidden="true" />
+                  <span className="notif-toggle-label">Disponível para ser contratado</span>
                 </label>
 
-                <div className="password-edit-group">
-                  <strong>Alterar senha</strong>
+                <h4 className="config-subsection">Alterar senha</h4>
+
+                <div className="config-field">
+                  <label htmlFor="config-senha-atual">Senha atual</label>
                   <input
+                    id="config-senha-atual"
                     type="password"
                     value={senhaAtual}
                     onChange={(e) => setSenhaAtual(e.target.value)}
-                    placeholder="Senha atual"
+                    placeholder="Deixe em branco para não alterar"
                   />
+                </div>
+
+                <div className="config-field">
+                  <label htmlFor="config-senha-nova">Nova senha</label>
                   <input
+                    id="config-senha-nova"
                     type="password"
                     value={novaSenha}
                     onChange={(e) => setNovaSenha(e.target.value)}
-                    placeholder="Nova senha"
                   />
+                </div>
+
+                <div className="config-field">
+                  <label htmlFor="config-senha-confirmar">Confirmar nova senha</label>
                   <input
+                    id="config-senha-confirmar"
                     type="password"
                     value={confirmarSenha}
                     onChange={(e) => setConfirmarSenha(e.target.value)}
-                    placeholder="Confirmar nova senha"
                   />
                 </div>
 
                 {erro && <p className="erro">{erro}</p>}
                 {sucesso && <p className="sucesso">{sucesso}</p>}
 
-                <button type="submit">Salvar</button>
+                <button type="submit" className="notif-aceitar config-row-salvar">
+                  Salvar
+                </button>
               </form>
             </div>
           )}
 
-          <div className="notif-section">
-            <h4>Perfis bloqueados</h4>
-            {blockedUsers.length === 0 && (
-              <p className="notif-section-empty">Você não bloqueou nenhum perfil.</p>
-            )}
-            {blockedUsers.map((user) => (
-              <div key={user.id} className="notif-row">
-                <div
-                  className="notif-row-avatar"
-                  style={{
-                    backgroundImage: `url(${user.fotoPerfil || fallbackAvatar(user.handle)})`,
-                  }}
-                />
-                <div className="notif-row-info">
-                  <strong>{user.username}</strong>
-                  <span>@{user.handle}</span>
+          {secaoAtiva === "bloqueados" && (
+            <div className="notif-section">
+              <h4>Perfis bloqueados</h4>
+              {blockedUsers.length === 0 && (
+                <p className="notif-section-empty">Você não bloqueou nenhum perfil.</p>
+              )}
+              {blockedUsers.map((user) => (
+                <div key={user.id} className="notif-row">
+                  <div
+                    className="notif-row-avatar"
+                    style={{
+                      backgroundImage: `url(${user.fotoPerfil || fallbackAvatar(user.handle)})`,
+                    }}
+                  />
+                  <div className="notif-row-info">
+                    <strong>{user.username}</strong>
+                    <span>@{user.handle}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="notif-recusar"
+                    onClick={() => onUnblockUser?.(user.id)}
+                  >
+                    Desbloquear
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="notif-recusar"
-                  onClick={() => onUnblockUser?.(user.id)}
-                >
-                  Desbloquear
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
           </div>
         </div>
       </div>
