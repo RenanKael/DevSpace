@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
@@ -414,7 +414,7 @@ function savePostsToStorage(posts) {
   return storagePosts;
 }
 
-export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement, onRequireAuth, highlightPostId, onHighlightPostShown, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, irConfiguracoes, blockedUsers = [], onLogout }) {
+export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, onOpenUserProfile, onStarAchievement, onRequireAuth, highlightPostId, onHighlightPostShown, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, onActivityNotificationSeen, irNotificacoes, irConfiguracoes, blockedUsers = [], onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [suggestionsWidth, setSuggestionsWidth] = useState(() => {
     const salva = localStorage.getItem("suggestionsWidth");
@@ -1095,11 +1095,16 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
 
   const [loading, setLoading] = useState(false);
 
+  // Sem websocket, entao "tempo real" e um polling curto (igual ao Chat):
+  // busca posts/usuarios novos a cada poucos segundos. So mostra "Carregando"
+  // na primeira busca de cada vez que o efeito roda; as buscas seguintes do
+  // polling atualizam o feed em silencio, sem piscar loading.
   useEffect(() => {
     let canceled = false;
+    let primeiraCarga = true;
 
     async function loadFeedFromBackend() {
-      setLoading(true);
+      if (primeiraCarga) setLoading(true);
 
       try {
         const [backendPosts, backendUsers] = await Promise.all([fetchPosts(), fetchUsers()]);
@@ -1143,12 +1148,15 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
         if (!canceled) {
           setLoading(false);
         }
+        primeiraCarga = false;
       }
     }
 
     loadFeedFromBackend();
+    const intervalo = window.setInterval(loadFeedFromBackend, 5000);
     return () => {
       canceled = true;
+      window.clearInterval(intervalo);
     };
   }, [refreshFeed]);
 
@@ -1239,6 +1247,42 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
 
     return () => window.clearTimeout(timeout);
   }, [highlightPostId, posts, onHighlightPostShown]);
+
+  // Notificacao de atividade (curtida/comentario/mencao) some se voce clicar
+  // nela OU se "ver ela pessoalmente" no feed -- ou seja, o post referenciado
+  // rolar ate ficar visivel na tela, mesmo sem ter vindo da notificacao.
+  const notificadosPostIds = useMemo(
+    () => new Set(activityNotifications.map((n) => String(n.postId)).filter(Boolean)),
+    [activityNotifications]
+  );
+
+  const observerRef = useRef(null);
+
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const postId = entry.target.getAttribute("data-post-card-id");
+          if (postId) onActivityNotificationSeen?.(postId);
+          observerRef.current?.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.6 }
+    );
+    return () => observerRef.current?.disconnect();
+  }, [onActivityNotificationSeen]);
+
+  const observarSeNotificado = useCallback(
+    (el) => {
+      if (!el || !observerRef.current) return;
+      const postId = el.getAttribute("data-post-card-id");
+      if (postId && notificadosPostIds.has(postId)) {
+        observerRef.current.observe(el);
+      }
+    },
+    [notificadosPostIds]
+  );
 
   const reloadFeed = () => {
     if (loading) return;
@@ -1602,6 +1646,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
           {filteredPosts.map((post) => (
             <div
               key={post.id}
+              ref={observarSeNotificado}
               data-post-card-id={post.id}
               className={`${getPostCardClass(post)}${String(post.id) === String(highlightPostId) ? " post-card-new" : ""}`}
               onClick={() => setSelectedPost(post)}

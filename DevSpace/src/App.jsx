@@ -23,7 +23,6 @@ import {
   fetchUnreadConversas,
   fetchNotifications,
   markNotificationAsRead,
-  markAllNotificationsAsRead,
   blockUser,
   unblockUser,
   fetchBlockedUsers,
@@ -452,17 +451,23 @@ function App() {
     }
   }
 
-  // So a categoria "Atividade" (curtida/comentario/mencao) some sozinha ao
-  // ser vista: e so um aviso informativo, sem acao pendente. Solicitacao de
-  // contato e mensagem nao lida continuam exigindo uma acao explicita
-  // (aceitar/recusar, ou realmente abrir a conversa) antes de sumir.
-  async function marcarAtividadeComoVista() {
-    if (!usuario?.id || activityNotificationsRaw.length === 0) return;
-    setActivityNotificationsRaw([]);
+  // Notificacoes de atividade (curtida/comentario/mencao) só somem quando
+  // voce realmente "consome" o conteudo: clicando nela na lista, ou vendo o
+  // post referenciado aparecer no feed (mesmo sem ter clicado na notificacao).
+  async function marcarNotificacoesDoPostComoVistas(postId) {
+    if (!postId) return;
+    // Compara como string: o id pode chegar como numero (clique na notificacao)
+    // ou como string (data-post-card-id lido do DOM pelo IntersectionObserver).
+    const idsParaMarcar = activityNotificationsRaw
+      .filter((n) => String(n.postId) === String(postId))
+      .map((n) => n.id);
+    if (idsParaMarcar.length === 0) return;
+
+    setActivityNotificationsRaw((prev) => prev.filter((n) => String(n.postId) !== String(postId)));
     try {
-      await markAllNotificationsAsRead(usuario.id);
+      await Promise.all(idsParaMarcar.map((id) => markNotificationAsRead(id)));
     } catch {
-      // backend indisponivel; o proximo polling tenta de novo
+      // backend indisponivel; o proximo polling reflete o estado real
     }
   }
 
@@ -1185,7 +1190,6 @@ function App() {
           onOpenUnreadConversa={abrirConversaNaoLida}
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
-          onViewActivityNotifications={marcarAtividadeComoVista}
           notifPrefs={notifPrefs}
           onUpdateNotifPref={atualizarNotifPref}
         />
@@ -1263,6 +1267,7 @@ function App() {
         onOpenUnreadConversa={abrirConversaNaoLida}
         activityNotifications={activityNotifications}
         onOpenActivityNotification={abrirNotificacaoAtividade}
+        onActivityNotificationSeen={marcarNotificacoesDoPostComoVistas}
         irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
         irConfiguracoes={() => navigate({ pagina: "configuracoes", perfilAlvo: null })}
         blockedUsers={blockedUsers}
