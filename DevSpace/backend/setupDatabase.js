@@ -154,6 +154,8 @@ const CREATE_STATEMENTS = [
     url LONGTEXT NOT NULL,
     tipo VARCHAR(20) NOT NULL,
     tamanho_bytes BIGINT DEFAULT NULL,
+    nome_original VARCHAR(255) DEFAULT NULL,
+    mime_original VARCHAR(255) DEFAULT NULL,
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_midias_usuario (usuario_id),
@@ -409,6 +411,8 @@ async function main() {
   await addColumnIfMissing(conn, "usuarios", "pos_capa_y", "pos_capa_y SMALLINT NOT NULL DEFAULT 50 AFTER pos_capa_x");
   await addColumnIfMissing(conn, "usuarios", "zoom_perfil", "zoom_perfil SMALLINT NOT NULL DEFAULT 100 AFTER pos_capa_y");
   await addColumnIfMissing(conn, "usuarios", "zoom_capa", "zoom_capa SMALLINT NOT NULL DEFAULT 100 AFTER zoom_perfil");
+  await addColumnIfMissing(conn, "midias", "nome_original", "nome_original VARCHAR(255) DEFAULT NULL AFTER tamanho_bytes");
+  await addColumnIfMissing(conn, "midias", "mime_original", "mime_original VARCHAR(255) DEFAULT NULL AFTER nome_original");
 
   // Niveis de estrela padrao (usados por user_star_stats). So insere o que faltar.
   const niveis = [

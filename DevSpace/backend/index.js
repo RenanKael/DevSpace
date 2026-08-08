@@ -552,7 +552,7 @@ app.post("/api/auth/register", async (req, res) => {
 // ---------- Posts ----------
 
 async function getPostFull(postRow) {
-  const [likesRows, sharesRows, bookmarksRows, imagemRow, commentsRows, pollRow] = await Promise.all([
+  const [likesRows, sharesRows, bookmarksRows, imagemRow, anexoRow, commentsRows, pollRow] = await Promise.all([
     query(
       "SELECT u.username FROM post_interacoes pi JOIN usuarios u ON u.id = pi.usuario_id WHERE pi.post_id = ? AND pi.tipo = 'like'",
       [postRow.id]
@@ -565,9 +565,14 @@ async function getPostFull(postRow) {
       "SELECT u.username FROM post_bookmarks b JOIN usuarios u ON u.id = b.usuario_id WHERE b.post_id = ?",
       [postRow.id]
     ),
-    queryOne("SELECT url FROM midias WHERE post_id = ? AND tipo IN ('imagem', 'gif') ORDER BY id ASC LIMIT 1", [
-      postRow.id,
-    ]),
+    queryOne(
+      "SELECT url FROM midias WHERE post_id = ? AND tipo IN ('imagem', 'gif') AND nome_original IS NULL ORDER BY id ASC LIMIT 1",
+      [postRow.id]
+    ),
+    queryOne(
+      "SELECT url, tamanho_bytes, nome_original, mime_original FROM midias WHERE post_id = ? AND nome_original IS NOT NULL ORDER BY id ASC LIMIT 1",
+      [postRow.id]
+    ),
     query(
       `SELECT c.*, u.username AS autor_username, u.nome_exibicao AS autor_nome, u.avatar_url AS autor_avatar, u.email AS autor_email,
         (SELECT url FROM midias WHERE comentario_id = c.id LIMIT 1) AS imagem_url
@@ -625,6 +630,14 @@ async function getPostFull(postRow) {
     fotoPerfil: postRow.autor_avatar || "",
     texto: postRow.conteudo,
     imagem: imagemRow?.url || "",
+    anexo: anexoRow
+      ? {
+          nome: anexoRow.nome_original || "",
+          tipo: anexoRow.mime_original || "",
+          url: anexoRow.url,
+          tamanho: anexoRow.tamanho_bytes || 0,
+        }
+      : null,
     criadoEm: postRow.criado_em,
     tag: postRow.linguagem_tag || "",
     agendadoPara: postRow.publicar_em ? new Date(postRow.publicar_em).toISOString() : "",
@@ -701,8 +714,8 @@ app.post("/api/posts", async (req, res) => {
     if (anexo?.url) {
       const tipo = MIDIA_TIPOS.includes(midiaTipoFromMime(anexo.tipo)) ? midiaTipoFromMime(anexo.tipo) : "arquivo";
       await query(
-        "INSERT INTO midias (usuario_id, post_id, url, tipo, tamanho_bytes) VALUES (?, ?, ?, ?, ?)",
-        [usuarioId, postId, anexo.url, tipo, anexo.tamanho || null]
+        "INSERT INTO midias (usuario_id, post_id, url, tipo, tamanho_bytes, nome_original, mime_original) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [usuarioId, postId, anexo.url, tipo, anexo.tamanho ?? null, anexo.nome || null, anexo.tipo || null]
       );
     }
 
