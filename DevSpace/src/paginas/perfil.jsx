@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
+import GearIcon from "../components/GearIcon";
 import "../style/perfil.css";
 import { createPortal } from "react-dom";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
@@ -7,7 +8,7 @@ import { deletePost as deletePostRequest, updateUser as updateUserRequest, updat
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 
-export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, blockedUsers = [], onBlockUser, onUnblockUser }) {
+export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat, onOpenPost, refreshFeed, viewedUser, onOpenProfileCollection, onContact, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, irConfiguracoes, blockedUsers = [], onBlockUser, onUnblockUser }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
@@ -1028,7 +1029,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                   aria-label="Abrir configuracoes do perfil"
                   aria-expanded={profileMenuOpen}
                 >
-                  ⋯
+                  <GearIcon size={18} />
                 </button>
 
                 {profileMenuOpen && (
@@ -1041,6 +1042,15 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                     </button>
                     <button type="button" onClick={() => openProfileCollection("republicados")}>
                       Republicados
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        irConfiguracoes?.();
+                      }}
+                    >
+                      Configurações
                     </button>
                     {isAdmin && (
                       <button type="button" onClick={() => { setAdminMode(true); setProfileMenuOpen(false); }}>

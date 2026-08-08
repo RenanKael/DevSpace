@@ -15,11 +15,32 @@ const pool = mysql.createPool({
   // meio do caminho, e a proxima query nela falha com erro generico.
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
+  // O keep-alive TCP sozinho nao evita a VPN/MySQL derrubando uma conexao
+  // ociosa: idleTimeout recicla conexoes paradas ha mais de 1 min antes que
+  // fiquem mortas no pool esperando a proxima query falhar.
+  idleTimeout: 60000,
+  maxIdle: 10,
 });
 
+const TRANSIENT_CONNECTION_ERRORS = new Set([
+  "PROTOCOL_CONNECTION_LOST",
+  "ECONNRESET",
+  "ER_SERVER_GONE_ERROR",
+  "ETIMEDOUT",
+]);
+
 export async function query(sql, params = []) {
-  const [rows] = await pool.query(sql, params);
-  return rows;
+  try {
+    const [rows] = await pool.query(sql, params);
+    return rows;
+  } catch (error) {
+    // Conexao do pool morreu ociosa (ex: idle-drop da VPN) entre uma query e
+    // outra; o mysql2 ja descarta essa conexao sozinho, entao uma unica
+    // tentativa nova com outra conexao do pool costuma resolver.
+    if (!TRANSIENT_CONNECTION_ERRORS.has(error.code)) throw error;
+    const [rows] = await pool.query(sql, params);
+    return rows;
+  }
 }
 
 export async function queryOne(sql, params = []) {

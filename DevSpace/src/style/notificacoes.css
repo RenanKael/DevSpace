@@ -18,22 +18,18 @@
 
 .config-nav-item {
   align-self: flex-start;
+  text-align: left;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   padding: 0 0 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #9aa4b2;
+  color: #fff;
   cursor: pointer;
 }
 
-.config-nav-item:hover {
-  color: #e5e9f0;
-}
-
 .config-nav-item.active {
-  color: #fff;
   border-bottom-color: #fff;
 }
 

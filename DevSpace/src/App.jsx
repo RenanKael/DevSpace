@@ -1037,6 +1037,7 @@ function App() {
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+          irConfiguracoes={() => navigate({ pagina: "configuracoes", perfilAlvo: null })}
           blockedUsers={blockedUsers}
           onBlockUser={bloquearUsuario}
           onUnblockUser={desbloquearUsuario}
