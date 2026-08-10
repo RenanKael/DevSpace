@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
-import CameraIcon from "../components/CameraIcon";
+import { useOverlayClose } from "../hooks/useOverlayClose";
+import { DsIcon } from "../components/icons";
+import { Icons } from "../components/iconKit";
 import "../style/chat.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 import {
@@ -50,6 +52,7 @@ export default function Chat({
   activityNotifications,
   onOpenActivityNotification,
   irNotificacoes,
+  irConfiguracoes,
   blockedUsers = [],
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
@@ -64,6 +67,9 @@ export default function Chat({
   const [texto, setTexto] = useState(""); // conteudo do input de mensagem
   const [imagemSelecionada, setImagemSelecionada] = useState(""); // dataURL da imagem escolhida, antes de enviar
   const [emojiAberto, setEmojiAberto] = useState(false); // controla se o seletor de emojis esta visivel
+  const [erroEnvio, setErroEnvio] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [buscaConversas, setBuscaConversas] = useState("");
   const arquivoInputRef = useRef(null); // input file oculto, disparado pelo botao de imagem
   const textoInputRef = useRef(null); // usado para devolver o foco ao campo de texto
   const mensagensFimRef = useRef(null); // sentinela no fim da lista, usado para rolar ate a ultima mensagem
@@ -72,6 +78,7 @@ export default function Chat({
   const [imagensCache, setImagensCache] = useState({}); // mapa imagemId -> dataURL ja carregado (so conversas com bot)
 
   const meuHandle = normalizeHandle(usuarioLogado?.handle || usuarioLogado?.username);
+  useOverlayClose(emojiAberto, () => setEmojiAberto(false));
   const blockedHandles = new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase()));
 
   // Mensagens reais (backend) ja vem com a imagem embutida; mensagens de bot
@@ -222,7 +229,7 @@ export default function Chat({
 
   // Envia a mensagem (texto e/ou imagem) da conversa ativa e limpa o formulario
   async function enviar() {
-    if (!conversaAtiva || !usuarioLogado || (!texto.trim() && !imagemSelecionada)) return;
+    if (!conversaAtiva || !usuarioLogado || (!texto.trim() && !imagemSelecionada) || enviando) return;
 
     if (isBotConversaId(conversaAtiva.id)) {
       const enviada = await enviarMensagemLocal(conversaAtiva.id, meuHandle, texto, imagemSelecionada);
@@ -231,11 +238,13 @@ export default function Chat({
       setTexto("");
       setImagemSelecionada("");
       setEmojiAberto(false);
+      setErroEnvio("");
       return;
     }
 
     if (!usuarioLogado.id) return;
 
+    setEnviando(true);
     try {
       const conversaAtualizada = await enviarMensagemApi(
         conversaAtiva.id,
@@ -247,8 +256,11 @@ export default function Chat({
       setTexto("");
       setImagemSelecionada("");
       setEmojiAberto(false);
+      setErroEnvio("");
     } catch {
-      // falha ao enviar; mantem o texto/imagem no formulario para o usuario tentar de novo
+      setErroEnvio("Não foi possível enviar. Tente de novo.");
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -258,9 +270,8 @@ export default function Chat({
     enviar();
   }
 
-  // Permite enviar a mensagem apertando Enter no formulario
   function handleFormKeyDown(e) {
-    if (e.key !== "Enter") return;
+    if (e.key !== "Enter" || e.shiftKey) return;
     e.preventDefault();
     enviar();
   }
@@ -285,6 +296,16 @@ export default function Chat({
     setEmojiAberto(false);
   }
 
+  const conversasFiltradas = conversas.filter((c) => {
+    const q = buscaConversas.trim().toLowerCase();
+    if (!q) return true;
+    const outro = c.participantes.find((p) => p.handle !== meuHandle) || c.participantes[0];
+    return (
+      String(outro?.username || "").toLowerCase().includes(q) ||
+      String(outro?.handle || "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="home">
       <Sidebar
@@ -305,22 +326,45 @@ export default function Chat({
         activityNotifications={activityNotifications}
         onOpenActivityNotification={onOpenActivityNotification}
         irNotificacoes={irNotificacoes}
+        irConfiguracoes={irConfiguracoes}
       />
 
-      <div className={`chat-page${sidebarOpen ? "" : " sidebar-closed"}`}>
+      <div id="conteudo-principal" className={`chat-page${sidebarOpen ? "" : " sidebar-closed"}${conversaAtivaId ? " has-thread" : ""}`}>
         {/* Coluna esquerda: lista de conversas do usuario */}
         <div className="chat-list">
           <div className="chat-list-header">
+            <span className="chat-kicker">Inbox</span>
             <h2>Mensagens</h2>
+            <p className="chat-list-sub">Conversas com a comunidade DevSpace.</p>
+            {conversas.length > 0 && (
+              <input
+                className="chat-search"
+                type="search"
+                placeholder="Buscar nome ou @"
+                value={buscaConversas}
+                onChange={(e) => setBuscaConversas(e.target.value)}
+              />
+            )}
           </div>
 
           {conversas.length === 0 && (
-            <p className="chat-empty">
-              Nenhuma conversa ainda. Visite o perfil de alguem e clique em "Contatar".
-            </p>
+            <div className="chat-empty-card">
+              <strong>Suas conversas aparecerão aqui</strong>
+              <p>Explore perfis e inicie uma conversa.</p>
+              <button type="button" className="chat-empty-cta" onClick={irExplorar}>
+                Explorar perfis
+              </button>
+            </div>
           )}
 
-          {conversas.map((c) => {
+          {conversas.length > 0 && conversasFiltradas.length === 0 && (
+            <div className="chat-empty-card">
+              <strong>Nenhuma conversa encontrada</strong>
+              <p>Tente outro nome ou @.</p>
+            </div>
+          )}
+
+          {conversasFiltradas.map((c) => {
             const outro = c.participantes.find((p) => p.handle !== meuHandle) || c.participantes[0];
             const ultimaMsg = c.mensagens[c.mensagens.length - 1];
             const naoLidas = unreadConversas.find((u) => u.conversaId === c.id)?.naoLidas || 0;
@@ -351,7 +395,7 @@ export default function Chat({
                       ultimaMsg.texto
                     ) : ultimaMsg.imagem || ultimaMsg.imagemId ? (
                       <>
-                        <CameraIcon size={14} /> Imagem
+                        <DsIcon icon={Icons.Image} size="small" /> Imagem
                       </>
                     ) : (
                       ""
@@ -367,7 +411,13 @@ export default function Chat({
         <div className="chat-thread">
           {!conversaAtiva && (
             <div className="chat-empty-state">
-              <p>Selecione uma conversa para comecar.</p>
+              <div className="chat-empty-card chat-empty-card--center">
+                <strong>Suas conversas aparecerão aqui</strong>
+                <p>Escolha uma conversa ao lado ou visite um perfil para começar.</p>
+                <button type="button" className="chat-empty-cta" onClick={irExplorar}>
+                  Explorar perfis
+                </button>
+              </div>
             </div>
           )}
 
@@ -375,6 +425,15 @@ export default function Chat({
             <>
               {/* Cabecalho com avatar/nome do outro participante; clicavel para abrir o perfil dele */}
               <div className="chat-thread-header">
+                <button
+                  type="button"
+                  className="chat-thread-back"
+                  onClick={() => setConversaAtivaId(null)}
+                  title="Voltar"
+                  aria-label="Voltar à lista de conversas"
+                >
+                  <DsIcon icon={Icons.ArrowLeft} size="action" />
+                </button>
                 <button
                   type="button"
                   className="chat-thread-user"
@@ -440,7 +499,7 @@ export default function Chat({
                     title="Enviar imagem"
                     onClick={() => arquivoInputRef.current?.click()}
                   >
-                    <CameraIcon size={19} />
+                    <DsIcon icon={Icons.Image} size="action" />
                   </button>
 
                   {/* Botao + painel do seletor de emojis (lista EMOJIS definida no topo do arquivo) */}
@@ -470,9 +529,9 @@ export default function Chat({
                     )}
                   </div>
 
-                  <input
-                    type="text"
+                  <textarea
                     ref={textoInputRef}
+                    rows={1}
                     placeholder={`Mensagem para ${outroParticipante.username}`}
                     value={texto}
                     onChange={(e) => setTexto(e.target.value)}
@@ -480,13 +539,15 @@ export default function Chat({
                   <button
                     type="submit"
                     className="chat-enviar-btn"
-                    disabled={!texto.trim() && !imagemSelecionada}
+                    disabled={enviando || (!texto.trim() && !imagemSelecionada)}
                     aria-label="Enviar"
                     title="Enviar"
                   >
-                    ➤
+                    <DsIcon icon={Icons.Send} size="action" />
                   </button>
                 </div>
+                <p className="chat-composer-hint">Enter envia · Shift+Enter quebra linha</p>
+                {erroEnvio && <p className="chat-erro-envio">{erroEnvio}</p>}
               </form>
             </>
           )}

@@ -4,7 +4,13 @@ import { useOverlayClose } from "../hooks/useOverlayClose";
 import { usePostImageEditor } from "../hooks/usePostImageEditor";
 import { TAG_OPTIONS, slugifyHashtag } from "../utils/postTags";
 import "../style/home.css";
-import { createPost } from "../api";
+import { createPost, uploadFile } from "../api";
+import { avatarInitial, avatarStyle } from "../utils/avatar";
+import { languageLabel, wrapCodeFence } from "../utils/codeBlock";
+import { DsIcon } from "./icons";
+import { Icons } from "./iconKit";
+
+const CODE_LANGS = ["javascript", "typescript", "python", "csharp", "go", "rust", "java", "sql", "html", "css", "bash"];
 
 const EMOJIS = [
   "😀", "😂", "😍", "😎", "🥳", "😅", "😭", "😡", "😮", "🤔",
@@ -20,6 +26,39 @@ function formatarTamanho(bytes) {
 }
 
 const LIMITE_PALAVRAS = 300;
+const MAX_ANEXO_BYTES = 12 * 1024 * 1024;
+const ALLOWED_ANEXO_EXT = new Set([
+  "pdf", "doc", "docx", "txt", "zip", "rar", "ppt", "pptx", "xls", "xlsx", "csv",
+  "png", "jpg", "jpeg", "gif", "webp",
+]);
+
+function mimeFromName(name = "") {
+  const ext = String(name).split(".").pop()?.toLowerCase() || "";
+  const map = {
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    txt: "text/plain",
+    csv: "text/csv",
+    zip: "application/zip",
+    rar: "application/vnd.rar",
+    ppt: "application/vnd.ms-powerpoint",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    xls: "application/vnd.ms-excel",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+  };
+  return map[ext] || "";
+}
+
+function isAllowedAnexo(name, tipo) {
+  const ext = String(name).split(".").pop()?.toLowerCase() || "";
+  return ALLOWED_ANEXO_EXT.has(ext) || String(tipo || "").startsWith("image/") || String(tipo || "") === "application/pdf";
+}
 
 function contarPalavras(texto) {
   const limpo = texto.trim();
@@ -35,6 +74,9 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
   const [tagSelecionada, setTagSelecionada] = useState("");
   const [tagCustomTexto, setTagCustomTexto] = useState("");
   const [agendarData, setAgendarData] = useState("");
+  const [publicando, setPublicando] = useState(false);
+  const [codigoLang, setCodigoLang] = useState("javascript");
+  const [codigoTexto, setCodigoTexto] = useState("");
   const anexoInputRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -78,11 +120,16 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
     resetImage();
     setErro("");
     setPainelAberto(null);
-    setAnexo(null);
+    setAnexo((atual) => {
+      if (atual?.previewUrl) URL.revokeObjectURL(atual.previewUrl);
+      return null;
+    });
     setEnqueteOpcoes(["", ""]);
     setTagSelecionada("");
     setTagCustomTexto("");
     setAgendarData("");
+    setCodigoLang("javascript");
+    setCodigoTexto("");
   }, [resetImage]);
 
   function handleEscolherEmoji(emoji) {
@@ -95,16 +142,36 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
     e.target.value = "";
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setErro("");
-      setAnexo({ nome: file.name, tipo: file.type, url: ev.target.result, tamanho: file.size });
-    };
-    reader.readAsDataURL(file);
+    if (file.size > MAX_ANEXO_BYTES) {
+      setErro("O arquivo pode ter no máximo 12 MB.");
+      return;
+    }
+
+    const tipo = file.type || mimeFromName(file.name);
+    if (!isAllowedAnexo(file.name, tipo)) {
+      setErro("Use PDF, documento, planilha, zip ou imagem.");
+      return;
+    }
+
+    setAnexo((atual) => {
+      if (atual?.previewUrl) URL.revokeObjectURL(atual.previewUrl);
+      return {
+        nome: file.name,
+        tipo,
+        tamanho: file.size,
+        file,
+        url: "",
+        previewUrl: String(tipo).startsWith("image/") ? URL.createObjectURL(file) : "",
+      };
+    });
+    setErro("");
   }
 
   function removerAnexo() {
-    setAnexo(null);
+    setAnexo((atual) => {
+      if (atual?.previewUrl) URL.revokeObjectURL(atual.previewUrl);
+      return null;
+    });
   }
 
   function confirmarTagCustom() {
@@ -132,6 +199,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
   }, [clearForm, onClose]);
 
   useOverlayClose(open && !isEditorOpen, handleClose);
+  useOverlayClose(isEditorOpen, closeEditor);
 
   const handlePaste = (event) => {
     const items = event.clipboardData?.items || [];
@@ -171,7 +239,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       : [];
 
     if (enqueteEmUso && opcoesValidas.length < 2) {
-      setErro("Adicione pelo menos 2 opcoes para a enquete.");
+      setErro("Adicione pelo menos 2 opções para a enquete.");
       return;
     }
 
@@ -182,52 +250,73 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
 
     const temEnquete = enqueteEmUso && opcoesValidas.length >= 2;
 
-    if (!texto.trim() && !image && !anexo && !temEnquete) {
-      setErro("Escreva algo, adicione uma imagem, um anexo ou uma enquete para postar.");
+    const codigoLimpo = codigoTexto.trim();
+    const textoFinal = [texto.trim(), codigoLimpo ? wrapCodeFence(codigoLang, codigoLimpo) : ""]
+      .filter(Boolean)
+      .join("\n\n");
+
+    if (!textoFinal && !image && !anexo && !temEnquete) {
+      setErro("Escreva algo, adicione código, uma imagem, um anexo ou uma enquete para postar.");
       return;
     }
 
     const currentUser = getCurrentUser();
 
-    const novoPost = {
-      username: currentUser?.username || "Usuario",
-      handle: (currentUser?.handle || currentUser?.username || "usuario").replace(/\s+/g, "").toLowerCase(),
-      email: currentUser?.email || "",
-      fotoPerfil: currentUser?.fotoPerfil || "",
-      texto: texto.trim(),
-      imagem: image || "",
-      anexo: anexo || null,
-      poll: temEnquete ? { options: opcoesValidas, optionVoters: opcoesValidas.map(() => []) } : null,
-      tag: tagSelecionada || "",
-      agendadoPara: agendarData ? new Date(agendarData).toISOString() : "",
-      criadoEm: new Date().toISOString(),
-      comments: 0,
-      commentsList: [],
-      isSeedFake: false,
-      shares: 0,
-      likes: 0,
-      bookmarks: 0,
-      likedBy: [],
-      savedBy: [],
-      repostedBy: [],
-    };
-
-    if (!novoPost.email && !novoPost.username && !novoPost.handle) {
-      setErro("Erro: Dados do usuario incompletos.");
-      return;
-    }
-
+    if (publicando) return;
+    setPublicando(true);
     try {
+      let anexoPayload = null;
+      if (anexo?.file) {
+        anexoPayload = await uploadFile(anexo.file);
+      } else if (anexo?.url) {
+        anexoPayload = {
+          url: anexo.url,
+          tipo: anexo.tipo || mimeFromName(anexo.nome),
+          nome: anexo.nome || "arquivo",
+          tamanho: anexo.tamanho || null,
+        };
+      }
+
+      const novoPost = {
+        username: currentUser?.username || "Usuário",
+        handle: (currentUser?.handle || currentUser?.username || "usuario").replace(/\s+/g, "").toLowerCase(),
+        email: currentUser?.email || "",
+        fotoPerfil: currentUser?.fotoPerfil || "",
+        texto: textoFinal,
+        imagem: image || "",
+        anexo: anexoPayload,
+        poll: temEnquete ? { options: opcoesValidas, optionVoters: opcoesValidas.map(() => []) } : null,
+        tag: tagSelecionada || "",
+        agendadoPara: agendarData ? new Date(agendarData).toISOString() : "",
+        criadoEm: new Date().toISOString(),
+        comments: 0,
+        commentsList: [],
+        isSeedFake: false,
+        shares: 0,
+        likes: 0,
+        bookmarks: 0,
+        likedBy: [],
+        savedBy: [],
+        repostedBy: [],
+      };
+
+      if (!novoPost.email && !novoPost.username && !novoPost.handle) {
+        setErro("Erro: dados do usuário incompletos.");
+        return;
+      }
+
       const createdPost = await createPost(novoPost);
       const saved = onPostSaved(createdPost);
       if (saved === false) {
-        setErro("Nao foi possivel salvar o post localmente. Tente remover a imagem ou usar uma imagem menor.");
+        setErro("Não foi possível salvar o post localmente. Tente remover a imagem ou usar uma imagem menor.");
         return;
       }
       clearForm();
     } catch (error) {
       console.error(error);
       setErro(error.message || "Erro ao publicar. Tente novamente mais tarde.");
+    } finally {
+      setPublicando(false);
     }
   }
 
@@ -235,7 +324,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
 
   return createPortal(
     <>
-      <div className="overlay post-modal-overlay">
+      <div className="overlay post-modal-overlay" onClick={handleClose}>
         <div className="popup post-popup" onClick={(e) => e.stopPropagation()}>
           <button
             className="close-btn"
@@ -243,31 +332,35 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
             type="button"
             title="Fechar"
           >
-            x
+            <DsIcon icon={Icons.X} size="action" />
           </button>
 
           <div className="post-modal-header">
             <div
               className="post-modal-avatar"
-              style={{
-                backgroundImage: usuario?.fotoPerfil ? `url(${usuario.fotoPerfil})` : "none",
-                backgroundSize: "cover",
-                backgroundPosition: usuario?.posPerfil
-                  ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%`
-                  : "center",
-              }}
-            />
+              style={
+                usuario?.fotoPerfil && usuario?.posPerfil
+                  ? {
+                      backgroundImage: `url(${usuario.fotoPerfil})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%`,
+                    }
+                  : avatarStyle(usuario?.fotoPerfil, usuario?.handle || usuario?.username)
+              }
+            >
+              {!usuario?.fotoPerfil && avatarInitial(usuario?.username || usuario?.handle)}
+            </div>
 
             <div className="post-modal-user">
-              <span>{usuario?.username || "Usuario"}</span>
-              <small>@{usuario?.username || "usuario"}</small>
+              <span>{usuario?.username || "Usuário"}</span>
+              <small>@{usuario?.handle || usuario?.username || "usuário"}</small>
             </div>
           </div>
 
           <textarea
             ref={textareaRef}
             className="post-textarea"
-            placeholder="O que esta acontecendo?"
+            placeholder="Compartilhe uma ideia, dúvida, código ou projeto..."
             value={texto}
             rows={1}
             onChange={(e) => {
@@ -290,10 +383,10 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
                 <span className="window-dot green" />
               </div>
               <div className="post-card-window-body">
-                <img src={image} alt="Previa do post" />
+                <img src={image} alt="Prévia do post" />
               </div>
               <button className="post-image-remove" type="button" onClick={removeImage} title="Remover imagem">
-                x
+                ×
               </button>
             </div>
           )}
@@ -307,13 +400,14 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
             type="file"
             ref={anexoInputRef}
             hidden
+            accept=".pdf,.doc,.docx,.txt,.zip,.rar,.ppt,.pptx,.xls,.xlsx,.csv,application/pdf,image/*"
             onChange={handleAnexoChange}
           />
 
           {anexo && (
             <div className="post-anexo-preview">
-              {anexo.tipo.startsWith("image/") ? (
-                <img src={anexo.url} alt={anexo.nome} />
+              {anexo.tipo?.startsWith("image/") && (anexo.previewUrl || anexo.url) ? (
+                <img src={anexo.previewUrl || anexo.url} alt={anexo.nome} />
               ) : (
                 <div className="post-anexo-file">
                   <span className="post-anexo-file-icon">📄</span>
@@ -324,7 +418,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
                 </div>
               )}
               <button type="button" className="post-anexo-remove" onClick={removerAnexo} title="Remover anexo">
-                x
+                ×
               </button>
             </div>
           )}
@@ -335,7 +429,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
                 <div key={index} className="post-poll-opcao-row">
                   <input
                     type="text"
-                    placeholder={`Opcao ${index + 1}`}
+                    placeholder={`Opção ${index + 1}`}
                     value={opcao}
                     maxLength={40}
                     onChange={(e) => atualizarOpcaoEnquete(index, e.target.value)}
@@ -345,16 +439,16 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
                       type="button"
                       className="post-poll-remover"
                       onClick={() => removerOpcaoEnquete(index)}
-                      title="Remover opcao"
+                      title="Remover opção"
                     >
-                      x
+                      ×
                     </button>
                   )}
                 </div>
               ))}
               {enqueteOpcoes.length < 4 && (
                 <button type="button" className="post-poll-add" onClick={adicionarOpcaoEnquete}>
-                  + Adicionar opcao
+                  + Adicionar opção
                 </button>
               )}
             </div>
@@ -387,7 +481,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
               <div className="post-tag-custom">
                 <input
                   type="text"
-                  placeholder="Criar minha propria tag"
+                  placeholder="Criar minha própria tag"
                   value={tagCustomTexto}
                   onChange={(e) => setTagCustomTexto(e.target.value)}
                   onKeyDown={(e) => {
@@ -401,6 +495,29 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
                   Usar
                 </button>
               </div>
+            </div>
+          )}
+
+          {painelAberto === "codigo" && (
+            <div className="post-code-panel">
+              <label htmlFor="post-code-lang">Linguagem</label>
+              <select
+                id="post-code-lang"
+                value={codigoLang}
+                onChange={(e) => setCodigoLang(e.target.value)}
+              >
+                {CODE_LANGS.map((lang) => (
+                  <option key={lang} value={lang}>{languageLabel(lang)}</option>
+                ))}
+              </select>
+              <label htmlFor="post-code-text">Código</label>
+              <textarea
+                id="post-code-text"
+                placeholder="Cole o trecho de código aqui..."
+                value={codigoTexto}
+                rows={8}
+                onChange={(e) => setCodigoTexto(e.target.value)}
+              />
             </div>
           )}
 
@@ -421,9 +538,10 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
               type="button"
               className={anexo ? "active" : ""}
               title="Anexar arquivo"
+              aria-label="Anexar arquivo"
               onClick={() => anexoInputRef.current?.click()}
             >
-              📎
+              <DsIcon icon={Icons.Paperclip} size="action" />
             </button>
 
             <div className="post-emoji-wrapper">
@@ -433,7 +551,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
                 title="Emoji"
                 onClick={() => togglePainel("emoji")}
               >
-                😊
+                <DsIcon icon={Icons.Smile} size="action" />
               </button>
 
               {painelAberto === "emoji" && (
@@ -454,35 +572,51 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
 
             <button
               type="button"
+              className={painelAberto === "codigo" || codigoTexto.trim() ? "active" : ""}
+              title="Adicionar código"
+              aria-label="Adicionar código"
+              onClick={() => togglePainel("codigo")}
+            >
+              <DsIcon icon={Icons.Code2} size="action" />
+            </button>
+            <button
+              type="button"
               className={painelAberto === "enquete" ? "active" : ""}
               title="Criar enquete"
+              aria-label="Criar enquete"
               onClick={() => togglePainel("enquete")}
             >
-              ☰
+              <DsIcon icon={Icons.List} size="action" />
             </button>
             <button
               type="button"
               className={painelAberto === "tag" ? "active" : ""}
               title="Marcar assunto"
+              aria-label="Marcar assunto"
               onClick={() => togglePainel("tag")}
             >
-              🚩
+              <DsIcon icon={Icons.Hash} size="action" />
             </button>
             <button
               type="button"
               className={painelAberto === "agendar" ? "active" : ""}
-              title="Agendar publicacao"
+              title="Agendar publicação"
+              aria-label="Agendar publicação"
               onClick={() => togglePainel("agendar")}
             >
-              ⏶
+              <DsIcon icon={Icons.Calendar} size="action" />
             </button>
           </div>
 
           {erro && <p className="post-error">{erro}</p>}
 
           <div className="popup-btns">
-            <button onClick={handleSubmit}>Postar</button>
-            <button onClick={handleClose}>Cancelar</button>
+            <button type="button" onClick={handleSubmit} disabled={publicando}>
+              {publicando ? "Publicando..." : "Postar"}
+            </button>
+            <button type="button" onClick={handleClose} disabled={publicando}>
+              Cancelar
+            </button>
           </div>
         </div>
       </div>
@@ -490,6 +624,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
       {isEditorOpen && (
         <div
           className="overlay post-image-editor-overlay"
+          onClick={closeEditor}
           onMouseMove={moveDrag}
           onMouseUp={endDrag}
           onMouseLeave={endDrag}
@@ -497,6 +632,9 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
           onTouchEnd={endDrag}
         >
           <div className="popup post-image-editor-popup" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="close-btn" onClick={closeEditor} title="Fechar" aria-label="Fechar">
+              ×
+            </button>
             <h2>Editar Imagem</h2>
 
             <div className="post-modal-header editor-header">
@@ -512,14 +650,14 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
               />
 
               <div className="post-modal-user">
-                <span>{usuario?.username || "Usuario"}</span>
-                <small>@{usuario?.username || "usuario"}</small>
+                <span>{usuario?.username || "Usuário"}</span>
+                <small>@{usuario?.handle || usuario?.username || "usuário"}</small>
               </div>
             </div>
 
             <textarea
               className="post-textarea post-editor-textarea"
-              placeholder="Adicione uma descricao para o post"
+              placeholder="Adicione uma descrição para o post"
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
             />

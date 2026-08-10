@@ -3,14 +3,16 @@
 // mais as tabelas adicionadas para as features do DevSpace que ainda nao
 // tinham suporte no banco (enquete, repost, salvos, agendamento de post).
 // Seguro rodar mais de uma vez: so cria o que ainda nao existe.
-import "dotenv/config";
 import mysql from "mysql2/promise";
+import { dbConfig } from "./loadEnv.js";
 
 const CREATE_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS usuarios (
     id BIGINT NOT NULL AUTO_INCREMENT,
     username VARCHAR(30) NOT NULL,
     email VARCHAR(255) NOT NULL,
+    google_id VARCHAR(64) DEFAULT NULL,
+    auth_provider VARCHAR(20) NOT NULL DEFAULT 'local',
     senha_hash VARCHAR(255) NOT NULL,
     telefone VARCHAR(20) DEFAULT NULL,
     nome_exibicao VARCHAR(100) DEFAULT NULL,
@@ -35,7 +37,8 @@ const CREATE_STATEMENTS = [
     atualizado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY username (username),
-    UNIQUE KEY email (email)
+    UNIQUE KEY email (email),
+    UNIQUE KEY uq_usuarios_google_id (google_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 
   `CREATE TABLE IF NOT EXISTS star_levels (
@@ -326,12 +329,58 @@ const CREATE_STATEMENTS = [
     CONSTRAINT fk_notificacoes_ator FOREIGN KEY (ator_id) REFERENCES usuarios (id) ON DELETE CASCADE,
     CONSTRAINT fk_notificacoes_post FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
     CONSTRAINT fk_notificacoes_comentario FOREIGN KEY (comentario_id) REFERENCES comentarios (id) ON DELETE CASCADE,
-    CONSTRAINT chk_notificacao_tipo CHECK (tipo IN ('curtida_post', 'comentario_post', 'curtida_comentario', 'mencao'))
+    CONSTRAINT chk_notificacao_tipo CHECK (tipo IN ('curtida_post', 'comentario_post', 'curtida_comentario', 'mencao', 'seguidor', 'mensagem', 'avaliacao'))
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 
   // Bloqueios entre usuarios: quem bloqueia deixa de ver posts/perfil de
   // quem bloqueou, e nenhum dos dois consegue mandar mensagem/solicitacao
   // de contato pro outro enquanto o bloqueio existir.
+  `CREATE TABLE IF NOT EXISTS sessoes (
+    token CHAR(64) NOT NULL,
+    usuario_id BIGINT NOT NULL,
+    expira_em DATETIME NOT NULL,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (token),
+    KEY idx_sessoes_usuario (usuario_id),
+    KEY idx_sessoes_expira (expira_em)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
+  `CREATE TABLE IF NOT EXISTS password_resets (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    usuario_id BIGINT NOT NULL,
+    codigo_hash VARCHAR(255) NOT NULL,
+    expira_em DATETIME NOT NULL,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_password_resets_usuario (usuario_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
+  `CREATE TABLE IF NOT EXISTS verification_codes (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    destino VARCHAR(255) NOT NULL,
+    codigo_hash VARCHAR(255) NOT NULL,
+    expira_em DATETIME NOT NULL,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_verification_destino (destino)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
+  `CREATE TABLE IF NOT EXISTS avaliacoes_perfil (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    avaliador_id BIGINT NOT NULL,
+    avaliado_id BIGINT NOT NULL,
+    nota TINYINT NOT NULL,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_avaliacao_par (avaliador_id, avaliado_id),
+    KEY idx_avaliacoes_avaliado (avaliado_id),
+    CONSTRAINT fk_avaliacao_avaliador FOREIGN KEY (avaliador_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+    CONSTRAINT fk_avaliacao_avaliado FOREIGN KEY (avaliado_id) REFERENCES usuarios (id) ON DELETE CASCADE,
+    CONSTRAINT chk_avaliacao_nota CHECK (nota BETWEEN 1 AND 5),
+    CONSTRAINT chk_avaliacao_nao_self CHECK (avaliador_id <> avaliado_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
   `CREATE TABLE IF NOT EXISTS bloqueios (
     id BIGINT NOT NULL AUTO_INCREMENT,
     usuario_id BIGINT NOT NULL,
@@ -357,13 +406,7 @@ async function addColumnIfMissing(conn, table, column, definition) {
 }
 
 async function main() {
-  const conn = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  });
+  const conn = await mysql.createConnection(dbConfig());
 
   for (const statement of CREATE_STATEMENTS) {
     const tableName = statement.match(/CREATE TABLE IF NOT EXISTS (\w+)/)[1];
@@ -411,8 +454,36 @@ async function main() {
   await addColumnIfMissing(conn, "usuarios", "pos_capa_y", "pos_capa_y SMALLINT NOT NULL DEFAULT 50 AFTER pos_capa_x");
   await addColumnIfMissing(conn, "usuarios", "zoom_perfil", "zoom_perfil SMALLINT NOT NULL DEFAULT 100 AFTER pos_capa_y");
   await addColumnIfMissing(conn, "usuarios", "zoom_capa", "zoom_capa SMALLINT NOT NULL DEFAULT 100 AFTER zoom_perfil");
+  await addColumnIfMissing(conn, "usuarios", "google_id", "google_id VARCHAR(64) DEFAULT NULL AFTER email");
+  await addColumnIfMissing(conn, "usuarios", "auth_provider", "auth_provider VARCHAR(20) NOT NULL DEFAULT 'local' AFTER google_id");
+  await addColumnIfMissing(conn, "usuarios", "notif_contatos", "notif_contatos TINYINT(1) NOT NULL DEFAULT 1");
+  await addColumnIfMissing(conn, "usuarios", "notif_mensagens", "notif_mensagens TINYINT(1) NOT NULL DEFAULT 1");
+  await addColumnIfMissing(conn, "usuarios", "notif_atividade", "notif_atividade TINYINT(1) NOT NULL DEFAULT 1");
   await addColumnIfMissing(conn, "midias", "nome_original", "nome_original VARCHAR(255) DEFAULT NULL AFTER tamanho_bytes");
   await addColumnIfMissing(conn, "midias", "mime_original", "mime_original VARCHAR(255) DEFAULT NULL AFTER nome_original");
+
+  try {
+    await conn.query("ALTER TABLE notificacoes DROP CHECK chk_notificacao_tipo");
+  } catch {
+    /* constraint pode nao existir em bancos antigos */
+  }
+  try {
+    await conn.query(
+      "ALTER TABLE notificacoes ADD CONSTRAINT chk_notificacao_tipo CHECK (tipo IN ('curtida_post','comentario_post','curtida_comentario','mencao','seguidor','mensagem','avaliacao'))"
+    );
+  } catch (error) {
+    if (!String(error.message || "").includes("Duplicate")) {
+      console.warn("Aviso: constraint de notificacoes:", error.message);
+    }
+  }
+
+  try {
+    await conn.query("CREATE UNIQUE INDEX uq_usuarios_google_id ON usuarios (google_id)");
+  } catch (error) {
+    if (!String(error.message || "").includes("Duplicate")) {
+      /* índice já existe ou google_id ainda tem duplicatas nulas — ok */
+    }
+  }
 
   // Niveis de estrela padrao (usados por user_star_stats). So insere o que faltar.
   const niveis = [

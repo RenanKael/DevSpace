@@ -1,13 +1,33 @@
 .config-layout {
-  display: flex;
-  align-items: flex-start;
-  gap: 32px;
-  max-width: 600px;
-  padding: 20px 24px 60px;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 720px);
+  align-items: start;
+  gap: 28px;
+  width: min(calc(100% - (var(--ds-content-pad) * 2)), 1080px);
+  max-width: 1080px;
+  margin-inline: auto;
+  padding: 12px 0 60px;
+}
+
+.config-content {
+  max-width: 720px;
+}
+
+@media (max-width: 760px) {
+  .config-layout {
+    grid-template-columns: 1fr;
+  }
+  .config-nav {
+    position: static;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 }
 
 .config-nav {
-  width: 120px;
+  width: 168px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -22,8 +42,8 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  padding: 0 0 6px;
-  font-size: 14px;
+  padding: 0 0 8px;
+  font-size: 0.98rem;
   font-weight: 600;
   color: #fff;
   cursor: pointer;
@@ -36,31 +56,77 @@
 .config-content {
   flex: 1;
   min-width: 0;
-  max-width: 420px;
+  max-width: 720px;
 }
 
 .config-field {
-  border: 1px solid #2c313b;
-  border-radius: 12px;
-  padding: 8px 14px;
-  margin-bottom: 12px;
-}
-
-.config-field label {
-  display: block;
-  font-size: 12px;
-  color: #9aa4b2;
-  margin-bottom: 2px;
-}
-
-.config-field input {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
   border: none;
+  padding: 0;
   background: transparent;
+}
+
+.config-field > span {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ds-text-secondary);
+}
+
+.config-field input,
+.config-field textarea {
+  width: 100%;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface-2);
   color: #fff;
   font-size: 15px;
-  padding: 4px 0;
+  padding: 12px 14px;
   outline: none;
+  resize: vertical;
+  min-height: 0;
+  font-family: inherit;
+}
+
+.config-field input:focus,
+.config-field textarea:focus {
+  border-color: var(--ds-accent);
+  box-shadow: 0 0 0 3px rgba(77, 141, 255, 0.18);
+}
+
+.config-field textarea {
+  min-height: 96px;
+}
+
+.ds-profile-form .ds-form-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.ds-profile-form .ds-form-actions button,
+.ds-profile-form .popup-btns button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 168px;
+}
+
+.config-password-toggle {
+  margin: 8px 0 16px;
+  border: none;
+  background: transparent;
+  color: #9db8ff;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.config-password-toggle:hover {
+  color: #fff;
 }
 
 .config-subsection {
@@ -75,6 +141,19 @@
 
 .config-row-salvar {
   margin-top: 14px;
+}
+
+button.notif-aceitar.config-row-salvar {
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  background: linear-gradient(180deg, #6aa0ff 0%, #2f74ff 100%);
+}
+
+button.notif-aceitar.config-row-salvar:hover {
+  background: linear-gradient(180deg, #7aacff 0%, #3d82ff 100%);
 }
 
 .notif-section .erro,
@@ -94,24 +173,36 @@
 .notificacoes-layout {
   display: flex;
   align-items: flex-start;
-  gap: 28px;
-  max-width: 920px;
-  margin: 0 auto;
-  padding: 20px 24px 60px;
+  gap: 32px;
+  width: min(calc(100% - (var(--ds-content-pad) * 2)), var(--ds-shell-max));
+  max-width: var(--ds-shell-max);
+  margin-inline: auto;
+  padding: 20px 0 60px;
 }
 
 .notificacoes-page {
   flex: 1;
   min-width: 0;
-  max-width: 520px;
+  max-width: 640px;
+}
+
+.notif-page-empty strong {
+  display: block;
+  color: #fff;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.notif-page-empty p {
+  margin: 0;
 }
 
 .notificacoes-config {
   width: 260px;
   flex-shrink: 0;
-  background: #111;
-  border: 1px solid #23272f;
-  border-radius: 14px;
+  background: #14161a;
+  border: 1px solid #2a2e36;
+  border-radius: 16px;
   padding: 18px;
   position: sticky;
   top: 20px;
@@ -326,8 +417,16 @@ button.notif-row {
 }
 
 .notif-page-empty {
-  padding: 60px 10px;
+  padding: 48px 22px;
   text-align: center;
-  color: #7a8492;
-  font-size: 14px;
+  color: #9aa0a6;
+  font-size: 15px;
+  line-height: 1.5;
+  background: #12151c;
+  border: 1px solid rgba(77, 141, 255, 0.28);
+  border-radius: 16px;
+}
+
+.notif-page-empty .perfil-empty-cta {
+  margin-top: 16px;
 }

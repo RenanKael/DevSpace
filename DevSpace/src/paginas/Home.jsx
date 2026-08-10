@@ -4,6 +4,7 @@ import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
+import { avatarInitial, avatarStyle } from "../utils/avatar";
 import {
   fetchPosts,
   fetchUsers,
@@ -17,12 +18,6 @@ import {
   likeComment,
   followUser,
 } from "../api";
-
-const ACTION_API_CALLS = {
-  likes: likePost,
-  shares: sharePost,
-  bookmarks: bookmarkPost,
-};
 import {
   recordUserCommentProgress,
   recordUserLikeProgress,
@@ -31,11 +26,20 @@ import {
   syncUsersStarProgress,
 } from "../utils/starProgress";
 import { tagLabel, displayHashtag } from "../utils/postTags";
+import { DsIcon } from "../components/icons";
+import { Icons } from "../components/iconKit";
+import { PostContent } from "../components/CodeBlock";
 import "../style/home.css";
 
-const MIN_SUGGESTIONS_WIDTH = 220;
-const MAX_SUGGESTIONS_WIDTH = 460;
-const DEFAULT_SUGGESTIONS_WIDTH = 300;
+const ACTION_API_CALLS = {
+  likes: likePost,
+  shares: sharePost,
+  bookmarks: bookmarkPost,
+};
+
+const MIN_SUGGESTIONS_WIDTH = 260;
+const MAX_SUGGESTIONS_WIDTH = 420;
+const DEFAULT_SUGGESTIONS_WIDTH = 340;
 
 function clampSuggestionsWidth(value) {
   return Math.min(MAX_SUGGESTIONS_WIDTH, Math.max(MIN_SUGGESTIONS_WIDTH, value));
@@ -57,22 +61,22 @@ const FAKE_COMMENT_POOL = [
 ];
 
 const SUGGESTED_PROFILE_POOL = [
-  { username: "Joao Gabriel", handle: "joaogabriel", bio: "Front-end, treino e interfaces limpas." },
+  { username: "João Gabriel", handle: "joaogabriel", bio: "Front-end, treino e interfaces limpas." },
   { username: "Rockstar Games", handle: "rockstargames", bio: "Projetos, games e bastidores criativos." },
   { username: "Pedro Zauristak", handle: "pedrozauristak", bio: "Fotografia, design e pequenos projetos." },
   { username: "o terror dos profs", handle: "terrordosprofs", bio: "Codando e testando ideias no DevSpace." },
   { username: "dieli", handle: "dieli", bio: "UI, rotina e estudos." },
-  { username: "Maya Dev", handle: "mayadev", bio: "React, produto e cafe." },
-  { username: "Lucas Motion", handle: "lucasmotion", bio: "Animacoes e microinteracoes." },
-  { username: "Sofia UX", handle: "sofiaux", bio: "Experiencias simples para problemas chatos." },
+  { username: "Maya Dev", handle: "mayadev", bio: "React, produto e café." },
+  { username: "Lucas Motion", handle: "lucasmotion", bio: "Animações e microinterações." },
+  { username: "Sofia UX", handle: "sofiaux", bio: "Experiências simples para problemas chatos." },
   { username: "Nicolas Code", handle: "nicolascode", bio: "Back-end curioso com alma de front." },
-  { username: "Clara Pixel", handle: "clarapixel", bio: "Design visual e posts com referencias." },
+  { username: "Clara Pixel", handle: "clarapixel", bio: "Design visual e posts com referências." },
   { username: "Mateus Stack", handle: "mateusstack", bio: "APIs, bancos e deploys sem drama." },
   { username: "Lara Studio", handle: "larastudio", bio: "Branding, telas e experimentos." },
-  { username: "Gui Mobile", handle: "guimobile", bio: "Apps, prototipos e performance." },
+  { username: "Gui Mobile", handle: "guimobile", bio: "Apps, protótipos e performance." },
   { username: "Bia Product", handle: "biaproduct", bio: "Produto digital e pesquisa." },
-  { username: "Rafa Cloud", handle: "rafacloud", bio: "Infra, automacao e observabilidade." },
-  { username: "Iris Data", handle: "irisdata", bio: "Dados, dashboards e historias." },
+  { username: "Rafa Cloud", handle: "rafacloud", bio: "Infra, automação e observabilidade." },
+  { username: "Iris Data", handle: "irisdata", bio: "Dados, dashboards e histórias." },
   { username: "Theo Games", handle: "theogames", bio: "Gameplay, level design e Unity." },
   { username: "Manu CSS", handle: "manucss", bio: "CSS, layout e componentes." },
   { username: "Enzo AI", handle: "enzoai", bio: "IA aplicada em produtos pequenos." },
@@ -143,17 +147,22 @@ const FAKE_CODE_IMAGES = {
 // IDs negativos garantem que o feed de demonstracao nunca colida com IDs reais
 // atribuidos automaticamente pelo backend (que sempre comecam em 1).
 const COMMUNITY_FEED_SEED = [
-  { id: -9101, username: "Maya Dev", handle: "mayadev", texto: "Refatorei um componente hoje e finalmente ficou legivel. Pequenas vitorias contam muito.", imagem: "" },
+  { id: -9101, username: "Maya Dev", handle: "mayadev", texto: "Refatorei um componente hoje e finalmente ficou legível. Pequenas vitórias contam muito.", imagem: "" },
   { id: -9102, username: "Clara Pixel", handle: "clarapixel", texto: "Moodboard novo para um dashboard escuro com contraste melhor.", imagem: FAKE_CODE_IMAGES["-9102"] },
-  { id: -9103, username: "Lucas Motion", handle: "lucasmotion", texto: "Microanimacao boa e aquela que quase ninguem percebe, mas todo mundo sente.", imagem: "" },
-  { id: -9104, username: "Sofia UX", handle: "sofiaux", texto: "Testei um fluxo de cadastro com menos campos. A sensacao ficou bem mais leve.", imagem: FAKE_CODE_IMAGES["-9104"] },
-  { id: -9105, username: "Nicolas Code", handle: "nicolascode", texto: "Uma API bem documentada economiza uma tarde inteira de confusao.", imagem: "" },
+  { id: -9103, username: "Lucas Motion", handle: "lucasmotion", texto: "Microanimação boa é aquela que quase ninguém percebe, mas todo mundo sente.", imagem: "" },
+  { id: -9104, username: "Sofia UX", handle: "sofiaux", texto: "Testei um fluxo de cadastro com menos campos. A sensação ficou bem mais leve.", imagem: FAKE_CODE_IMAGES["-9104"] },
+  { id: -9105, username: "Nicolas Code", handle: "nicolascode", texto: "Uma API bem documentada economiza uma tarde inteira de confusão.", imagem: "" },
   { id: -9106, username: "Lara Studio", handle: "larastudio", texto: "Experimentando capas de perfil com mais personalidade.", imagem: FAKE_CODE_IMAGES["-9106"] },
-  { id: -9107, username: "Mateus Stack", handle: "mateusstack", texto: "Deploy de sexta sem susto: checklist, variaveis conferidas e logs abertos.", imagem: "" },
+  { id: -9107, username: "Mateus Stack", handle: "mateusstack", texto: "Deploy de sexta sem susto: checklist, variáveis conferidas e logs abertos.", imagem: "" },
   { id: -9108, username: "Bia Product", handle: "biaproduct", texto: "Ideia do dia: salvar feedback bruto antes de tentar transformar tudo em feature.", imagem: "" },
-  { id: -9109, username: "Theo Games", handle: "theogames", texto: "Prototipo de cena com luz mais dramatica. Ainda simples, mas ja deu clima.", imagem: FAKE_CODE_IMAGES["-9109"] },
+  { id: -9109, username: "Theo Games", handle: "theogames", texto: "Protótipo de cena com luz mais dramática. Ainda simples, mas já deu clima.", imagem: FAKE_CODE_IMAGES["-9109"] },
   { id: -9110, username: "Manu CSS", handle: "manucss", texto: "Grid resolveu em cinco linhas o layout que eu estava complicando com vinte.", imagem: FAKE_CODE_IMAGES["-9110"] },
 ];
+
+const COMMUNITY_SEED_BY_ID = new Map(COMMUNITY_FEED_SEED.map((seed) => [Number(seed.id), seed]));
+const SUGGESTED_POOL_BY_HANDLE = new Map(
+  SUGGESTED_PROFILE_POOL.map((profile) => [normalizeHandle(profile.handle || profile.username), profile])
+);
 
 function fakeAvatar(handle) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle)}`;
@@ -297,6 +306,17 @@ function sortPostsByDate(posts) {
   });
 }
 
+function isImageAnexo(anexo) {
+  const tipo = String(anexo?.tipo || "").toLowerCase();
+  const nome = String(anexo?.nome || anexo?.url || "").toLowerCase();
+  return (
+    tipo.startsWith("image/") ||
+    tipo === "imagem" ||
+    tipo === "gif" ||
+    /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(nome)
+  );
+}
+
 function normalizePoll(poll) {
   if (!poll || !Array.isArray(poll.options) || poll.options.length < 2) return null;
   return {
@@ -359,7 +379,7 @@ function hydratePostsForDisplay(posts, users) {
 
       return {
         ...comment,
-        username: commentProfile?.username || comment.username || "Usuario",
+        username: commentProfile?.username || comment.username || "Usuário",
         handle: commentProfile?.handle || comment.handle || commentHandle,
         email: commentProfile?.email || comment.email || "",
         fotoPerfil: commentProfile?.fotoPerfil || comment.fotoPerfil || (commentIsFake ? fakeAvatar(commentHandle) : ""),
@@ -368,7 +388,7 @@ function hydratePostsForDisplay(posts, users) {
 
     return {
       ...post,
-      username: postProfile?.username || post.username || "Usuario",
+      username: postProfile?.username || post.username || "Usuário",
       handle: postProfile?.handle || post.handle || postHandle,
       email: postProfile?.email || post.email || "",
       fotoPerfil: postProfile?.fotoPerfil || post.fotoPerfil || (isFakePost ? fakeAvatar(postHandle) : ""),
@@ -391,6 +411,15 @@ function stripPostForStorage(post) {
     ...post,
     fotoPerfil: "",
     imagem: isSeedFake ? "" : post?.imagem || "",
+    anexo:
+      post?.anexo?.url && !String(post.anexo.url).startsWith("data:")
+        ? {
+            url: post.anexo.url,
+            tipo: post.anexo.tipo || "",
+            nome: post.anexo.nome || "arquivo",
+            tamanho: post.anexo.tamanho || null,
+          }
+        : null,
     commentsList,
   };
 }
@@ -400,11 +429,11 @@ function savePostsToStorage(posts) {
   const serializedPosts = JSON.stringify(storagePosts);
   try {
     localStorage.setItem("posts", serializedPosts);
-  } catch (error) {
+  } catch (_error) {
     localStorage.removeItem("posts");
     try {
       localStorage.setItem("posts", serializedPosts);
-    } catch (retryError) {
+    } catch (_retryError) {
       const emergencyPosts = storagePosts.map((post) => ({ ...post, imagem: "" }));
       localStorage.removeItem("profileImageBackups");
       localStorage.setItem("posts", JSON.stringify(emergencyPosts));
@@ -486,8 +515,17 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
     const suggestedUsers = SUGGESTED_PROFILE_POOL
       .filter((profile) => !knownHandles.has(normalizeHandle(profile.handle || profile.username)))
       .map(buildSuggestedUser);
-    const nextUsers = [...usersList, ...suggestedUsers];
-    if (suggestedUsers.length > 0) {
+    const refreshedUsers = usersList.map((user) => {
+      const pool = SUGGESTED_POOL_BY_HANDLE.get(normalizeHandle(user.handle || user.username));
+      if (!pool) return user;
+      return {
+        ...user,
+        username: pool.username || user.username,
+        bio: pool.bio || user.bio,
+      };
+    });
+    const nextUsers = [...refreshedUsers, ...suggestedUsers];
+    if (suggestedUsers.length > 0 || JSON.stringify(refreshedUsers) !== JSON.stringify(usersList)) {
       localStorage.setItem("usuarios", JSON.stringify(nextUsers));
     }
     setUsuarios(nextUsers);
@@ -498,12 +536,15 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
   const [selectedPost, setSelectedPost] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [commentsPostId, setCommentsPostId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [hoverUnfollowHandle, setHoverUnfollowHandle] = useState(null);
   const [activeActions, setActiveActions] = useState({});
   const [visibleSuggestionHandles, setVisibleSuggestionHandles] = useState(null);
 
-  useOverlayClose(!!selectedPost && !commentsPostId, () => setSelectedPost(null));
+  useOverlayClose(!!selectedPost && !commentsPostId && !deleteConfirmId, () => setSelectedPost(null));
   useOverlayClose(!!imagePreview, () => setImagePreview(null));
   useOverlayClose(!!commentsPostId, () => setCommentsPostId(null));
+  useOverlayClose(!!deleteConfirmId, () => setDeleteConfirmId(null));
 
   function salvarPosts(postsAtualizados) {
     try {
@@ -699,7 +740,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
       const commentsList = Array.isArray(post.commentsList) ? post.commentsList : [];
       const novoComentario = {
         id: Date.now() + Math.floor(Math.random() * 1000),
-        username: usuarioAtualizado.username || "Usuario",
+        username: usuarioAtualizado.username || "Usuário",
         handle: commentHandle,
         email: usuarioAtualizado.email || "",
         fotoPerfil: usuarioAtualizado.fotoPerfil || "",
@@ -852,7 +893,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             handle: "liagomes",
             email: "lia.gomes@dev.com",
             fotoPerfil: "",
-            texto: "Comecando a semana com foco e cafe na mesa. Vamos fazer acontecer!",
+            texto: "Começando a semana com foco e café na mesa. Vamos fazer acontecer!",
             imagem: "",
             comments: 2,
             commentsList: [
@@ -883,7 +924,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             handle: "feliperocha",
             email: "felipe.rocha@dev.com",
             fotoPerfil: "",
-            texto: "Adorei o novo projeto, ja estou testando as ideias no prototipo.",
+            texto: "Adorei o novo projeto, já estou testando as ideias no protótipo.",
             imagem: "",
             comments: 3,
             commentsList: [
@@ -891,14 +932,14 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                 id: 2001,
                 username: "Lia Gomes",
                 handle: "liagomes",
-                texto: "Manda depois o resultado desse prototipo.",
+                texto: "Manda depois o resultado desse protótipo.",
                 criadoEm: new Date(Date.now() - 4200000).toISOString(),
               },
               {
                 id: 2002,
                 username: "Arthur Silva",
                 handle: "arthursilva",
-                texto: "Tambem to testando algo parecido.",
+                texto: "Também tô testando algo parecido.",
                 criadoEm: new Date(Date.now() - 6500000).toISOString(),
               },
               {
@@ -921,7 +962,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             handle: "ninacorrea",
             email: "nina.correa@dev.com",
             fotoPerfil: "",
-            texto: "Hora de aprender algo novo: hoje vou estudar animacoes CSS para fazer cards mais fluidos.",
+            texto: "Hora de aprender algo novo: hoje vou estudar animações CSS para fazer cards mais fluidos.",
             imagem: "",
             comments: 4,
             commentsList: [
@@ -929,14 +970,14 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                 id: 3001,
                 username: "Pedro Code",
                 handle: "pedrocode",
-                texto: "Animacao em CSS faz muita diferenca mesmo.",
+                texto: "Animação em CSS faz muita diferença mesmo.",
                 criadoEm: new Date(Date.now() - 5100000).toISOString(),
               },
               {
                 id: 3002,
                 username: "Maria Silva",
                 handle: "mariasilva",
-                texto: "Se quiser posso te mandar referencias boas.",
+                texto: "Se quiser posso te mandar referências boas.",
                 criadoEm: new Date(Date.now() - 8400000).toISOString(),
               },
               {
@@ -966,7 +1007,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             handle: "arthursilva",
             email: "arthur.silva@dev.com",
             fotoPerfil: "",
-            texto: "Todo dia e dia de melhorar o design e deixar o app mais agradavel para as pessoas.",
+            texto: "Todo dia é dia de melhorar o design e deixar o app mais agradável para as pessoas.",
             imagem: "",
             comments: 1,
             commentsList: [
@@ -974,7 +1015,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                 id: 4001,
                 username: "Lia Gomes",
                 handle: "liagomes",
-                texto: "Design centrado no usuario sempre vence.",
+                texto: "Design centrado no usuário sempre vence.",
                 criadoEm: new Date(Date.now() - 4800000).toISOString(),
               },
             ],
@@ -1053,13 +1094,15 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
           ? commentsList.length
           : rawComments.length;
         const fakeCodeImage = FAKE_CODE_IMAGES[Number(post.id)];
+        const seedDef = COMMUNITY_SEED_BY_ID.get(Number(post.id));
         const normalizedPost = {
           ...post,
-          username: postProfile?.username || post.username,
+          username: seedDef?.username || postProfile?.username || post.username,
           handle: postProfile?.handle || post.handle,
           email: postProfile?.email || post.email,
           fotoPerfil: postProfile?.fotoPerfil || post.fotoPerfil || (isLegacyFake ? fakeAvatar(postHandle) : ""),
           imagem: isLegacyFake ? (fakeCodeImage || "") : post.imagem,
+          texto: seedDef?.texto ?? post.texto,
           commentsList,
           comments: normalizedComments,
           isSeedFake: isLegacyFake,
@@ -1139,9 +1182,11 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
       if (Array.isArray(backendPosts) && backendPosts.length > 0) {
         setPosts((prevPosts) => {
           const backendIds = new Set(backendPosts.map((post) => String(post.id)));
-          const localOnlyPosts = prevPosts.filter(
-            (post) => post.isSeedFake || !backendIds.has(String(post.id))
-          );
+          const localOnlyPosts = prevPosts.filter((post) => {
+            if (backendIds.has(String(post.id))) return false;
+            const id = Number(post.id);
+            return !!post.isSeedFake && id < 0;
+          });
           const mergedPosts = [...backendPosts, ...localOnlyPosts];
           savePostsToStorage(mergedPosts);
           return sortPostsByDate(hydratePostsForDisplay(mergedPosts, backendUsers));
@@ -1297,9 +1342,22 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
   const blockedHandles = new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase()));
   const blockedEmails = new Set(blockedUsers.map((u) => (u.email || "").toLowerCase()));
 
+  const viewerHandle = normalizeHandle(usuario?.handle || usuario?.username);
+  const viewerIsQa = /^(qa|qaui|qafresh)/.test(viewerHandle) || viewerHandle.includes("qaloop") || viewerHandle.includes("qaaudit");
+  const hasRealCommunityPosts = posts.some((post) => Number(post.id) > 0 && !post.isSeedFake);
+
   const filteredPosts = posts.filter((post) => {
     if (blockedHandles.has((post.handle || "").toLowerCase())) return false;
     if (blockedEmails.has((post.email || "").toLowerCase())) return false;
+    if (!viewerIsQa) {
+      const handle = normalizeHandle(post.handle || post.username);
+      const texto = String(post.texto || "");
+      const email = String(post.email || "").toLowerCase();
+      if (/^(qa|qaui|qafresh)/.test(handle) || handle.includes("qaloop") || handle.includes("qaaudit")) return false;
+      if (/auditoria\s+\d+|qa ui loop|loop de qa/i.test(texto)) return false;
+      if (email.endsWith("@devspace.local") && email.includes("qa.")) return false;
+    }
+    if (hasRealCommunityPosts && (post.isSeedFake || Number(post.id) < 0)) return false;
 
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
@@ -1358,30 +1416,51 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
   const suggestedProfiles = (() => {
     const currentHandle = normalizeHandle(usuario?.handle || usuario?.username || "");
     const following = new Set((Array.isArray(usuario?.seguindo) ? usuario.seguindo : []).map(normalizeHandle));
-    const merged = [...usuarios, ...SUGGESTED_PROFILE_POOL.map(buildSuggestedUser)];
+    const realUsers = usuarios.filter((u) => Number(u.id) > 0);
+    const seedUsers = SUGGESTED_PROFILE_POOL.map(buildSuggestedUser);
+    const merged = [...realUsers, ...seedUsers];
     const dedupedMap = new Map();
+
+    function isLowQualitySuggestion(profile, handle) {
+      const isReal = Number(profile.id) > 0;
+      const username = String(profile.username || "").toLowerCase();
+      const bio = String(profile.bio || "").toLowerCase();
+      const email = String(profile.email || "").toLowerCase();
+      if (/^(qa|test|sms|guser|telefone|simp)/.test(handle)) return true;
+      if (handle.includes("qaloop") || handle.includes("qaui") || handle.includes("qafresh") || handle.includes("testauth")) return true;
+      if (username.startsWith("qa ") || username.startsWith("test ") || username === "sms user" || username === "teste auth") return true;
+      if (bio.includes("cadastro via api") || bio.includes("bio de teste") || bio === "teste") return true;
+      if (email.endsWith("@devspace.local") || email.endsWith("@phone.devspace.local")) return true;
+      if (isReal) return false;
+      if (SUGGESTED_POOL_BY_HANDLE.has(handle)) return false;
+      if (!profile.bio || bio === "perfil da comunidade devspace.") return true;
+      return false;
+    }
 
     merged.forEach((profile) => {
       const handle = normalizeHandle(profile.handle || profile.username);
       if (!handle || handle === currentHandle) return;
+      if (isLowQualitySuggestion(profile, handle)) return;
+      const pool = SUGGESTED_POOL_BY_HANDLE.get(handle);
       if (!dedupedMap.has(handle)) {
         dedupedMap.set(handle, {
           ...profile,
           handle,
+          username: pool?.username || profile.username,
           fotoPerfil: profile.fotoPerfil || fakeAvatar(handle),
-          bio: profile.bio || "Perfil da comunidade DevSpace.",
+          bio: pool?.bio || profile.bio || "Ainda sem bio.",
         });
       }
     });
 
-    const allSuggestions = [...dedupedMap.values()];
+    const allSuggestions = [...dedupedMap.values()].filter((profile) => !following.has(profile.handle));
     if (!visibleSuggestionHandles) {
-      return allSuggestions.filter((profile) => !following.has(profile.handle)).slice(0, 24);
+      return allSuggestions.slice(0, 8);
     }
 
     return allSuggestions
       .filter((profile) => visibleSuggestionHandles.includes(profile.handle))
-      .slice(0, 24);
+      .slice(0, 8);
   })();
 
   useEffect(() => {
@@ -1489,51 +1568,56 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
   }
 
   function renderAnexo(post) {
-    if (!post.anexo) return null;
+    if (!post.anexo?.url) return null;
 
-    if (post.anexo.tipo?.startsWith("image/")) {
+    if (isImageAnexo(post.anexo)) {
       return (
-        <div className="post-card-window" onClick={(e) => e.stopPropagation()}>
-          <div className="post-card-window-top">
-            <span className="window-dot red" />
-            <span className="window-dot yellow" />
-            <span className="window-dot green" />
-          </div>
-          <div
-            className="post-card-window-body"
-            onClick={(e) => {
-              e.stopPropagation();
-              setImagePreview(post.anexo.url);
-            }}
-          >
-            <img src={post.anexo.url} alt={post.anexo.nome || "Anexo"} />
-          </div>
-        </div>
+        <button
+          type="button"
+          className="post-card-media"
+          onClick={(e) => {
+            e.stopPropagation();
+            setImagePreview(post.anexo.url);
+          }}
+        >
+          <img src={post.anexo.url} alt={post.anexo.nome || ""} />
+        </button>
       );
     }
+
+    const href = post.anexo.nome
+      ? `${post.anexo.url}${post.anexo.url.includes("?") ? "&" : "?"}nome=${encodeURIComponent(post.anexo.nome)}`
+      : post.anexo.url;
 
     return (
       <a
         className="post-anexo-file-card"
-        href={post.anexo.url}
-        download={post.anexo.nome}
+        href={href}
+        download={post.anexo.nome || true}
+        target="_blank"
+        rel="noreferrer"
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="post-anexo-file-icon">📄</span>
+        <span className="post-anexo-file-icon">{String(post.anexo.nome || "").toLowerCase().endsWith(".pdf") ? "📕" : "📄"}</span>
         <div className="post-anexo-file-info">
-          <strong>{post.anexo.nome}</strong>
-          <small>Baixar arquivo</small>
+          <strong>{post.anexo.nome || "Arquivo"}</strong>
+          <small>{String(post.anexo.nome || "").toLowerCase().endsWith(".pdf") ? "Abrir PDF" : "Baixar arquivo"}</small>
         </div>
       </a>
     );
   }
 
   function getPostCardClass(post) {
-    const anexoImagem = post.anexo && post.anexo.tipo?.startsWith("image/");
-    const anexoArquivo = post.anexo && !anexoImagem;
-    if (post.poll || anexoArquivo) return "post-card has-extra";
-    if (post.imagem || anexoImagem) return "post-card has-image";
-    return "post-card text-only";
+    const anexoImagem = isImageAnexo(post.anexo);
+    const classes = ["post-card"];
+    if (post.imagem || anexoImagem) classes.push("has-image");
+    if (post.poll || post.anexo || (post.texto && String(post.texto).includes("```"))) classes.push("has-extra");
+    return classes.join(" ");
+  }
+
+  function actionCount(value) {
+    const n = Number(value || 0);
+    return n > 0 ? <strong>{n}</strong> : null;
   }
 
   function renderPoll(post) {
@@ -1584,6 +1668,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
         activityNotifications={activityNotifications}
         onOpenActivityNotification={onOpenActivityNotification}
         irNotificacoes={irNotificacoes}
+        irConfiguracoes={irConfiguracoes}
       />
 
       <div className={`main${sidebarOpen ? "" : " sidebar-closed"}`}>
@@ -1595,22 +1680,69 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
           onOpenUserProfile={() => usuario && onOpenUserProfile?.(usuario)}
           onOpenSettings={irConfiguracoes}
           onLogout={onLogout}
+          onLogin={() => onRequireAuth?.("Entre ou crie uma conta para usar o DevSpace.")}
         />
 
         <div
           className={`feed-layout${sidebarOpen ? "" : " sidebar-closed"}`}
-          style={{ "--suggestions-width": `${suggestionsWidth}px` }}
         >
-        <div className="feed">
-          {loading && <p>Carregando...</p>}
+        <div className="feed" id="conteudo-principal">
+          {!loading && !searchQuery.trim() && (
+            <div className="feed-banner">
+              <span>Feed</span>
+              <h2>Para você</h2>
+            </div>
+          )}
+          {loading && (
+            <div className="feed-skeleton" aria-busy="true" aria-live="polite">
+              {[0, 1, 2].map((item) => (
+                <div className="post-skeleton" key={item}>
+                  <div className="sk-row">
+                    <div className="ds-skeleton sk-avatar" />
+                    <div className="sk-meta">
+                      <div className="ds-skeleton sk-line sk-line--sm" />
+                      <div className="ds-skeleton sk-line sk-line--xs" />
+                    </div>
+                  </div>
+                  <div className="ds-skeleton sk-line" />
+                  <div className="ds-skeleton sk-line sk-line--mid" />
+                  <div className="ds-skeleton sk-media" />
+                </div>
+              ))}
+            </div>
+          )}
           {!loading && filteredPosts.length === 0 && profileOnlyResults.length === 0 && (
-            <p>
-              {searchQuery.trim().startsWith("@")
-                ? "Nenhum perfil encontrado."
-                : searchQuery.trim().startsWith("#")
-                  ? "Nenhum post com essa tag."
-                  : "Sem posts correspondentes a busca."}
-            </p>
+            <div className="feed-empty-card ds-empty">
+              <strong>
+                {searchQuery.trim()
+                  ? searchQuery.trim().startsWith("@")
+                    ? "Nenhum perfil encontrado"
+                    : searchQuery.trim().startsWith("#")
+                      ? "Nenhum post com essa tag"
+                      : `Nenhum resultado encontrado para “${searchQuery.trim()}”`
+                  : "Ainda não há publicações aqui"}
+              </strong>
+              <p>
+                {searchQuery.trim()
+                  ? "Tente outro termo, @ ou #tag."
+                  : "Suas ideias e projetos aparecem neste feed. Que tal publicar o primeiro?"}
+              </p>
+              {!searchQuery.trim() && (
+                <button
+                  type="button"
+                  className="feed-empty-cta"
+                  onClick={() => {
+                    if (!usuario) {
+                      onRequireAuth?.("Entre para publicar no DevSpace.");
+                      return;
+                    }
+                    onOpenPost?.();
+                  }}
+                >
+                  Postar agora
+                </button>
+              )}
+            </div>
           )}
 
           {!loading && profileOnlyResults.length > 0 && (
@@ -1633,7 +1765,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                     <div className="profile-search-meta">
                       <strong>{u.username}</strong>
                       <small>@{u.handle || u.username}</small>
-                      <p>{u.bio || "Sem bio..."}</p>
+                      <p>{u.bio || "Ainda sem bio."}</p>
                     </div>
                   </div>
                 </div>
@@ -1652,14 +1784,15 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
               <div className="post-card-header">
                 <div
                   className="post-card-avatar"
-                  style={{ backgroundImage: post.fotoPerfil ? `url(${post.fotoPerfil})` : "none" }}
+                  style={avatarStyle(post.fotoPerfil, post.handle || post.username)}
                   onClick={(e) => {
                     e.stopPropagation();
                     onOpenUserProfile?.(post);
                   }}
-                />
+                >
+                  {!post.fotoPerfil && avatarInitial(post.username || post.handle)}
+                </div>
                 <div className="post-card-user">
-                  <small className="post-card-handle">@{post.handle || post.username}</small>
                   <strong
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1669,6 +1802,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                   >
                     {post.username}
                   </strong>
+                  <span className="post-card-handle">@{post.handle || post.username}</span>
                 </div>
                 {renderPostTag(post)}
                 {(usuario?.email === post.email || usuario?.username === post.username) && (
@@ -1676,102 +1810,118 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                     className="post-delete-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      deletePost(post.id);
+                      setDeleteConfirmId(post.id);
                     }}
                     title="Excluir post"
                   >
-                    x
+                    ×
                   </button>
                 )}
               </div>
 
-              <p className="post-card-text">{post.texto}</p>
+              <PostContent texto={post.texto} />
 
               {post.imagem && (
-                <div className="post-card-window" onClick={(e) => e.stopPropagation()}>
-                  <div className="post-card-window-top">
-                    <span className="window-dot red" />
-                    <span className="window-dot yellow" />
-                    <span className="window-dot green" />
-                  </div>
-                  <div
-                    className="post-card-window-body"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setImagePreview(post.imagem);
-                    }}
-                  >
-                    <img src={post.imagem} alt="Post" />
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  className="post-card-media"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImagePreview(post.imagem);
+                  }}
+                >
+                  <img src={post.imagem} alt="" />
+                </button>
               )}
 
               {renderAnexo(post)}
               {renderPoll(post)}
 
               <div className="post-card-actions" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  aria-label="Comentarios"
-                  className={commentsPostId === post.id ? "active pulse" : ""}
-                  onClick={() => toggleComments(post.id)}
-                >
-                  <span>💬</span>
-                  <strong>{Array.isArray(post.commentsList) ? post.commentsList.length : post.comments ?? 0}</strong>
-                </button>
-                <button
-                  type="button"
-                  aria-label="Repost"
-                  className={activeActions[post.id]?.shares ? "active pulse" : ""}
-                  onClick={() => togglePostAction(post.id, "shares")}
-                >
-                  <span>🔁</span>
-                  <strong>{post.shares ?? 0}</strong>
-                </button>
-                <button
-                  type="button"
-                  aria-label="Curtir"
-                  className={activeActions[post.id]?.likes ? "active pulse" : ""}
-                  onClick={() => togglePostAction(post.id, "likes")}
-                >
-                  <span>❤️</span>
-                  <strong>{post.likes ?? 0}</strong>
-                </button>
+                <div className="post-card-actions-left">
+                  <button
+                    type="button"
+                    aria-label="Curtir"
+                    title="Curtir"
+                    className={activeActions[post.id]?.likes ? "active pulse" : ""}
+                    onClick={() => togglePostAction(post.id, "likes")}
+                  >
+                    <DsIcon
+                      icon={Icons.Heart}
+                      size="action"
+                      className="action-icon"
+                      fill={activeActions[post.id]?.likes ? "currentColor" : "none"}
+                    />
+                    {actionCount(post.likes)}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Comentar"
+                    title="Comentar"
+                    className={`action-comment${commentsPostId === post.id ? " active pulse" : ""}`}
+                    onClick={() => toggleComments(post.id)}
+                  >
+                    <DsIcon icon={Icons.MessageCircle} size="action" className="action-icon" />
+                    {actionCount(Array.isArray(post.commentsList) ? post.commentsList.length : post.comments)}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Repostar"
+                    title="Repostar"
+                    className={activeActions[post.id]?.shares ? "active pulse" : ""}
+                    onClick={() => togglePostAction(post.id, "shares")}
+                  >
+                    <DsIcon icon={Icons.Repeat2} size="action" className="action-icon" />
+                    {actionCount(post.shares)}
+                  </button>
+                </div>
                 <button
                   type="button"
                   aria-label="Salvar"
+                  title="Salvar"
                   className={activeActions[post.id]?.bookmarks ? "active pulse" : ""}
                   onClick={() => togglePostAction(post.id, "bookmarks")}
                 >
-                  <span>🔖</span>
-                  <strong>{post.bookmarks ?? 0}</strong>
+                  <DsIcon
+                    icon={Icons.Bookmark}
+                    size="action"
+                    className="action-icon"
+                    fill={activeActions[post.id]?.bookmarks ? "currentColor" : "none"}
+                  />
+                  {actionCount(post.bookmarks)}
                 </button>
               </div>
 
             </div>
           ))}
         </div>
-        <aside className="suggestions-sidebar" aria-label="Sugestoes de perfis">
+        <aside className="suggestions-sidebar" aria-label="Sugestões de perfis">
           <div
             className={`suggestions-resize-handle${redimensionando ? " active" : ""}`}
             onMouseDown={iniciarRedimensionamento}
             onTouchStart={iniciarRedimensionamento}
             role="separator"
             aria-orientation="vertical"
-            aria-label="Redimensionar sugestoes"
+            aria-label="Redimensionar sugestões"
           />
           <div className="suggestions-sidebar-inner">
-            <h3>Sugestões para você</h3>
+            <p className="suggestions-kicker">Comunidade</p>
+            <h3>Quem seguir</h3>
             <div className="suggestions-list">
+              {suggestedProfiles.length === 0 && (
+                <p className="suggestions-empty">Você já segue todo mundo por aqui.</p>
+              )}
               {suggestedProfiles.map((profile) => (
                 <div key={profile.email || profile.handle} className="suggestion-card">
                   <button
                     type="button"
                     className="suggestion-avatar"
-                    style={{ backgroundImage: profile.fotoPerfil ? `url(${profile.fotoPerfil})` : "none" }}
+                    style={avatarStyle(profile.fotoPerfil, profile.handle || profile.username)}
                     onClick={() => onOpenUserProfile?.(profile)}
                     aria-label={`Abrir perfil de ${profile.username}`}
-                  />
+                  >
+                    {!profile.fotoPerfil && avatarInitial(profile.username || profile.handle)}
+                  </button>
                   <button
                     type="button"
                     className="suggestion-info"
@@ -1783,10 +1933,16 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                   </button>
                   <button
                     type="button"
-                    className="suggestion-follow"
+                    className={`suggestion-follow${isFollowingSuggestion(profile) ? " is-following" : ""}`}
                     onClick={() => followSuggestedProfile(profile)}
+                    onMouseEnter={() => setHoverUnfollowHandle(normalizeHandle(profile.handle || profile.username))}
+                    onMouseLeave={() => setHoverUnfollowHandle(null)}
                   >
-                    {isFollowingSuggestion(profile) ? "Deixar de seguir" : "Seguir"}
+                    {isFollowingSuggestion(profile)
+                      ? hoverUnfollowHandle === normalizeHandle(profile.handle || profile.username)
+                        ? "Deixar de seguir"
+                        : "Seguindo"
+                      : "Seguir"}
                   </button>
                 </div>
               ))}
@@ -1800,7 +1956,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
         <div className="post-preview-overlay" onClick={() => setSelectedPost(null)}>
           <div className="post-expanded-popup" onClick={(e) => e.stopPropagation()}>
             <button className="post-expanded-close" onClick={() => setSelectedPost(null)} type="button" title="Fechar">
-              x
+              ×
             </button>
             <div className="post-card-header">
               <div
@@ -1827,62 +1983,68 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
               </div>
               {renderPostTag(selectedPostData)}
             </div>
-            <p className="post-card-text post-expanded-text">{selectedPostData.texto}</p>
+            <PostContent texto={selectedPostData.texto} className="post-expanded-text" />
             {selectedPostData.imagem && (
-              <div
-                className="post-card-window post-expanded-window"
+              <button
+                type="button"
+                className="post-card-media"
                 onClick={() => setImagePreview(selectedPostData.imagem)}
               >
-                <div className="post-card-window-top">
-                  <span className="window-dot red" />
-                  <span className="window-dot yellow" />
-                  <span className="window-dot green" />
-                </div>
-                <div className="post-card-window-body">
-                  <img src={selectedPostData.imagem} alt="Post ampliado" />
-                </div>
-              </div>
+                <img src={selectedPostData.imagem} alt="" />
+              </button>
             )}
 
             {renderAnexo(selectedPostData)}
             {renderPoll(selectedPostData)}
 
             <div className="post-card-actions post-expanded-actions" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                aria-label="Comentarios"
-                className={commentsPostId === selectedPostData.id ? "active pulse" : ""}
-                onClick={() => toggleComments(selectedPostData.id)}
-              >
-                <span>💬</span>
-                <strong>{Array.isArray(selectedPostData.commentsList) ? selectedPostData.commentsList.length : selectedPostData.comments ?? 0}</strong>
-              </button>
-              <button
-                type="button"
-                aria-label="Repost"
-                className={activeActions[selectedPostData.id]?.shares ? "active pulse" : ""}
-                onClick={() => togglePostAction(selectedPostData.id, "shares")}
-              >
-                <span>🔁</span>
-                <strong>{selectedPostData.shares ?? 0}</strong>
-              </button>
-              <button
-                type="button"
-                aria-label="Curtir"
-                className={activeActions[selectedPostData.id]?.likes ? "active pulse" : ""}
-                onClick={() => togglePostAction(selectedPostData.id, "likes")}
-              >
-                <span>❤️</span>
-                <strong>{selectedPostData.likes ?? 0}</strong>
-              </button>
+              <div className="post-card-actions-left">
+                <button
+                  type="button"
+                  aria-label="Curtir"
+                  className={activeActions[selectedPostData.id]?.likes ? "active pulse" : ""}
+                  onClick={() => togglePostAction(selectedPostData.id, "likes")}
+                >
+                  <DsIcon
+                    icon={Icons.Heart}
+                    size="action"
+                    className="action-icon"
+                    fill={activeActions[selectedPostData.id]?.likes ? "currentColor" : "none"}
+                  />
+                  {actionCount(selectedPostData.likes)}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Comentar"
+                  className={`action-comment${commentsPostId === selectedPostData.id ? " active pulse" : ""}`}
+                  onClick={() => toggleComments(selectedPostData.id)}
+                >
+                  <DsIcon icon={Icons.MessageCircle} size="action" className="action-icon" />
+                  {actionCount(Array.isArray(selectedPostData.commentsList) ? selectedPostData.commentsList.length : selectedPostData.comments)}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Repostar"
+                  className={activeActions[selectedPostData.id]?.shares ? "active pulse" : ""}
+                  onClick={() => togglePostAction(selectedPostData.id, "shares")}
+                >
+                  <DsIcon icon={Icons.Repeat2} size="action" className="action-icon" />
+                  {actionCount(selectedPostData.shares)}
+                </button>
+              </div>
               <button
                 type="button"
                 aria-label="Salvar"
                 className={activeActions[selectedPostData.id]?.bookmarks ? "active pulse" : ""}
                 onClick={() => togglePostAction(selectedPostData.id, "bookmarks")}
               >
-                <span>🔖</span>
-                <strong>{selectedPostData.bookmarks ?? 0}</strong>
+                <DsIcon
+                  icon={Icons.Bookmark}
+                  size="action"
+                  className="action-icon"
+                  fill={activeActions[selectedPostData.id]?.bookmarks ? "currentColor" : "none"}
+                />
+                {actionCount(selectedPostData.bookmarks)}
               </button>
             </div>
           </div>
@@ -1898,7 +2060,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
               type="button"
               title="Fechar"
             >
-              x
+              ×
             </button>
 
             <div className="comments-popup-head">
@@ -1932,12 +2094,36 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
       )}
 
       {imagePreview && (
-        <div className="post-preview-overlay" onClick={() => setImagePreview(null)}>
-          <div className="image-only-popup" onClick={(e) => e.stopPropagation()}>
-            <button className="post-expanded-close" onClick={() => setImagePreview(null)}>
-              x
+        <div className="post-preview-overlay" onClick={() => setImagePreview(null)} role="presentation">
+          <div className="image-only-popup" role="dialog" aria-modal="true" aria-label="Imagem do post" onClick={(e) => e.stopPropagation()}>
+            <button className="post-expanded-close" onClick={() => setImagePreview(null)} aria-label="Fechar">
+              ×
             </button>
             <img src={imagePreview} alt="Imagem ampliada do post" />
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmId && (
+        <div className="post-preview-overlay" onClick={() => setDeleteConfirmId(null)}>
+          <div className="feed-confirm-card" onClick={(e) => e.stopPropagation()}>
+            <h3>Excluir este post?</h3>
+            <p>Essa ação não pode ser desfeita.</p>
+            <div className="feed-confirm-actions">
+              <button
+                type="button"
+                className="feed-confirm-danger"
+                onClick={() => {
+                  deletePost(deleteConfirmId);
+                  setDeleteConfirmId(null);
+                }}
+              >
+                Excluir
+              </button>
+              <button type="button" onClick={() => setDeleteConfirmId(null)}>
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

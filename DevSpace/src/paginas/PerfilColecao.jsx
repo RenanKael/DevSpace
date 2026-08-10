@@ -1,30 +1,45 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
+import PostComments from "../components/PostComments";
 import "../style/perfil.css";
 import "../style/home.css";
-import backArrow from "../assets/IMGS/DawnFlech (2).png";
-import { fetchPosts } from "../api";
+import PageHeader from "../components/PageHeader";
+import { PostContent } from "../components/CodeBlock";
+import { DsIcon } from "../components/icons";
+import { Icons } from "../components/iconKit";
+import { avatarInitial, avatarStyle } from "../utils/avatar";
+import { fetchMyCollection, addComment, deleteComment, likeComment, likePost, sharePost, bookmarkPost } from "../api";
 import {
   recordUserLikeProgress,
   recordUserRepostProgress,
   recordUserSaveProgress,
 } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
+import { useOverlayClose } from "../hooks/useOverlayClose";
 
 const COLLECTIONS = {
   curtidos: {
     title: "Curtidos",
-    empty: "Nenhum post curtido ainda.",
+    kicker: "Coleção",
+    description: "Posts que você curtiu na comunidade.",
+    emptyTitle: "Nenhum post curtido ainda",
+    empty: "Explore o feed e curta conteúdos para encontrá-los depois.",
     field: "likedBy",
   },
   salvos: {
     title: "Posts salvos",
-    empty: "Nenhum post salvo ainda.",
+    kicker: "Coleção",
+    description: "Seus posts guardados para consultar depois.",
+    emptyTitle: "Nenhum post salvo ainda",
+    empty: "Explore o feed e salve conteúdos para encontrar depois.",
     field: "savedBy",
   },
   republicados: {
     title: "Republicados",
-    empty: "Nenhum post republicado ainda.",
+    kicker: "Coleção",
+    description: "Publicações que você republicou.",
+    emptyTitle: "Nenhum republicado ainda",
+    empty: "Republicações aparecem aqui.",
     field: "repostedBy",
   },
 };
@@ -91,48 +106,52 @@ export default function PerfilColecao({
   activityNotifications,
   onOpenActivityNotification,
   irNotificacoes,
+  irConfiguracoes,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [usuario, setUsuario] = useState(null);
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [status, setStatus] = useState("loading");
+  const [erroColecao, setErroColecao] = useState("");
   const config = COLLECTIONS[tipo] || COLLECTIONS.curtidos;
 
   useEffect(() => {
     let canceled = false;
+    const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+    const currentUser = localUser || sessionUser || null;
+    setUsuario(currentUser);
 
-    async function loadBackendPosts() {
+    async function loadCollection() {
+      if (!currentUser) {
+        setStatus("auth");
+        setPosts([]);
+        onRequireAuth?.("Entre para ver esta coleção.");
+        return;
+      }
+      setStatus("loading");
+      setErroColecao("");
       try {
-        const backendPosts = await fetchPosts();
+        const lista = await fetchMyCollection(tipo);
         if (canceled) return;
-        setPosts(Array.isArray(backendPosts) ? sortPostsByDate(backendPosts) : []);
+        setPosts(Array.isArray(lista) ? sortPostsByDate(lista) : []);
+        setStatus("ok");
       } catch (error) {
-        console.warn("Erro ao carregar posts do backend:", error);
-        if (!canceled) {
-          setPosts(JSON.parse(localStorage.getItem("posts")) || []);
-        }
+        if (canceled) return;
+        setPosts([]);
+        setErroColecao(error.message || "Não foi possível carregar a coleção.");
+        setStatus("error");
       }
     }
 
-    const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
-    const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
-    setUsuario(localUser || sessionUser || null);
-    loadBackendPosts();
-
+    loadCollection();
     return () => {
       canceled = true;
     };
   }, [tipo]);
-
-  const filteredPosts = useMemo(() => {
-    const userKeys = getUserKeys(usuario);
-    if (userKeys.length === 0) return [];
-
-    return posts
-      .filter((post) => postHasUserAction(post, config.field, userKeys))
-      .sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
-  }, [posts, usuario, config.field]);
 
   function togglePostAction(postId, action) {
     const field = ACTIONS[action];
@@ -175,6 +194,11 @@ export default function PerfilColecao({
     window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
     setPosts(updatedPosts);
 
+    if (usuario?.id && currentPost && !currentPost.isSeedFake) {
+      const apiCall = action === "likes" ? likePost : action === "shares" ? sharePost : bookmarkPost;
+      apiCall(postId, usuario.id).catch(() => {});
+    }
+
     const nextSelectedPost = updatedPosts.find((post) => post.id === postId);
     const stillInThisCollection = nextSelectedPost
       ? postHasUserAction(nextSelectedPost, config.field, userKeys)
@@ -187,7 +211,72 @@ export default function PerfilColecao({
     }
   }
 
+  function atualizarComentariosDoPost(postId, updater) {
+    setPosts((prev) => {
+      const next = prev.map((post) => (post.id === postId ? updater(post) : post));
+      localStorage.setItem("posts", JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent("devspacePostsUpdated", { detail: { sameTab: true } }));
+      const atualizado = next.find((post) => post.id === postId);
+      if (atualizado) setSelectedPost(atualizado);
+      return next;
+    });
+  }
+
+  function addCommentToPost(postId, texto, parentId = null, imagem = null) {
+    if (!usuario) {
+      onRequireAuth?.("Entre para comentar.");
+      return;
+    }
+    const novo = {
+      id: `c-${Date.now()}`,
+      texto,
+      parentId,
+      imagem,
+      username: usuario.username,
+      handle: usuario.handle,
+      email: usuario.email,
+      fotoPerfil: usuario.fotoPerfil,
+      criadoEm: new Date().toISOString(),
+      likes: 0,
+      likedBy: [],
+    };
+    atualizarComentariosDoPost(postId, (post) => {
+      const list = Array.isArray(post.commentsList) ? post.commentsList : [];
+      return { ...post, commentsList: [...list, novo], comments: list.length + 1 };
+    });
+    if (usuario.id) addComment(postId, usuario.id, texto, parentId, imagem).catch(() => {});
+  }
+
+  function deleteCommentFromPost(postId, commentId) {
+    atualizarComentariosDoPost(postId, (post) => {
+      const list = (Array.isArray(post.commentsList) ? post.commentsList : []).filter((c) => c.id !== commentId);
+      return { ...post, commentsList: list, comments: list.length };
+    });
+    deleteComment(commentId).catch(() => {});
+  }
+
+  function toggleCommentLike(postId, commentId) {
+    const key = getUserKeys(usuario)[0];
+    atualizarComentariosDoPost(postId, (post) => ({
+      ...post,
+      commentsList: (Array.isArray(post.commentsList) ? post.commentsList : []).map((comment) => {
+        if (comment.id !== commentId) return comment;
+        const likedBy = Array.isArray(comment.likedBy) ? comment.likedBy.map(normalizeKey) : [];
+        const already = key && likedBy.includes(key);
+        return {
+          ...comment,
+          likedBy: already ? likedBy.filter((item) => item !== key) : key ? [...likedBy, key] : likedBy,
+          likes: already ? Math.max(0, Number(comment.likes || 0) - 1) : Number(comment.likes || 0) + 1,
+        };
+      }),
+    }));
+    if (usuario?.id) likeComment(commentId, usuario.id).catch(() => {});
+  }
+
   const selectedPostUserKeys = getUserKeys(usuario);
+  useOverlayClose(!!selectedPost && !commentsOpen && !imagePreview, () => setSelectedPost(null));
+  useOverlayClose(!!commentsOpen, () => setCommentsOpen(false));
+  useOverlayClose(!!imagePreview, () => setImagePreview(null));
 
   return (
     <div className="home">
@@ -209,53 +298,118 @@ export default function PerfilColecao({
         activityNotifications={activityNotifications}
         onOpenActivityNotification={onOpenActivityNotification}
         irNotificacoes={irNotificacoes}
+        irConfiguracoes={irConfiguracoes}
       />
 
-      <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
-        <div className="topo-perfil collection-top">
-          <button className="back-arrow-btn" onClick={irPerfil} type="button" title="Voltar ao perfil">
-            <img src={backArrow} alt="Voltar" />
-          </button>
-          <h3>{config.title}</h3>
-        </div>
+      <div id="conteudo-principal" className={`profile-page collection-shell${sidebarOpen ? "" : " sidebar-closed"}`}>
+        <PageHeader
+          eyebrow={config.kicker}
+          title={config.title}
+          description={config.description}
+          backLabel="Voltar ao perfil"
+          onBack={irPerfil}
+        />
 
         <div className="profile-collection-page">
-          {filteredPosts.length === 0 ? (
-            <div className="perfil-post-empty">{config.empty}</div>
-          ) : (
+          {status === "loading" && (
+            <div className="perfil-post-empty">
+              <strong>Carregando...</strong>
+              <p>Buscando sua coleção.</p>
+            </div>
+          )}
+          {status === "auth" && (
+            <div className="perfil-post-empty">
+              <strong>Entre para ver esta coleção</strong>
+              <p>Curtidos, posts salvos e republicados são pessoais.</p>
+            </div>
+          )}
+          {status === "error" && (
+            <div className="perfil-post-empty">
+              <strong>Não foi possível carregar</strong>
+              <p>{erroColecao}</p>
+            </div>
+          )}
+          {status === "ok" && posts.length === 0 && (
+            <div className="perfil-post-empty">
+              <strong>{config.emptyTitle}</strong>
+              <p>{config.empty}</p>
+              <button type="button" className="perfil-empty-cta" onClick={irExplorar}>
+                Explorar feed
+              </button>
+            </div>
+          )}
+          {status === "ok" && posts.length > 0 && (
             <div className="posts-list collection-posts-list">
-              {filteredPosts.map((post) => (
+              {posts.map((post) => (
                 <div
                   key={post.id}
-                  className="perfil-post-card collection-post-card"
+                  className="post-card"
                   onClick={() => setSelectedPost(post)}
                 >
-                  <div
-                    className="perfil-post-avatar-card"
-                    style={{
-                      backgroundImage: post.fotoPerfil ? `url(${post.fotoPerfil})` : "none",
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenUserProfile?.(post);
-                    }}
-                    title="Abrir perfil"
-                  />
-                  <div className="perfil-post-body">
+                  <div className="post-card-header">
                     <div
-                      className="perfil-post-title"
+                      className="post-card-avatar"
+                      style={avatarStyle(post.fotoPerfil, post.handle || post.username)}
                       onClick={(e) => {
                         e.stopPropagation();
                         onOpenUserProfile?.(post);
                       }}
                     >
-                      {post.username || "Usuario"}
+                      {!post.fotoPerfil && avatarInitial(post.username || post.handle)}
                     </div>
-                    <div className="perfil-post-handle">@{post.handle || post.username || "usuario"}</div>
-                    <div className="perfil-post-text">{post.texto || "Post sem texto"}</div>
-                    {post.imagem && <div className="perfil-post-saved">Com imagem</div>}
+                    <div className="post-card-user">
+                      <strong onClick={(e) => { e.stopPropagation(); onOpenUserProfile?.(post); }}>{post.username || "Usuário"}</strong>
+                      <span className="post-card-handle">@{post.handle || post.username || "usuário"}</span>
+                    </div>
+                  </div>
+                  {post.texto ? <PostContent texto={post.texto} /> : <p className="post-card-text">Post sem texto</p>}
+                  {post.imagem && (
+                    <button
+                      type="button"
+                      className="post-card-media"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImagePreview(post.imagem);
+                      }}
+                    >
+                      <img src={post.imagem} alt="" />
+                    </button>
+                  )}
+                  <div className="post-card-actions" onClick={(e) => e.stopPropagation()}>
+                    <div className="post-card-actions-left">
+                      <button
+                        type="button"
+                        aria-label="Curtir"
+                        className={postActionIsActive(post, "likes", getUserKeys(usuario)) ? "active" : ""}
+                        onClick={() => togglePostAction(post.id, "likes")}
+                      >
+                        <DsIcon icon={Icons.Heart} size="action" className="action-icon" fill={postActionIsActive(post, "likes", getUserKeys(usuario)) ? "currentColor" : "none"} />
+                        {Number(post.likes || 0) > 0 && <strong>{post.likes}</strong>}
+                      </button>
+                      <button type="button" aria-label="Comentar" className="action-comment" onClick={() => { setSelectedPost(post); setCommentsOpen(true); }}>
+                        <DsIcon icon={Icons.MessageCircle} size="action" className="action-icon" />
+                        {Number(Array.isArray(post.commentsList) ? post.commentsList.length : post.comments || 0) > 0 && (
+                          <strong>{Array.isArray(post.commentsList) ? post.commentsList.length : post.comments}</strong>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Repostar"
+                        className={postActionIsActive(post, "shares", getUserKeys(usuario)) ? "active" : ""}
+                        onClick={() => togglePostAction(post.id, "shares")}
+                      >
+                        <DsIcon icon={Icons.Repeat2} size="action" className="action-icon" />
+                        {Number(post.shares || 0) > 0 && <strong>{post.shares}</strong>}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Salvar"
+                      className={postActionIsActive(post, "bookmarks", getUserKeys(usuario)) ? "active" : ""}
+                      onClick={() => togglePostAction(post.id, "bookmarks")}
+                    >
+                      <DsIcon icon={Icons.Bookmark} size="action" className="action-icon" fill={postActionIsActive(post, "bookmarks", getUserKeys(usuario)) ? "currentColor" : "none"} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -268,14 +422,14 @@ export default function PerfilColecao({
         <div className="post-preview-overlay" onClick={() => setSelectedPost(null)}>
           <div className="post-expanded-popup" onClick={(e) => e.stopPropagation()}>
             <button className="post-expanded-close" onClick={() => setSelectedPost(null)} type="button" title="Fechar">
-              x
+              ×
             </button>
 
             <div className="post-card-header">
               <div
                 className="post-card-avatar"
                 style={{
-                  backgroundImage: selectedPost.fotoPerfil ? `url(${selectedPost.fotoPerfil})` : "none",
+                  backgroundImage: `url(${selectedPost.fotoPerfil || `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(selectedPost.handle || selectedPost.username || "usuario")}`})`,
                 }}
                 onClick={() => {
                   setSelectedPost(null);
@@ -283,78 +437,103 @@ export default function PerfilColecao({
                 }}
               />
               <div className="post-card-user">
-                <small className="post-card-handle">@{selectedPost.handle || selectedPost.username || "usuario"}</small>
+                <small className="post-card-handle">@{selectedPost.handle || selectedPost.username || "usuário"}</small>
                 <strong
                   onClick={() => {
                     setSelectedPost(null);
                     onOpenUserProfile?.(selectedPost);
                   }}
                 >
-                  {selectedPost.username || "Usuario"}
+                  {selectedPost.username || "Usuário"}
                 </strong>
               </div>
             </div>
 
-            <p className="post-card-text post-expanded-text">{selectedPost.texto || "Post sem texto"}</p>
+            {selectedPost.texto ? <PostContent texto={selectedPost.texto} expanded className="post-expanded-text" /> : <p className="post-card-text">Post sem texto</p>}
 
             {selectedPost.imagem && (
-              <div
-                className="post-card-window post-expanded-window"
-                onClick={() => setImagePreview(selectedPost.imagem)}
-              >
-                <div className="post-card-window-top">
-                  <span className="window-dot red" />
-                  <span className="window-dot yellow" />
-                  <span className="window-dot green" />
-                </div>
-                <div className="post-card-window-body">
-                  <img src={selectedPost.imagem} alt="Post ampliado" />
-                </div>
-              </div>
+              <button type="button" className="post-card-media" onClick={() => setImagePreview(selectedPost.imagem)}>
+                <img src={selectedPost.imagem} alt="" />
+              </button>
             )}
 
             <div className="post-card-actions post-expanded-actions">
-              <button type="button" aria-label="Comentarios">
-                <span>💬</span>
-                <strong>{Array.isArray(selectedPost.commentsList) ? selectedPost.commentsList.length : selectedPost.comments ?? 0}</strong>
-              </button>
-              <button
-                type="button"
-                aria-label="Repost"
-                className={postActionIsActive(selectedPost, "shares", selectedPostUserKeys) ? "active" : ""}
-                onClick={() => togglePostAction(selectedPost.id, "shares")}
-              >
-                <span>🔁</span>
-                <strong>{selectedPost.shares ?? 0}</strong>
-              </button>
-              <button
-                type="button"
-                aria-label="Curtir"
-                className={postActionIsActive(selectedPost, "likes", selectedPostUserKeys) ? "active" : ""}
-                onClick={() => togglePostAction(selectedPost.id, "likes")}
-              >
-                <span>❤️</span>
-                <strong>{selectedPost.likes ?? 0}</strong>
-              </button>
+              <div className="post-card-actions-left">
+                <button
+                  type="button"
+                  aria-label="Curtir"
+                  className={postActionIsActive(selectedPost, "likes", selectedPostUserKeys) ? "active" : ""}
+                  onClick={() => togglePostAction(selectedPost.id, "likes")}
+                >
+                  <DsIcon icon={Icons.Heart} size="action" className="action-icon" fill={postActionIsActive(selectedPost, "likes", selectedPostUserKeys) ? "currentColor" : "none"} />
+                  {Number(selectedPost.likes || 0) > 0 && <strong>{selectedPost.likes}</strong>}
+                </button>
+                <button type="button" className="action-comment" aria-label="Comentar" onClick={() => setCommentsOpen(true)}>
+                  <DsIcon icon={Icons.MessageCircle} size="action" className="action-icon" />
+                  {Number(Array.isArray(selectedPost.commentsList) ? selectedPost.commentsList.length : selectedPost.comments || 0) > 0 && (
+                    <strong>{Array.isArray(selectedPost.commentsList) ? selectedPost.commentsList.length : selectedPost.comments}</strong>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Repostar"
+                  className={postActionIsActive(selectedPost, "shares", selectedPostUserKeys) ? "active" : ""}
+                  onClick={() => togglePostAction(selectedPost.id, "shares")}
+                >
+                  <DsIcon icon={Icons.Repeat2} size="action" className="action-icon" />
+                  {Number(selectedPost.shares || 0) > 0 && <strong>{selectedPost.shares}</strong>}
+                </button>
+              </div>
               <button
                 type="button"
                 aria-label="Salvar"
                 className={postActionIsActive(selectedPost, "bookmarks", selectedPostUserKeys) ? "active" : ""}
                 onClick={() => togglePostAction(selectedPost.id, "bookmarks")}
               >
-                <span>🔖</span>
-                <strong>{selectedPost.bookmarks ?? 0}</strong>
+                <DsIcon icon={Icons.Bookmark} size="action" className="action-icon" fill={postActionIsActive(selectedPost, "bookmarks", selectedPostUserKeys) ? "currentColor" : "none"} />
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {commentsOpen && selectedPost && (
+        <div className="post-preview-overlay comments-overlay" onClick={() => setCommentsOpen(false)}>
+          <div className="comments-popup" onClick={(e) => e.stopPropagation()}>
+            <button className="post-expanded-close" onClick={() => setCommentsOpen(false)} type="button" title="Fechar">
+              ×
+            </button>
+            <div className="comments-popup-head">
+              <div
+                className="post-card-avatar"
+                style={{ backgroundImage: selectedPost.fotoPerfil ? `url(${selectedPost.fotoPerfil})` : "none" }}
+              />
+              <div>
+                <small className="post-card-handle">@{selectedPost.handle || selectedPost.username}</small>
+                <strong>{selectedPost.username || "Usuário"}</strong>
+              </div>
+            </div>
+            {selectedPost.texto ? <PostContent texto={selectedPost.texto} expanded className="comments-popup-text" /> : <p className="comments-popup-text">Post sem texto</p>}
+            <PostComments
+              postId={selectedPost.id}
+              isExpanded
+              comments={selectedPost.commentsList || []}
+              onAddComment={addCommentToPost}
+              onDeleteComment={deleteCommentFromPost}
+              onToggleCommentLike={toggleCommentLike}
+              usuario={usuario}
+              onOpenUserProfile={onOpenUserProfile}
+              onRequireAuth={onRequireAuth}
+            />
+          </div>
+        </div>
+      )}
+
       {imagePreview && (
-        <div className="post-preview-overlay" onClick={() => setImagePreview(null)}>
-          <div className="image-only-popup" onClick={(e) => e.stopPropagation()}>
-            <button className="post-expanded-close" onClick={() => setImagePreview(null)}>
-              x
+        <div className="post-preview-overlay" onClick={() => setImagePreview(null)} role="presentation">
+          <div className="image-only-popup" role="dialog" aria-modal="true" aria-label="Imagem do post" onClick={(e) => e.stopPropagation()}>
+            <button className="post-expanded-close" onClick={() => setImagePreview(null)} aria-label="Fechar">
+              ×
             </button>
             <img src={imagePreview} alt="Imagem ampliada do post" />
           </div>

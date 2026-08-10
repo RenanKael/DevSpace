@@ -1,16 +1,19 @@
 import { useState } from "react";
 import "../style/home.css";
 import { useOverlayClose } from "../hooks/useOverlayClose";
-import lupa from "../assets/IMGS/Lupa.svg";
 import semFoto from "../assets/IMGS/NoPerfil.png";
+import { logoutApi } from "../api";
+import { DsIcon } from "./icons";
+import { Icons } from "./iconKit";
 
-export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true, onOpenUserProfile, onOpenSettings, onLogout }) {
+export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true, onOpenUserProfile, onOpenSettings, onLogout, onLogin }) {
   const [query, setQuery] = useState("");
   const [menuAberto, setMenuAberto] = useState(false);
 
   useOverlayClose(menuAberto, () => setMenuAberto(false));
 
   function sair() {
+    logoutApi();
     localStorage.removeItem("usuarioLogado");
     localStorage.removeItem("lembrarMe");
     sessionStorage.removeItem("usuarioLogado");
@@ -25,10 +28,13 @@ export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true,
 
   return (
     <div className={`topbar ${visible ? "show" : "hide"}${sidebarOpen ? "" : " sidebar-closed"}`}>
+      <div className="topbar-shell">
       <div className="search-box">
-        <img src={lupa} alt="" aria-hidden="true" />
+        <DsIcon icon={Icons.Search} size="action" />
+        <label className="sr-only" htmlFor="topbar-busca">Buscar posts ou usuários</label>
         <input
-          type="text"
+          id="topbar-busca"
+          type="search"
           placeholder="Buscar posts ou usuários"
           value={query}
           onChange={(e) => {
@@ -36,27 +42,45 @@ export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true,
             onSearch?.(e.target.value);
           }}
         />
+        {query && (
+          <button
+            type="button"
+            className="search-clear"
+            aria-label="Limpar busca"
+            onClick={() => {
+              setQuery("");
+              onSearch?.("");
+            }}
+          >
+            ×
+          </button>
+        )}
       </div>
 
       <div className="profile-wrapper">
+        {!usuario ? (
+          <button type="button" className="topbar-login-btn" onClick={() => onLogin?.()}>
+            Entrar
+          </button>
+        ) : (
         <button
           type="button"
           className="profile"
-          onClick={() => usuario && setMenuAberto((aberto) => !aberto)}
+          onClick={() => setMenuAberto((aberto) => !aberto)}
+          aria-label="Abrir menu da conta"
         >
-          {usuario && (
-            <div className="user-info">
-              <span className="nome">{usuario.username}</span>
-              <span className="arroba">@{usuario.handle || usuario.username}</span>
-            </div>
-          )}
+          <div className="user-info">
+            <span className="nome">{usuario.username}</span>
+            <span className="arroba">@{usuario.handle || usuario.username}</span>
+          </div>
 
           <div className="avatar" style={{
-            backgroundImage: `url(${usuario?.fotoPerfil || semFoto})`,
-            backgroundPosition: usuario?.posPerfil ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%` : 'center',
+            backgroundImage: `url(${usuario.fotoPerfil || semFoto})`,
+            backgroundPosition: usuario.posPerfil ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%` : 'center',
             backgroundSize: 'cover'
           }}></div>
         </button>
+        )}
 
         {menuAberto && (
           <>
@@ -92,6 +116,7 @@ export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true,
             </div>
           </>
         )}
+      </div>
       </div>
     </div>
   );

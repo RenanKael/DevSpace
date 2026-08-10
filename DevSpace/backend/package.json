@@ -7,13 +7,17 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "setup-db": "node setupDatabase.js"
+    "setup-db": "node setupDatabase.js",
+    "check-db": "node check-db.js",
+    "seed:dev": "node seedDev.js",
+    "audit-e2e": "node audit-e2e.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
+    "multer": "^2.2.0",
     "mysql2": "^3.23.2"
   }
 }

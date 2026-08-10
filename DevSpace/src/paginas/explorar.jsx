@@ -1,8 +1,9 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/explorar.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 import { fetchPosts, fetchUsers } from "../api";
+import PageHeader from "../components/PageHeader";
 
 const GROUPS = [
   {
@@ -59,6 +60,14 @@ const GROUPS = [
 
 const HOT_LANGS = ["TypeScript", "Python", "Go", "Rust", "JavaScript"];
 
+const LANG_GROUP_HINTS = {
+  typescript: ["web", "ia"],
+  python: ["ia", "backend"],
+  go: ["backend"],
+  rust: ["backend"],
+  javascript: ["web", "mobile"],
+};
+
 const KNOWN_PROFILES = [
   { username: "Xande7", handle: "xande7", email: "xande7@devspace.fake", bio: "Perfil da comunidade DevSpace." },
 ];
@@ -75,17 +84,20 @@ function fakeCover(handle) {
   return `https://picsum.photos/seed/${encodeURIComponent((handle || "usuario") + "-explore")}/900/260`;
 }
 
-function groupPostsAsRecommendations() {
-  return GROUPS.flatMap((group) =>
-    group.posts.map((post) => ({
-      ...post,
-      group: group.title,
-      reason: group.subtitle,
-    }))
-  );
+function isLowQualityExploreProfile(profile) {
+  const handle = normalizeHandle(profile?.handle || profile?.username);
+  const username = String(profile?.username || "").toLowerCase();
+  const bio = String(profile?.bio || "").toLowerCase();
+  const email = String(profile?.email || "").toLowerCase();
+  if (/^(qa|test|sms|guser|telefone|simp)/.test(handle)) return true;
+  if (handle.includes("qaloop") || handle.includes("qaui") || handle.includes("qafresh") || handle.includes("testauth")) return true;
+  if (username.startsWith("qa ") || username.startsWith("test ") || username === "sms user" || username === "teste auth") return true;
+  if (bio.includes("cadastro via api") || bio.includes("bio de teste") || bio === "teste") return true;
+  if (email.endsWith("@devspace.local") || email.endsWith("@phone.devspace.local")) return true;
+  return false;
 }
 
-export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenUserProfile, logado, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, blockedUsers = [] }) {
+export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenUserProfile, logado, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, irConfiguracoes, blockedUsers = [] }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [tab, setTab] = useState("momento");
   const [search, setSearch] = useState("");
@@ -123,6 +135,7 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
 
     const recommendedPosts = (Array.isArray(posts) ? posts : [])
       .filter((post) => normalizeHandle(post?.handle || post?.username) !== currentHandle)
+      .filter((post) => !isLowQualityExploreProfile(post))
       .sort((a, b) => {
         const scoreA = Number(a.likes || 0) + Number(a.comments || 0) + Number(a.shares || 0);
         const scoreB = Number(b.likes || 0) + Number(b.comments || 0) + Number(b.shares || 0);
@@ -130,20 +143,19 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
       })
       .slice(0, 6);
 
-    const fallbackPosts = groupPostsAsRecommendations().slice(0, 6);
     const recommendedProfiles = (Array.isArray(users) ? users : [])
       .filter((user) => {
         const handle = normalizeHandle(user?.handle || user?.username);
-        return handle && handle !== currentHandle && !following.has(handle);
+        return handle && handle !== currentHandle && !following.has(handle) && !isLowQualityExploreProfile(user);
       })
       .slice(0, 6);
 
     return {
-      posts: recommendedPosts.length > 0 ? recommendedPosts : fallbackPosts,
+      posts: recommendedPosts,
       profiles: recommendedProfiles,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, blockedHandles, blockedEmails]);
+  }, [tab, blockedHandles, blockedEmails, backendPosts, backendUsers]);
 
   const filteredProfiles = useMemo(() => {
     const q = normalizeHandle(search);
@@ -180,12 +192,14 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
 
     return [...deduped.values()].slice(0, 12);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, blockedHandles, blockedEmails]);
+  }, [search, blockedHandles, blockedEmails, backendPosts, backendUsers]);
 
   const filteredGroups = useMemo(() => {
     const q = search.toLowerCase().trim();
     if (!q) return GROUPS;
+    const hinted = LANG_GROUP_HINTS[q] || [];
     return GROUPS.filter((group) => {
+      if (hinted.includes(group.id)) return true;
       if (group.title.toLowerCase().includes(q) || group.subtitle.toLowerCase().includes(q)) return true;
       return group.posts.some(
         (post) =>
@@ -221,12 +235,17 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
 
   const taggedRealPosts = useMemo(() => {
     if (!selectedGroupId) return [];
-    const posts = JSON.parse(localStorage.getItem("posts")) || [];
+    const posts = backendPosts.length > 0 ? backendPosts : JSON.parse(localStorage.getItem("posts")) || [];
     return (Array.isArray(posts) ? posts : [])
       .filter((post) => post?.tag === selectedGroupId && post?.texto && !ehBloqueado(post))
       .sort((a, b) => new Date(b.criadoEm || 0).getTime() - new Date(a.criadoEm || 0).getTime());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedGroupId, blockedHandles, blockedEmails]);
+  }, [selectedGroupId, blockedHandles, blockedEmails, backendPosts]);
+
+  function contarPostsDoGrupo(groupId) {
+    return (backendPosts.length > 0 ? backendPosts : JSON.parse(localStorage.getItem("posts")) || [])
+      .filter((post) => post?.tag === groupId && post?.texto && !ehBloqueado(post)).length;
+  }
 
   return (
     <div className="home">
@@ -235,7 +254,7 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
         onToggle={() => setSidebarOpen((open) => !open)}
         onReload={irHome}
         irPerfil={irPerfil}
-        irExplorar={() => {}}
+        irExplorar={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         irChat={irChat}
         onOpenPost={onOpenPost}
         logado={logado}
@@ -248,18 +267,22 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
         activityNotifications={activityNotifications}
         onOpenActivityNotification={onOpenActivityNotification}
         irNotificacoes={irNotificacoes}
+        irConfiguracoes={irConfiguracoes}
       />
 
-      <div className={`explore-page${sidebarOpen ? "" : " sidebar-closed"}`}>
+      <div id="conteudo-principal" className={`explore-page${sidebarOpen ? "" : " sidebar-closed"}`}>
+        <div className="ds-shell ds-content-grid explore-shell">
         <div className="explore-main">
           <div className="explore-top">
             <input
               type="text"
-              placeholder="Buscar"
+              placeholder="Buscar assuntos, linguagens ou @usuários"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+
+          <PageHeader eyebrow="Descobrir" title="Explorar" description="Encontre assuntos, pessoas e tecnologias." />
 
           <div className="explore-tabs">
             <button className={tab === "momento" ? "active" : ""} onClick={() => setTab("momento")}>Assuntos do Momento</button>
@@ -288,7 +311,7 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                             className="profile-mini-avatar"
                             style={{ backgroundImage: `url(${profile.fotoPerfil || userAvatar(profile.handle)})` }}
                           />
-                          <strong>{profile.username || "Usuario"}</strong>
+                          <strong>{profile.username || "Usuário"}</strong>
                           <small>@{profile.handle}</small>
                           <p>{profile.bio || "Perfil da comunidade DevSpace."}</p>
                         </div>
@@ -302,11 +325,21 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                 <button key={group.id} className="group-card group-clickable" onClick={() => setSelectedGroupId(group.id)}>
                   <h3>{group.title}</h3>
                   <p className="group-subtitle">{group.subtitle}</p>
-                  <span className="group-count">{group.posts.length} postagens no grupo</span>
+                  <span className="group-count">{contarPostsDoGrupo(group.id)} {contarPostsDoGrupo(group.id) === 1 ? "postagem" : "postagens"} no grupo</span>
                 </button>
               ))}
 
-              {filteredGroups.length === 0 && filteredProfiles.length === 0 && <p className="explore-empty">Nenhum assunto ou perfil encontrado.</p>}
+              {filteredGroups.length === 0 && filteredProfiles.length === 0 && (
+                <div className="explore-empty-card">
+                  <strong>Nenhum resultado encontrado</strong>
+                  <p>Tente outro @, linguagem ou assunto.</p>
+                  {search.trim() && (
+                    <button type="button" onClick={() => setSearch("")}>
+                      Limpar busca
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -334,23 +367,12 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                     <p>{post.texto}</p>
                   </article>
                 ))}
-                {selectedGroup.posts.map((post, idx) => (
-                  <article key={`${selectedGroup.id}-${idx}`} className="group-feed-post">
-                    <div className="group-feed-head">
-                      <div
-                        className="group-feed-avatar"
-                        style={{ backgroundImage: `url(${userAvatar(post.handle)})` }}
-                      />
-                      <button
-                        className="group-post-user"
-                        onClick={() => onOpenUserProfile?.({ username: post.user, handle: post.handle })}
-                      >
-                        {post.user} <span>@{post.handle}</span>
-                      </button>
-                    </div>
-                    <p>{post.text}</p>
-                  </article>
-                ))}
+                {taggedRealPosts.length === 0 && (
+                  <div className="explore-empty-card">
+                    <strong>Ainda sem discussões neste assunto</strong>
+                    <p>Publique com a tag correspondente para aparecer aqui.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -364,9 +386,15 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                 </div>
 
                 <div className="for-you-feed">
+                  {exploreData.posts.length === 0 && (
+                    <div className="explore-empty-card">
+                      <strong>Sem recomendações ainda</strong>
+                      <p>Explore um assunto ou publique algo para alimentar este espaço.</p>
+                    </div>
+                  )}
                   {exploreData.posts.map((post, index) => {
                     const handle = normalizeHandle(post.handle || post.username || post.user);
-                    const user = post.username || post.user || "Usuario";
+                    const user = post.username || post.user || "Usuário";
                     return (
                       <article key={post.id || `${handle}-${index}`} className="for-you-post">
                         <button
@@ -385,7 +413,11 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                             {user} <span>@{handle}</span>
                           </button>
                           <p>{post.texto || post.text}</p>
-                          <small>{post.group ? post.group : `${post.likes || 0} curtidas • ${post.comments || 0} comentários`}</small>
+                          <small>
+                            {post.group
+                              ? post.group
+                              : `${post.likes || 0} ${(post.likes || 0) === 1 ? "curtida" : "curtidas"} • ${post.comments || 0} ${(post.comments || 0) === 1 ? "comentário" : "comentários"}`}
+                          </small>
                         </div>
                       </article>
                     );
@@ -418,7 +450,7 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                             className="profile-mini-avatar"
                             style={{ backgroundImage: `url(${profile.fotoPerfil || userAvatar(handle)})` }}
                           />
-                          <strong>{profile.username || "Usuario"}</strong>
+                          <strong>{profile.username || "Usuário"}</strong>
                           <small>@{handle}</small>
                           <p>{profile.bio || "Perfil da comunidade DevSpace."}</p>
                         </div>
@@ -426,7 +458,10 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                     );
                   })}
                   {exploreData.profiles.length === 0 && (
-                    <p className="explore-empty">Você já segue os principais perfis sugeridos por aqui.</p>
+                    <div className="explore-empty-card">
+                      <strong>Você já está bem conectado</strong>
+                      <p>Os principais perfis sugeridos por aqui já estão no seu radar.</p>
+                    </div>
                   )}
                 </div>
               </section>
@@ -449,7 +484,7 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                       }}
                     >
                       <strong>{group.title}</strong>
-                      <span>{group.posts.length} conversas</span>
+                      <span>{contarPostsDoGrupo(group.id)} {contarPostsDoGrupo(group.id) === 1 ? "conversa" : "conversas"}</span>
                     </button>
                   ))}
                 </div>
@@ -461,12 +496,22 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
         <aside className="explore-right">
           <h4>Linguagens em Alta 🔥</h4>
           {HOT_LANGS.map((lang, index) => (
-            <div key={lang} className="trend-item">
-              <span>{index + 1}-</span>
+            <button
+              type="button"
+              key={lang}
+              className="trend-item"
+              onClick={() => {
+                setSearch(lang);
+                setTab("momento");
+                setSelectedGroupId(null);
+              }}
+            >
+              <span>{index + 1}.</span>
               <strong>{lang}</strong>
-            </div>
+            </button>
           ))}
         </aside>
+        </div>
       </div>
     </div>
   );

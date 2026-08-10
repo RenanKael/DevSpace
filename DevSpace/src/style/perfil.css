@@ -3,30 +3,41 @@
 /* ========================= */
 
 .profile-page {
-  margin-left: 250px;
-  width: calc(100% - 250px);
-  background: black;
+  margin-left: var(--ds-sidebar);
+  width: calc(100% - var(--ds-sidebar));
+  background: transparent;
   min-height: 100vh;
   color: white;
   position: relative;
-  transition: margin-left .35s ease, width .35s ease;
-  animation: pageFadeIn 0.45s ease;
+  transition: margin-left 240ms ease, width 240ms ease;
+  animation: pageFadeIn 0.35s ease;
 }
 
 .profile-page.sidebar-closed {
-  margin-left: 88px;
-  width: calc(100% - 88px);
+  margin-left: var(--ds-sidebar-collapsed);
+  width: calc(100% - var(--ds-sidebar-collapsed));
 }
 
 /* ========================= */
 /* TOPO PERFIL */
 /* ========================= */
 
+.topo-perfil,
+.capa,
+.perfil-header,
+.info,
+.posts-container,
+.profile-page > .page-hero {
+  width: min(calc(100% - (var(--ds-content-pad) * 2)), var(--ds-shell-max));
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .topo-perfil {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 15px 20px;
+  padding: 15px 0;
   position: relative;
   z-index: 5;
 }
@@ -100,8 +111,8 @@
 }
 
 .perfil-settings-btn {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border: none;
   border-radius: 50%;
   background: transparent;
@@ -122,33 +133,44 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 190px;
-  background: #111;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 248px;
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
   border-radius: 12px;
-  padding: 8px;
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  box-shadow: var(--ds-shadow-sm);
   z-index: 30;
 }
 
 .perfil-settings-menu button {
   width: 100%;
+  min-height: 42px;
   border: none;
   background: transparent;
-  color: #e8e8e8;
+  color: var(--ds-text);
   text-align: left;
-  padding: 11px 12px;
+  padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .perfil-settings-menu button:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ds-surface-hover);
 }
 
 .perfil-settings-menu button.danger {
-  color: #ff8d8d;
+  color: var(--ds-danger);
+}
+
+.perfil-settings-sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--ds-border);
 }
 
 /* ========================= */
@@ -156,10 +178,12 @@
 /* ========================= */
 
 .capa {
-  width: 100%;
-  height: 260px;
+  height: 220px;
   overflow: hidden;
-  background: #000;
+  background:
+    radial-gradient(ellipse 70% 80% at 18% 40%, rgba(77, 141, 255, 0.28), transparent 62%),
+    radial-gradient(ellipse 50% 60% at 90% 20%, rgba(92, 64, 255, 0.16), transparent 55%),
+    #0a0e16;
   position: relative;
   z-index: 1;
 }
@@ -185,26 +209,32 @@
 
 .perfil-header {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: flex-start;
   gap: 30px;
-  padding: 0 30px;
-  margin-top: -70px;
+  padding: 0;
+  margin-top: -72px;
   position: relative;
   z-index: 3;
 }
 
 /* FOTO PERFIL */
 .foto {
-  width: 140px;
-  height: 140px;
+  width: 152px;
+  height: 152px;
   border-radius: 50%;
-  border: 5px solid black;
+  border: 4px solid #0c1018;
+  box-shadow: none;
   overflow: hidden;
-  background: #000;
+  background: #0a0e16;
   padding: 0;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  color: #e8eefc;
+  font-weight: 800;
+  font-size: 2.4rem;
 }
 
 .foto img {
@@ -227,10 +257,10 @@ button.foto:focus-visible {
 /* STATS */
 .stats {
   display: flex;
-  gap: 25px;
+  gap: 28px;
   margin-bottom: 20px;
-  font-size: 14px;
-  color: #aaa;
+  font-size: 0.98rem;
+  color: var(--ds-text-secondary);
 }
 
 .stats span {
@@ -244,23 +274,39 @@ button.foto:focus-visible {
 
 /* BOTÃO EDITAR */
 .btn-editar {
-  margin-left: auto;
-  margin-bottom: 20px;
+  margin-left: 0;
+  margin-bottom: 0;
   background: white;
   color: black;
   border: none;
-  padding: 10px 18px;
+  padding: 10px 16px;
   border-radius: 20px;
   cursor: pointer;
   font-weight: bold;
+  box-shadow: none;
+  transition: background 0.18s ease;
 }
 
 .btn-editar:hover {
-  background: #ddd;
+  background: #e8e8e8;
+}
+
+.btn-editar.btn-seguindo {
+  background: transparent;
+  color: #fff;
+  border: 1px solid #fff;
+  box-shadow: none;
+}
+
+.btn-editar.btn-seguindo:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ff8d8d;
+  color: #ff8d8d;
+  transform: none;
 }
 
 .btn-contatar {
-  margin-bottom: 20px;
+  margin-bottom: 0;
   background: transparent;
   color: white;
   border: 1px solid white;
@@ -279,29 +325,34 @@ button.foto:focus-visible {
 /* ========================= */
 
 .info {
-  padding: 10px 30px;
+  padding: 12px 0 8px;
 }
 
 .info h2 {
-  font-size: 22px;
-  margin-bottom: 5px;
+  font-size: 1.75rem;
+  letter-spacing: -0.03em;
+  margin-bottom: 4px;
 }
 
-.info span {
-  color: #888;
-  font-size: 14px;
+.perfil-handle {
+  color: var(--ds-muted);
+  font-size: 0.98rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .bio {
-  margin-top: 40px;
-  background: #111;
-  padding: 15px;
-  border-radius: 12px;
-  line-height: 1.4;
+  margin-top: 12px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  line-height: 1.55;
+  font-size: 0.98rem;
+  color: var(--ds-text-secondary);
 }
 
 .data {
-  margin-top: 18px;
+  margin-top: 10px;
   color: #aaa;
 }
 
@@ -320,22 +371,22 @@ button.foto:focus-visible {
 }
 
 .posts-container {
-  margin: 30px 30px 0;
+  margin: 32px auto 48px;
 }
 
 .posts-container h3 {
   margin-bottom: 16px;
-  font-size: 18px;
+  font-size: 1.25rem;
   color: white;
 }
 
 .posts-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 360px;
-  overflow-y: auto;
-  padding-right: 4px;
+  gap: 16px;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -371,11 +422,16 @@ button.perfil-post-card:hover {
   width: 52px;
   height: 52px;
   border-radius: 16px;
-  background: #222;
+  background: #1b2230;
   background-position: center;
   background-size: cover;
   flex-shrink: 0;
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #e8eefc;
+  font-weight: 800;
 }
 
 .perfil-post-body {
@@ -472,10 +528,41 @@ button.perfil-post-card:hover {
 }
 
 .perfil-post-empty {
-  color: #888;
-  padding: 18px;
-  background: #111;
-  border-radius: 14px;
+  color: #9aa0a6;
+  max-width: 420px;
+  margin: 24px auto;
+  padding: 28px 22px;
+  background: #12151c;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.perfil-post-empty strong {
+  display: block;
+  color: #fff;
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+}
+
+.perfil-post-empty p {
+  margin: 0;
+}
+
+.perfil-empty-cta {
+  margin-top: 14px;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #4d8dff, #2f74ff);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.perfil-empty-cta:hover {
+  filter: brightness(1.08);
 }
 
 .perfil-bloqueado-aviso {
@@ -497,8 +584,15 @@ button.perfil-post-card:hover {
   left: 62px;
 }
 
+.collection-shell > .page-hero,
+.collection-shell .profile-collection-page {
+  width: min(calc(100% - (var(--ds-content-pad) * 2)), var(--ds-shell-max));
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .profile-collection-page {
-  padding: 28px 30px 40px;
+  padding: 8px 0 48px;
 }
 
 .collection-posts-list {
@@ -517,22 +611,6 @@ button.perfil-post-card:hover {
   display: flex;
   gap: 10px;
   margin-left: auto;
-}
-
-.btn-editar {
-  margin-left: auto;
-  margin-bottom: 20px;
-  background: white;
-  color: black;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 20px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-editar:hover {
-  background: #ddd;
 }
 
 .logout-top {
@@ -560,7 +638,8 @@ button.perfil-post-card:hover {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(5, 7, 12, 0.45);
+  backdrop-filter: none;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -649,12 +728,17 @@ button.perfil-post-card:hover {
   flex: 1;
 }
 
-.popup-btns button:last-child {
-  background: #3a1a1a;
+.popup-btns button:last-child,
+.popup-btns .ds-btn-secondary {
+  background: transparent;
+  color: #dbe4f0;
+  border: 1px solid var(--ds-border);
 }
 
-.popup-btns button:last-child:hover {
-  background: #5a2a2a;
+.popup-btns button:last-child:hover,
+.popup-btns .ds-btn-secondary:hover {
+  background: var(--ds-surface-hover);
+  color: #fff;
 }
 
 /* FECHAR */
@@ -914,10 +998,21 @@ input[type="range"] {
     margin-bottom: 8px;
   }
 
+  .perfil-title-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .perfil-header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
   .btn-editar,
   .btn-contatar {
     margin-left: 0;
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
 
   .info,
@@ -939,4 +1034,72 @@ input[type="range"] {
     margin-left: 0;
     width: 100%;
   }
+}
+
+.btn-editar {
+  background: var(--ds-accent-strong) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.btn-editar:hover {
+  background: linear-gradient(180deg, #7aacff 0%, #3d82ff 100%) !important;
+}
+
+.btn-editar.btn-seguindo {
+  background: transparent !important;
+  color: #fff !important;
+  border: 1px solid #fff;
+  box-shadow: none !important;
+}
+
+.star.ativa {
+  color: #ffd24d;
+  text-shadow: none;
+}
+
+.bio {
+  background: transparent;
+  border: none;
+}
+
+.perfil-post-card {
+  background: #12151c;
+  border: 1px solid #2c3548;
+}
+
+button.perfil-post-card:hover {
+  background: #161b24;
+  border-color: #4d8dff;
+}
+
+.popup {
+  background: #0f141d;
+  border: 1px solid #31415c;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.popup-btns button:first-child {
+  background: linear-gradient(180deg, #6aa0ff 0%, #2f74ff 100%);
+  color: #fff;
+  font-weight: 800;
+}
+
+.popup-btns button:first-child:hover {
+  background: linear-gradient(180deg, #7aacff 0%, #3d82ff 100%);
+}
+
+.close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 22px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
 }

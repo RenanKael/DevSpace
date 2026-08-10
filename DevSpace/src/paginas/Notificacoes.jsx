@@ -1,8 +1,8 @@
 import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import "../style/notificacoes.css";
-import backArrow from "../assets/IMGS/DawnFlech (2).png";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
+import PageHeader from "../components/PageHeader";
 
 function fallbackAvatar(seed) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed || "usuario")}`;
@@ -13,6 +13,9 @@ const TEXTO_ATIVIDADE = {
   comentario_post: "comentou no seu post",
   curtida_comentario: "curtiu seu comentário",
   mencao: "te mencionou em um post",
+  seguidor: "começou a te seguir",
+  mensagem: "enviou uma mensagem",
+  avaliacao: "avaliou seu perfil",
 };
 
 const NOTIF_PREF_LABELS = {
@@ -38,6 +41,7 @@ export default function Notificacoes({
   onOpenActivityNotification,
   notifPrefs = { contatos: true, mensagens: true, atividade: true },
   onUpdateNotifPref,
+  irConfiguracoes,
 }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
 
@@ -63,20 +67,23 @@ export default function Notificacoes({
         onOpenUnreadConversa={onOpenUnreadConversa}
         activityNotifications={activityNotifications}
         onOpenActivityNotification={onOpenActivityNotification}
+        irNotificacoes={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        irConfiguracoes={irConfiguracoes}
       />
 
-      <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
-        <div className="topo-perfil collection-top">
-          <button className="back-arrow-btn" onClick={irHome} type="button" title="Voltar">
-            <img src={backArrow} alt="Voltar" />
-          </button>
-          <h3>Notificações</h3>
-        </div>
+      <div id="conteudo-principal" className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
+        <PageHeader eyebrow="Inbox" title="Notificações" description="Solicitações, mensagens e atividade da comunidade." />
 
         <div className="notificacoes-layout">
           <div className="notificacoes-page">
           {totalNotificacoes === 0 && (
-            <div className="notif-page-empty">Você está em dia, nenhuma notificação por aqui.</div>
+            <div className="notif-page-empty">
+              <strong>Tudo em dia</strong>
+              <p>Nenhuma notificação por aqui no momento.</p>
+              <button type="button" className="perfil-empty-cta" onClick={irExplorar}>
+                Explorar comunidade
+              </button>
+            </div>
           )}
 
           {contactRequests.length > 0 && (
@@ -134,8 +141,7 @@ export default function Notificacoes({
                   <div className="notif-row-info">
                     <strong>{conv.outroParticipante.username}</strong>
                     <span>
-                      {conv.naoLidas} mensage{conv.naoLidas === 1 ? "m" : "ns"} nova
-                      {conv.naoLidas === 1 ? "" : "s"}
+                      {conv.naoLidas === 1 ? "1 mensagem nova" : `${conv.naoLidas} mensagens novas`}
                     </span>
                   </div>
                 </button>

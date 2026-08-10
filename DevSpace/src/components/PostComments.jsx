@@ -72,7 +72,7 @@ export default function PostComments({
     if (!texto && !image) return;
     const saved = onAddComment(postId, texto, replyTo?.id, image);
     if (saved === false) {
-      setErro("Nao foi possivel salvar o comentario. Tente novamente.");
+      setErro("Não foi possível salvar o comentário. Tente novamente.");
       return;
     }
 
@@ -173,7 +173,7 @@ export default function PostComments({
             <p className="comment-text">{renderCommentText(comment.texto)}</p>
             {comment.imagem && (
               <div className="comment-image-view">
-                <img src={comment.imagem} alt="Imagem do comentario" />
+                <img src={comment.imagem} alt="Imagem do comentário" />
               </div>
             )}
             <div className="comment-actions">
@@ -212,13 +212,13 @@ export default function PostComments({
             <button
               type="button"
               className="comment-delete-btn"
-              title="Excluir comentario"
+              title="Excluir comentário"
               onClick={(e) => {
                 e.stopPropagation();
                 onDeleteComment?.(postId, comment.id);
               }}
             >
-              x
+              ×
             </button>
           )}
         </div>
@@ -241,7 +241,7 @@ export default function PostComments({
         <div className="post-comments-container">
           <div className="post-comments-list">
             {comments.length === 0 && (
-              <p className="post-comments-empty">Sem comentarios ainda.</p>
+              <p className="post-comments-empty">Sem comentários ainda.</p>
             )}
 
             {topLevelComments.map((comment) => renderComment(comment))}
@@ -262,9 +262,9 @@ export default function PostComments({
 
           {image && (
             <div className="comment-image-preview">
-              <img src={image} alt="Preview do comentario" />
+              <img src={image} alt="Prévia do comentário" />
               <button type="button" className="comment-image-remove" onClick={() => setImage(null)}>
-                x
+                ×
               </button>
             </div>
           )}
@@ -286,7 +286,7 @@ export default function PostComments({
               onChange={(e) => setNovoComentario(e.target.value)}
               onKeyDown={handleInputKeyDown}
               onPaste={handlePaste}
-              placeholder="Escreva um comentario"
+              placeholder="Escreva um comentário"
               disabled={!storedUser}
             />
             <button type="submit" disabled={!storedUser || (!novoComentario.trim() && !image)}>

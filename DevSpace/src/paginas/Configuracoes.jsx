@@ -2,9 +2,10 @@ import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/perfil.css";
 import "../style/notificacoes.css";
-import backArrow from "../assets/IMGS/DawnFlech (2).png";
 import { updateUser as updateUserRequest } from "../api";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
+import PageHeader from "../components/PageHeader";
+import ProfileForm from "../components/ProfileForm";
 
 function fallbackAvatar(seed) {
   return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed || "usuario")}`;
@@ -34,6 +35,7 @@ export default function Configuracoes({
   activityNotifications = [],
   onOpenActivityNotification,
   irNotificacoes,
+  irConfiguracoes,
   blockedUsers = [],
   onUnblockUser,
 }) {
@@ -47,19 +49,25 @@ export default function Configuracoes({
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [mostrarSenhas, setMostrarSenhas] = useState(false);
 
   async function salvarConfiguracoesPerfil(e) {
     e.preventDefault();
+    if (salvando) return;
     setErro("");
     setSucesso("");
+    setSalvando(true);
 
     if (!usuarioLogado) {
       setErro("Não foi possível identificar sua conta.");
+      setSalvando(false);
       return;
     }
 
     if (!form.username || !form.handle) {
       setErro("Nome e @ são obrigatórios!");
+      setSalvando(false);
       return;
     }
 
@@ -68,6 +76,7 @@ export default function Configuracoes({
     if (querAlterarSenha) {
       if (!senhaAtual || !novaSenha || !confirmarSenha) {
         setErro("Preencha a senha atual, a nova senha e a confirmação.");
+        setSalvando(false);
         return;
       }
       // Contas antigas (local-only, sem id de backend) guardam a senha em
@@ -75,14 +84,17 @@ export default function Configuracoes({
       // pelo servidor (com hash), ao chamar updateUserRequest.
       if (!usuarioLogado.id && senhaAtual !== usuarioLogado.senha) {
         setErro("Senha atual incorreta.");
+        setSalvando(false);
         return;
       }
       if (novaSenha.length < 6) {
         setErro("A nova senha precisa ter pelo menos 6 caracteres.");
+        setSalvando(false);
         return;
       }
       if (novaSenha !== confirmarSenha) {
         setErro("A confirmação da nova senha não bate.");
+        setSalvando(false);
         return;
       }
     }
@@ -94,6 +106,7 @@ export default function Configuracoes({
     );
     if (handleJaExiste) {
       setErro("Este @ já está em uso!");
+      setSalvando(false);
       return;
     }
 
@@ -122,6 +135,7 @@ export default function Configuracoes({
         atualizado = { ...atualizado, ...backendUser, senha: atualizado.senha };
       } catch (error) {
         setErro(error.message || "Erro ao salvar perfil no servidor.");
+        setSalvando(false);
         return;
       }
     }
@@ -141,6 +155,7 @@ export default function Configuracoes({
     setNovaSenha("");
     setConfirmarSenha("");
     setSucesso("Perfil atualizado com sucesso!");
+    setSalvando(false);
   }
 
   return (
@@ -163,15 +178,11 @@ export default function Configuracoes({
         activityNotifications={activityNotifications}
         onOpenActivityNotification={onOpenActivityNotification}
         irNotificacoes={irNotificacoes}
+        irConfiguracoes={irConfiguracoes}
       />
 
-      <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
-        <div className="topo-perfil collection-top">
-          <button className="back-arrow-btn" onClick={irHome} type="button" title="Voltar">
-            <img src={backArrow} alt="Voltar" />
-          </button>
-          <h3>Configurações</h3>
-        </div>
+      <div id="conteudo-principal" className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
+        <PageHeader eyebrow="Conta" title="Configurações" description="Gerencie seu perfil e sua conta." />
 
         <div className="config-layout">
           <nav className="config-nav">
@@ -180,7 +191,14 @@ export default function Configuracoes({
               className={`config-nav-item${secaoAtiva === "perfil" ? " active" : ""}`}
               onClick={() => setSecaoAtiva("perfil")}
             >
-              Editar perfil
+              Perfil
+            </button>
+            <button
+              type="button"
+              className={`config-nav-item${secaoAtiva === "seguranca" ? " active" : ""}`}
+              onClick={() => setSecaoAtiva("seguranca")}
+            >
+              Segurança
             </button>
             <button
               type="button"
@@ -194,89 +212,45 @@ export default function Configuracoes({
           <div className="config-content">
           {secaoAtiva === "perfil" && usuarioLogado && (
             <div className="notif-section">
-              <h4>Editar perfil</h4>
+              <h4>Perfil</h4>
               <p className="notif-config-hint">
                 Essas informações ficam visíveis para qualquer pessoa que veja seu perfil.
               </p>
+              <ProfileForm
+                form={form}
+                setForm={setForm}
+                onSubmit={salvarConfiguracoesPerfil}
+                erro={erro}
+                sucesso={sucesso}
+                salvando={salvando}
+                submitLabel="Salvar alterações"
+              />
+            </div>
+          )}
 
-              <form onSubmit={salvarConfiguracoesPerfil}>
-                <div className="config-field">
-                  <label htmlFor="config-nome">Nome</label>
-                  <input
-                    id="config-nome"
-                    value={form.username || ""}
-                    onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  />
-                </div>
-
-                <div className="config-field">
-                  <label htmlFor="config-handle">@usuário</label>
-                  <input
-                    id="config-handle"
-                    value={form.handle || ""}
-                    onChange={(e) => setForm({ ...form, handle: e.target.value.replace(/\s+/g, "") })}
-                  />
-                </div>
-
-                <div className="config-field">
-                  <label htmlFor="config-bio">Bio</label>
-                  <input
-                    id="config-bio"
-                    value={form.bio || ""}
-                    onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                  />
-                </div>
-
-                <label className="notif-toggle">
-                  <input
-                    type="checkbox"
-                    checked={!!form.disponivelContratacao}
-                    onChange={(e) => setForm({ ...form, disponivelContratacao: e.target.checked })}
-                  />
-                  <span className="notif-toggle-track" aria-hidden="true" />
-                  <span className="notif-toggle-label">Disponível para ser contratado</span>
-                </label>
-
-                <h4 className="config-subsection">Alterar senha</h4>
-
-                <div className="config-field">
-                  <label htmlFor="config-senha-atual">Senha atual</label>
-                  <input
-                    id="config-senha-atual"
-                    type="password"
-                    value={senhaAtual}
-                    onChange={(e) => setSenhaAtual(e.target.value)}
-                    placeholder="Deixe em branco para não alterar"
-                  />
-                </div>
-
-                <div className="config-field">
-                  <label htmlFor="config-senha-nova">Nova senha</label>
-                  <input
-                    id="config-senha-nova"
-                    type="password"
-                    value={novaSenha}
-                    onChange={(e) => setNovaSenha(e.target.value)}
-                  />
-                </div>
-
-                <div className="config-field">
-                  <label htmlFor="config-senha-confirmar">Confirmar nova senha</label>
-                  <input
-                    id="config-senha-confirmar"
-                    type="password"
-                    value={confirmarSenha}
-                    onChange={(e) => setConfirmarSenha(e.target.value)}
-                  />
-                </div>
-
-                {erro && <p className="erro">{erro}</p>}
-                {sucesso && <p className="sucesso">{sucesso}</p>}
-
-                <button type="submit" className="notif-aceitar config-row-salvar">
-                  Salvar
-                </button>
-              </form>
+          {secaoAtiva === "seguranca" && usuarioLogado && (
+            <div className="notif-section">
+              <h4>Segurança</h4>
+              <p className="notif-config-hint">Altere sua senha. Informe a senha atual para confirmar.</p>
+              <ProfileForm
+                form={form}
+                setForm={setForm}
+                onSubmit={salvarConfiguracoesPerfil}
+                erro={erro}
+                sucesso={sucesso}
+                salvando={salvando}
+                showPassword
+                passwordOnly
+                senhaAtual={senhaAtual}
+                setSenhaAtual={setSenhaAtual}
+                novaSenha={novaSenha}
+                setNovaSenha={setNovaSenha}
+                confirmarSenha={confirmarSenha}
+                setConfirmarSenha={setConfirmarSenha}
+                mostrarSenhas={mostrarSenhas}
+                setMostrarSenhas={setMostrarSenhas}
+                submitLabel="Alterar senha"
+              />
             </div>
           )}
 
@@ -284,7 +258,10 @@ export default function Configuracoes({
             <div className="notif-section">
               <h4>Perfis bloqueados</h4>
               {blockedUsers.length === 0 && (
-                <p className="notif-section-empty">Você não bloqueou nenhum perfil.</p>
+                <div className="notif-page-empty">
+                  <strong>Você ainda não bloqueou nenhum perfil.</strong>
+                  <p>Quando bloquear alguém, o perfil aparece aqui para desbloquear depois.</p>
+                </div>
               )}
               {blockedUsers.map((user) => (
                 <div key={user.id} className="notif-row">

@@ -2,10 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import "../style/login.css";
 import logo from "../assets/IMGS/Black-DevSpace-removebg-preview.png";
 import backArrow from "../assets/IMGS/DawnFlech (2).png";
-import googleIcon from "../assets/IMGS/Google.png";
-import { loginUser, registerUser, fetchUsers, resetPasswordApi } from "../api";
+import { GoogleMark } from "../components/icons";
+import {
+  loginUser,
+  registerUser,
+  loginGoogle,
+  checkAuthAvailability,
+  resetPasswordApi,
+  requestPasswordReset,
+  sendVerificationCode,
+  unwrapAuthPayload,
+} from "../api";
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 function getUsuarios() {
   return JSON.parse(localStorage.getItem("usuarios")) || [];
@@ -19,31 +28,12 @@ function onlyDigits(value) {
   return value.replace(/\D/g, "");
 }
 
-function createBaseUser(extra) {
-  return {
-    username: "",
-    handle: "",
-    email: "",
-    senha: "",
-    telefone: "",
-    criadoEm: new Date().toISOString(),
-    bio: "",
-    fotoPerfil: "",
-    fotoCapa: "",
-    estrelas: 0,
-    avaliacao: 0,
-    starStats: {
-      postsCreated: 0,
-      commentsMade: 0,
-      firstPostAwarded: false,
-    },
-    projetos: [],
-    seguidores: 0,
-    seguindo: [],
-    comments: 0,
-    isAdmin: false,
-    ...extra,
-  };
+function suggestHandle(email, name) {
+  const fromEmail = normalizeHandle(String(email || "").split("@")[0] || "");
+  if (/^[a-z0-9._]{3,30}$/.test(fromEmail)) return fromEmail;
+  const fromName = normalizeHandle(String(name || "").replace(/\s+/g, "."));
+  if (/^[a-z0-9._]{3,30}$/.test(fromName)) return fromName.slice(0, 30);
+  return "";
 }
 
 export default function Login({ onLogin, onVoltar }) {
@@ -74,6 +64,7 @@ export default function Login({ onLogin, onVoltar }) {
 
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
   const tokenClientRef = useRef(null);
 
@@ -109,6 +100,7 @@ export default function Login({ onLogin, onVoltar }) {
   }
 
   function salvarSessao(usuario) {
+    if (!usuario) return;
     if (lembrarMe) {
       salvarComResiliencia(localStorage, "usuarioLogado", usuario);
       try {
@@ -151,70 +143,81 @@ export default function Login({ onLogin, onVoltar }) {
     setEtapa("login");
   }
 
-  function enviarCodigoVerificacao() {
+  async function enviarCodigoVerificacao() {
     limparAvisos();
 
     const telefoneLimpo = onlyDigits(telefoneCadastro);
     const emailLimpo = emailCadastro.trim().toLowerCase();
 
     if (metodoCadastro === "sms" && telefoneLimpo.length < 10) {
-      setErro("Digite um numero de celular valido.");
+      setErro("Digite um número de celular válido.");
       return;
     }
 
     if (metodoCadastro === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) {
-      setErro("Digite um email valido.");
+      setErro("Digite um e-mail válido.");
       return;
     }
 
-    const usuarios = getUsuarios();
-    const identityKey = metodoCadastro === "sms" ? `tel_${telefoneLimpo}` : emailLimpo;
-    const jaExiste = usuarios.find((u) => {
-      const email = (u.email || "").toLowerCase();
-      const telefone = onlyDigits(u.telefone || "");
-      return email === identityKey || (metodoCadastro === "sms" && telefone === telefoneLimpo);
-    });
+    try {
+      const disponibilidade = await checkAuthAvailability({
+        email: metodoCadastro === "email" ? emailLimpo : "",
+        telefone: metodoCadastro === "sms" ? telefoneLimpo : "",
+      });
 
-    if (jaExiste) {
-      setErro("Essa conta ja existe. Entre pelo login ou pelo Google.");
+      if (disponibilidade.emailTaken || disponibilidade.telefoneTaken) {
+        setErro("Essa conta já existe. Entre pelo login ou pelo Google.");
+        return;
+      }
+    } catch (error) {
+      setErro(error.message || "Não foi possível verificar a conta. Tente novamente.");
       return;
     }
 
-    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-    setCodigoEnviado(codigo);
-    setCodigoVerificacao("");
-    setIdentidadeVerificada({
-      metodo: metodoCadastro,
-      email: metodoCadastro === "email" ? emailLimpo : identityKey,
-      telefone: metodoCadastro === "sms" ? telefoneCadastro.trim() : "",
-      contato: metodoCadastro === "sms" ? telefoneCadastro.trim() : emailLimpo,
-      provider: metodoCadastro,
-    });
-    setSucesso(
-      metodoCadastro === "sms"
-        ? `SMS enviado para ${telefoneCadastro.trim()}.`
-        : `Codigo enviado para ${emailLimpo}.`
-    );
-    setEtapa("verificacao");
+    try {
+      setEnviando(true);
+      const resposta = await sendVerificationCode({
+        email: metodoCadastro === "email" ? emailLimpo : "",
+        telefone: metodoCadastro === "sms" ? telefoneLimpo : "",
+      });
+      const codigo = resposta?.codigo || "";
+      setCodigoEnviado(codigo);
+      setCodigoVerificacao("");
+      setIdentidadeVerificada({
+        metodo: metodoCadastro,
+        email: metodoCadastro === "email" ? emailLimpo : "",
+        telefone: metodoCadastro === "sms" ? telefoneLimpo : "",
+        contato: metodoCadastro === "sms" ? telefoneCadastro.trim() : emailLimpo,
+        provider: metodoCadastro,
+      });
+      setSucesso(codigo ? `Use o código ${codigo} para continuar.` : "Use o código enviado para continuar.");
+      setEtapa("verificacao");
+    } catch (error) {
+      setErro(error.message || "Não foi possível enviar o código. Tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   function verificarCodigo() {
     limparAvisos();
 
     if (codigoVerificacao.trim() !== codigoEnviado) {
-      setErro("Codigo incorreto. Confira e tente de novo.");
+      setErro("Código incorreto. Confira e tente de novo.");
       return;
     }
 
-    setSucesso("Conta verificada. Agora crie seu usuario.");
     setEtapa("criarPerfil");
   }
 
   async function finalizarCadastro() {
     limparAvisos();
 
-    const nomeLimpo = username.trim();
     const handleLimpo = normalizeHandle(handle);
+    const isGoogle = identidadeVerificada?.provider === "google";
+    const nomeLimpo = isGoogle
+      ? (username.trim() || identidadeVerificada?.nome || handleLimpo)
+      : username.trim();
 
     if (!identidadeVerificada) {
       setErro("Verifique seu email, celular ou Google antes de finalizar.");
@@ -222,8 +225,8 @@ export default function Login({ onLogin, onVoltar }) {
       return;
     }
 
-    if (!nomeLimpo || !handleLimpo || !senha) {
-      setErro("Preencha nome, @ e senha para finalizar.");
+    if (!handleLimpo || (!isGoogle && (!nomeLimpo || !senha))) {
+      setErro(isGoogle ? "Escolha seu @ para finalizar." : "Preencha nome, @ e senha para finalizar.");
       return;
     }
 
@@ -232,46 +235,50 @@ export default function Login({ onLogin, onVoltar }) {
       return;
     }
 
-    if (senha.length < 6) {
+    if (!/^[a-z0-9._]{3,30}$/.test(handleLimpo)) {
+      setErro("O @ deve ter 3-30 caracteres (letras, números, . ou _).");
+      return;
+    }
+
+    if (!isGoogle && senha.length < 6) {
       setErro("A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
-    const usuarios = getUsuarios();
-    const jaExiste = usuarios.find((u) => {
-      const email = (u.email || "").toLowerCase();
-      const userHandle = (u.handle || "").toLowerCase();
-      return email === identidadeVerificada.email.toLowerCase() || userHandle === handleLimpo;
-    });
-
-    if (jaExiste) {
-      setErro("Esse email/celular ou @ ja esta cadastrado.");
-      return;
-    }
-
-    const novoUsuario = createBaseUser({
-      username: nomeLimpo,
-      handle: handleLimpo,
-      email: identidadeVerificada.email,
-      senha,
-      telefone: identidadeVerificada.telefone,
-      authProvider: identidadeVerificada.provider,
-      fotoPerfil: identidadeVerificada.foto || "",
-      verificado: true,
-      disponivelContratacao,
-    });
-
+    setEnviando(true);
     try {
-      const createdUser = await registerUser({
-        username: novoUsuario.username,
-        handle: novoUsuario.handle,
-        email: novoUsuario.email,
-        senha: novoUsuario.senha,
-        telefone: novoUsuario.telefone,
-        bio: novoUsuario.bio,
-        fotoPerfil: novoUsuario.fotoPerfil,
-        fotoCapa: novoUsuario.fotoCapa,
+      const disponibilidade = await checkAuthAvailability({
+        email: identidadeVerificada.email,
+        handle: handleLimpo,
+        telefone: identidadeVerificada.telefone,
       });
+
+      if (disponibilidade.handleTaken) {
+        setErro("Esse @ já está cadastrado.");
+        return;
+      }
+      if (disponibilidade.emailTaken || disponibilidade.telefoneTaken) {
+        setErro("Esse email/celular já está cadastrado.");
+        return;
+      }
+
+      const createdUser = unwrapAuthPayload(
+        await registerUser({
+          username: nomeLimpo,
+          handle: handleLimpo,
+          email: identidadeVerificada.email,
+          senha,
+          telefone: identidadeVerificada.telefone,
+          bio: "",
+          fotoPerfil: identidadeVerificada.foto || "",
+          fotoCapa: "",
+          disponivelContratacao,
+          authProvider: identidadeVerificada.provider,
+          codigo: codigoEnviado,
+          accessToken: identidadeVerificada.accessToken || "",
+        }),
+        lembrarMe
+      );
 
       const usuariosLocais = getUsuarios();
       localStorage.setItem("usuarios", JSON.stringify([...usuariosLocais, createdUser]));
@@ -280,7 +287,9 @@ export default function Login({ onLogin, onVoltar }) {
       resetarFormularios();
       onLogin();
     } catch (error) {
-      setErro(error.message || "Erro ao registrar o usuario.");
+      setErro(error.message || "Erro ao registrar o usuário.");
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -302,38 +311,43 @@ export default function Login({ onLogin, onVoltar }) {
     setEtapa("esqueciSenha");
   }
 
-  function enviarCodigoRecuperacao() {
+  async function enviarCodigoRecuperacao() {
     limparAvisos();
 
     const contatoLimpo = recSenhaContato.trim();
     if (!contatoLimpo) {
-      setErro("Informe seu email, usuario ou @.");
+      setErro("Informe seu e-mail, usuário ou @.");
       return;
     }
 
-    // A checagem local e so pra exibir o email/@ na tela de confirmacao;
-    // quem realmente valida se a conta existe e o backend, la no final
-    // (salvarNovaSenhaRecuperada), entao nao bloqueia se nao achar aqui.
     const usuarios = getUsuarios();
     const usuarioEncontrado = encontrarUsuarioPorLogin(usuarios, contatoLimpo);
 
-    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-    setRecSenhaUsuario(usuarioEncontrado || { email: contatoLimpo, username: contatoLimpo, handle: contatoLimpo });
-    setRecSenhaCodigoEnviado(codigo);
-    setRecSenhaCodigoDigitado("");
-    setSucesso(`Codigo enviado para ${usuarioEncontrado?.email || contatoLimpo}.`);
-    setEtapa("esqueciSenhaCodigo");
+    try {
+      setEnviando(true);
+      const resposta = await requestPasswordReset(contatoLimpo);
+      const codigo = resposta?.codigo || "";
+      setRecSenhaUsuario(usuarioEncontrado || { email: contatoLimpo, username: contatoLimpo, handle: contatoLimpo });
+      setRecSenhaCodigoEnviado(codigo);
+      setRecSenhaCodigoDigitado("");
+      setSucesso(codigo ? `Use o código ${codigo} para continuar.` : "Se a conta existir, use o código para continuar.");
+      setEtapa("esqueciSenhaCodigo");
+    } catch (error) {
+      setErro(error.message || "Não foi possível enviar o código. Tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   function confirmarCodigoRecuperacao() {
     limparAvisos();
 
     if (recSenhaCodigoDigitado.trim() !== recSenhaCodigoEnviado) {
-      setErro("Codigo incorreto. Confira e tente de novo.");
+      setErro("Código incorreto. Confira e tente de novo.");
       return;
     }
 
-    setSucesso("Codigo confirmado. Escolha sua nova senha.");
+    setSucesso("Código confirmado. Escolha sua nova senha.");
     setEtapa("esqueciSenhaNova");
   }
 
@@ -346,14 +360,16 @@ export default function Login({ onLogin, onVoltar }) {
     }
 
     if (recSenhaNovaSenha !== recSenhaConfirmarSenha) {
-      setErro("A confirmacao da nova senha nao bate.");
+      setErro("A confirmação da nova senha não bate.");
       return;
     }
 
     try {
-      await resetPasswordApi(recSenhaContato.trim(), recSenhaNovaSenha);
+      setEnviando(true);
+      await resetPasswordApi(recSenhaContato.trim(), recSenhaNovaSenha, recSenhaCodigoEnviado);
     } catch (error) {
-      setErro(error.message || "Nao foi possivel redefinir a senha. Tente novamente.");
+      setErro(error.message || "Não foi possível redefinir a senha. Tente novamente.");
+      setEnviando(false);
       return;
     }
 
@@ -376,57 +392,65 @@ export default function Login({ onLogin, onVoltar }) {
     setRecSenhaConfirmarSenha("");
     setSucesso("Senha redefinida. Entre com a nova senha.");
     setEtapa("login");
+    setEnviando(false);
   }
 
-  async function processarLoginGoogle(perfilGoogle) {
+  async function processarLoginGoogle(accessToken) {
     limparAvisos();
 
-    const emailGoogle = (perfilGoogle.email || "").toLowerCase();
-
-    if (!emailGoogle) {
-      setErro("A conta Google nao retornou um email valido.");
+    if (!accessToken) {
+      setErro("A conta Google não retornou um token válido.");
       return;
     }
 
     try {
-      const usuariosBackend = await fetchUsers();
-      const usuarioGoogle = usuariosBackend.find((u) => (u.email || "").toLowerCase() === emailGoogle);
+      const resultado = await loginGoogle(accessToken);
 
-      if (usuarioGoogle) {
-        salvarSessao(usuarioGoogle);
+      if (!resultado?.needsProfile) {
+        salvarSessao(unwrapAuthPayload(resultado, lembrarMe));
         resetarFormularios();
         onLogin();
         return;
       }
-    } catch {
-      setErro("Nao foi possivel falar com o servidor. Tente novamente.");
-      return;
-    }
 
-    setIdentidadeVerificada({
-      metodo: "google",
-      email: emailGoogle,
-      telefone: "",
-      contato: `Conta Google conectada (${emailGoogle})`,
-      provider: "google",
-      foto: perfilGoogle.picture || "",
-    });
-    setUsername(perfilGoogle.name || "");
-    setMetodoCadastro("google");
-    setSucesso("Google conectado. Complete seu perfil para continuar.");
-    setEtapa("criarPerfil");
+      const perfilGoogle = resultado.profile || {};
+      const emailGoogle = (perfilGoogle.email || "").toLowerCase();
+      if (!emailGoogle) {
+        setErro("A conta Google não retornou um e-mail válido.");
+        return;
+      }
+
+      setIdentidadeVerificada({
+        metodo: "google",
+        email: emailGoogle,
+        nome: perfilGoogle.name || "",
+        telefone: "",
+        contato: emailGoogle,
+        provider: "google",
+        accessToken,
+        googleId: perfilGoogle.googleId || "",
+        foto: perfilGoogle.picture || "",
+      });
+      setUsername(perfilGoogle.name || "");
+      setHandle(suggestHandle(emailGoogle, perfilGoogle.name || ""));
+      setSenha("");
+      setMetodoCadastro("google");
+      setEtapa("criarPerfil");
+    } catch (error) {
+      setErro(error.message || "Não foi possível falar com o servidor. Tente novamente.");
+    }
   }
 
   function entrarComGoogle() {
     limparAvisos();
 
     if (!GOOGLE_CLIENT_ID) {
-      setErro("Login com Google nao configurado (falta VITE_GOOGLE_CLIENT_ID).");
+      setErro("Login com Google não configurado (falta VITE_GOOGLE_CLIENT_ID).");
       return;
     }
 
     if (!tokenClientRef.current) {
-      setErro("Servico do Google ainda esta carregando, tente novamente em instantes.");
+      setErro("Serviço do Google ainda está carregando, tente novamente em instantes.");
       return;
     }
 
@@ -444,19 +468,12 @@ export default function Login({ onLogin, onVoltar }) {
         scope: "openid email profile",
         callback: async (resposta) => {
           if (resposta.error) {
-            setErro("Nao foi possivel conectar com o Google.");
+            setErro("Não foi possível conectar com o Google.");
             return;
           }
 
           try {
-            const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-              headers: { Authorization: `Bearer ${resposta.access_token}` },
-            });
-
-            if (!res.ok) throw new Error("userinfo falhou");
-
-            const perfilGoogle = await res.json();
-            processarLoginGoogle(perfilGoogle);
+            await processarLoginGoogle(resposta.access_token);
           } catch {
             setErro("Falha ao obter os dados da conta Google.");
           }
@@ -478,37 +495,43 @@ export default function Login({ onLogin, onVoltar }) {
     limparAvisos();
 
     if (!login.trim() || !senhaLogin) {
-      setErro("Digite email, usuario ou @ e a senha.");
+      setErro("Digite email, usuário ou @ e a senha.");
       return;
     }
 
     try {
-      const user = await loginUser(login.trim(), senhaLogin);
+      setEnviando(true);
+      const user = unwrapAuthPayload(await loginUser(login.trim(), senhaLogin), lembrarMe);
       salvarSessao(user);
       resetarFormularios();
       onLogin();
     } catch (error) {
       setErro(error.message || "Erro ao entrar. Verifique suas credenciais.");
+    } finally {
+      setEnviando(false);
     }
   }
 
   return (
     <div className="container login-page">
+      {onVoltar && (
+        <button
+          type="button"
+          className="login-back-btn"
+          onClick={onVoltar}
+          title="Voltar para o feed"
+          aria-label="Voltar para o feed"
+        >
+          <img src={backArrow} alt="" />
+        </button>
+      )}
+      <div className="login-shell">
       <div className="left">
-        {onVoltar && (
-          <button
-            type="button"
-            className="login-back-btn"
-            onClick={onVoltar}
-            title="Voltar para o feed"
-            aria-label="Voltar para o feed"
-          >
-            <img src={backArrow} alt="" />
-          </button>
-        )}
         <div className="login-hero">
           <img src={logo} alt="DevSpace" />
-          <h2>Faca login e entre para o nosso time!</h2>
+          <h2>Faça login e entre para o nosso <span className="hero-accent">time</span>!</h2>
+          <p className="login-hero-tagline">Rede social pra quem cria, testa e posta projeto.</p>
+          <p className="login-hero-kicker">Crie · compartilhe · evolua</p>
         </div>
       </div>
 
@@ -523,50 +546,73 @@ export default function Login({ onLogin, onVoltar }) {
           >
             <h3>Entrar no DevSpace</h3>
 
-            <input
-              type="text"
-              placeholder="Email, usuario ou @"
-              value={login}
-              onChange={(e) => setLogin(e.target.value)}
-            />
-
-            <input
-              type="password"
-              placeholder="Senha"
-              value={senhaLogin}
-              onChange={(e) => setSenhaLogin(e.target.value)}
-            />
-
-            <button type="button" className="esqueci-senha-btn" onClick={iniciarRecuperacaoSenha}>
-              <span aria-hidden="true">🔑</span> Esqueci minha senha
-            </button>
-
-            <label className="lembrar-me">
+            <div className="auth-field">
+              <label className="auth-label" htmlFor="login-identificador">Email, usuário ou @</label>
               <input
-                type="checkbox"
-                checked={lembrarMe}
-                onChange={(e) => setLembrarMe(e.target.checked)}
+                id="login-identificador"
+                type="text"
+                autoComplete="username"
+                placeholder="Email, usuário ou @"
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
+                disabled={enviando}
+                aria-invalid={!!erro}
               />
-              Lembrar-me neste dispositivo
-            </label>
+            </div>
+
+            <div className="auth-field">
+              <label className="auth-label" htmlFor="login-senha">Senha</label>
+              <input
+                id="login-senha"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Senha"
+                value={senhaLogin}
+                onChange={(e) => setSenhaLogin(e.target.value)}
+                disabled={enviando}
+                aria-invalid={!!erro}
+              />
+            </div>
+
+            <div className="login-options">
+              <label className="lembrar-me">
+                <input
+                  type="checkbox"
+                  checked={lembrarMe}
+                  onChange={(e) => setLembrarMe(e.target.checked)}
+                />
+                <span>Lembrar-me neste dispositivo</span>
+              </label>
+
+              <button type="button" className="esqueci-senha-btn" onClick={iniciarRecuperacaoSenha}>
+                Esqueci a senha
+              </button>
+            </div>
 
             {erro && <p className="erro">{erro}</p>}
             {sucesso && <p className="sucesso">{sucesso}</p>}
 
-            <button type="submit" className="btn-entrar">
-              Entrar
+            <button type="submit" className="btn-entrar" disabled={enviando}>
+              {enviando ? "Entrando..." : "Entrar"}
             </button>
 
             <hr className="divisor" />
 
             <button type="button" className="btn-google" onClick={entrarComGoogle}>
-              <img src={googleIcon} alt="" className="google-icon" />
+              <GoogleMark size={22} className="google-icon" />
               Entrar com Google
             </button>
 
             <p className="toggle-cadastro">
-              Nao tem conta?{" "}
-              <button type="button" onClick={() => setEtapa("escolherCadastro")} className="link-btn">
+              Não tem conta?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  limparAvisos();
+                  setEtapa("escolherCadastro");
+                }}
+                className="link-btn"
+              >
                 Cadastre-se
               </button>
             </p>
@@ -582,11 +628,11 @@ export default function Login({ onLogin, onVoltar }) {
             }}
           >
             <h3>Esqueci minha senha</h3>
-            <p className="descricao">Informe sua conta para receber um codigo de verificacao.</p>
+            <p className="descricao">Informe sua conta para receber um código de verificação.</p>
 
             <input
               type="text"
-              placeholder="Email, usuario ou @"
+              placeholder="Email, usuário ou @"
               value={recSenhaContato}
               onChange={(e) => setRecSenhaContato(e.target.value)}
             />
@@ -595,7 +641,7 @@ export default function Login({ onLogin, onVoltar }) {
             {sucesso && <p className="sucesso">{sucesso}</p>}
 
             <button type="submit" className="btn-entrar">
-              Enviar codigo
+              Enviar código
             </button>
 
             <button type="button" className="btn-voltar cadastro-voltar" onClick={voltarParaLogin}>
@@ -612,15 +658,17 @@ export default function Login({ onLogin, onVoltar }) {
               confirmarCodigoRecuperacao();
             }}
           >
-            <h3>Confirmar codigo</h3>
-            <p className="descricao">Enviamos um codigo para {recSenhaUsuario?.email}.</p>
+            <h3>Confirmar código</h3>
+            <p className="descricao">Enviamos um código para {recSenhaUsuario?.email}.</p>
 
-            <div className="codigo-teste">Codigo de teste: {recSenhaCodigoEnviado}</div>
+            {import.meta.env.DEV && recSenhaCodigoEnviado && (
+              <p className="descricao">Em desenvolvimento, o código também aparece no console.</p>
+            )}
 
             <input
               type="text"
               inputMode="numeric"
-              placeholder="Codigo de 6 digitos"
+              placeholder="Código de 6 dígitos"
               value={recSenhaCodigoDigitado}
               onChange={(e) => setRecSenhaCodigoDigitado(onlyDigits(e.target.value))}
               maxLength="6"
@@ -680,7 +728,7 @@ export default function Login({ onLogin, onVoltar }) {
         {etapa === "escolherCadastro" && (
           <form className="card auth-card cadastro-card" onSubmit={(e) => e.preventDefault()}>
             <h3>Criar conta</h3>
-            <p className="descricao">Escolha uma forma de confirmar que a conta e sua.</p>
+            <p className="descricao">Escolha uma forma de confirmar que a conta é sua.</p>
 
             <div className="metodos-grid">
               <button
@@ -692,7 +740,7 @@ export default function Login({ onLogin, onVoltar }) {
                 }}
               >
                 <strong>Celular</strong>
-                <span>Receba um codigo por SMS.</span>
+                <span>O código aparece na tela para você continuar.</span>
               </button>
 
               <button
@@ -703,8 +751,8 @@ export default function Login({ onLogin, onVoltar }) {
                   limparAvisos();
                 }}
               >
-                <strong>Email</strong>
-                <span>Receba um codigo no email.</span>
+                <strong>E-mail</strong>
+                <span>O código aparece na tela para você continuar.</span>
               </button>
             </div>
 
@@ -723,7 +771,7 @@ export default function Login({ onLogin, onVoltar }) {
               <div className="metodo-form">
                 <input
                   type="email"
-                  placeholder="Email"
+                  placeholder="E-mail"
                   value={emailCadastro}
                   onChange={(e) => setEmailCadastro(e.target.value)}
                 />
@@ -734,11 +782,11 @@ export default function Login({ onLogin, onVoltar }) {
             {sucesso && <p className="sucesso">{sucesso}</p>}
 
             <button type="button" className="btn-entrar" onClick={enviarCodigoVerificacao}>
-              Enviar codigo
+              Enviar código
             </button>
 
             <button type="button" className="btn-google" onClick={entrarComGoogle}>
-              <img src={googleIcon} alt="" className="google-icon" />
+              <GoogleMark size={22} className="google-icon" />
               Continuar com Google
             </button>
 
@@ -756,18 +804,20 @@ export default function Login({ onLogin, onVoltar }) {
               verificarCodigo();
             }}
           >
-            <h3>Confirmar codigo</h3>
+            <h3>Confirmar código</h3>
 
             <p className="descricao">
-              Enviamos um codigo para {identidadeVerificada?.contato || "seu contato"}.
+              Enviamos um código para {identidadeVerificada?.contato || "seu contato"}.
             </p>
 
-            <div className="codigo-teste">Codigo de teste: {codigoEnviado}</div>
+            {import.meta.env.DEV && codigoEnviado && (
+              <p className="descricao">Em desenvolvimento, o código também aparece no console.</p>
+            )}
 
             <input
               type="text"
               inputMode="numeric"
-              placeholder="Codigo de 6 digitos"
+              placeholder="Código de 6 dígitos"
               value={codigoVerificacao}
               onChange={(e) => setCodigoVerificacao(onlyDigits(e.target.value))}
               maxLength="6"
@@ -781,12 +831,66 @@ export default function Login({ onLogin, onVoltar }) {
             </button>
 
             <button type="button" className="btn-voltar cadastro-voltar" onClick={() => setEtapa("escolherCadastro")}>
-              Trocar metodo
+              Trocar método
             </button>
           </form>
         )}
 
-        {etapa === "criarPerfil" && (
+        {etapa === "criarPerfil" && identidadeVerificada?.provider === "google" && (
+          <form
+            className="card auth-card google-handle-card"
+            onSubmit={(e) => {
+              e.preventDefault();
+              finalizarCadastro();
+            }}
+          >
+            <h3>Escolha seu @</h3>
+            <p className="descricao">Sua conta Google já está conectada. Só falta o usuário.</p>
+
+            <div className="google-connected">
+              {identidadeVerificada.foto ? (
+                <img src={identidadeVerificada.foto} alt="" />
+              ) : (
+                <GoogleMark size={22} className="google-connected-fallback" />
+              )}
+              <div>
+                <strong>{identidadeVerificada.nome || "Conta Google"}</strong>
+                <span>{identidadeVerificada.email}</span>
+              </div>
+            </div>
+
+            <input
+              type="text"
+              placeholder="@usuário"
+              value={handle}
+              onChange={(e) => setHandle(e.target.value.replace(/\s+/g, ""))}
+              autoFocus
+            />
+
+            <label className="contrato-toggle">
+              <input
+                type="checkbox"
+                checked={disponivelContratacao}
+                onChange={(e) => setDisponivelContratacao(e.target.checked)}
+              />
+              <span>Quero aparecer como disponível para contratação</span>
+            </label>
+
+            {erro && <p className="erro">{erro}</p>}
+
+            <div className="auth-actions">
+              <button type="submit" className="btn-entrar">
+                Finalizar cadastro
+              </button>
+
+              <button type="button" className="btn-voltar" onClick={voltarParaLogin}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+
+        {etapa === "criarPerfil" && identidadeVerificada?.provider !== "google" && (
           <form
             className="card auth-card cadastro-card"
             onSubmit={(e) => {
@@ -795,22 +899,18 @@ export default function Login({ onLogin, onVoltar }) {
             }}
           >
             <h3>Complete seu perfil</h3>
-            <p className="descricao">
-              {identidadeVerificada?.provider === "google"
-                ? "Google conectado. Agora escolha seu nome, @ e senha."
-                : "Conta verificada. Agora escolha seu nome, @ e senha."}
-            </p>
+            <p className="descricao">Conta verificada. Agora escolha seu nome, @ e senha.</p>
 
             <input
               type="text"
-              placeholder="Nome de usuario"
+              placeholder="Nome de usuário"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
 
             <input
               type="text"
-              placeholder="@usuario"
+              placeholder="@usuário"
               value={handle}
               onChange={(e) => setHandle(e.target.value.replace(/\s+/g, ""))}
             />
@@ -828,21 +928,23 @@ export default function Login({ onLogin, onVoltar }) {
                 checked={disponivelContratacao}
                 onChange={(e) => setDisponivelContratacao(e.target.checked)}
               />
-              Quero aparecer como disponível para ser contratado
+              <span>Quero aparecer como disponível para contratação</span>
             </label>
 
             {erro && <p className="erro">{erro}</p>}
-            {sucesso && <p className="sucesso">{sucesso}</p>}
 
-            <button type="submit" className="btn-entrar">
-              Finalizar cadastro
-            </button>
+            <div className="auth-actions">
+              <button type="submit" className="btn-entrar">
+                Finalizar cadastro
+              </button>
 
-            <button type="button" className="btn-voltar cadastro-voltar" onClick={voltarParaLogin}>
-              Cancelar
-            </button>
+              <button type="button" className="btn-voltar" onClick={voltarParaLogin}>
+                Cancelar
+              </button>
+            </div>
           </form>
         )}
+      </div>
       </div>
     </div>
   );

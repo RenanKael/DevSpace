@@ -1,15 +1,90 @@
+import "./loadEnv.js";
 import express from "express";
 import cors from "cors";
+import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import multer from "multer";
 import bcrypt from "bcryptjs";
 import { query, queryOne } from "./db.js";
+import {
+  ensureAuthTables,
+  createSession,
+  destroySession,
+  requireAuth,
+  getSessionUser,
+  rateLimit,
+  storeVerificationCode,
+  consumeVerificationCode,
+  storePasswordReset,
+  consumePasswordReset,
+} from "./auth.js";
 
 const PORT = Number(process.env.PORT || 4000);
+const ALLOWED_ORIGINS = String(process.env.FRONTEND_ORIGIN || "http://127.0.0.1:5173,http://localhost:5173")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+  })
+);
 app.use(express.json({ limit: "15mb" }));
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const UPLOAD_DIR = path.join(__dirname, "uploads");
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
 const MIDIA_TIPOS = ["imagem", "video", "gif", "arquivo"];
+const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
+const ALLOWED_UPLOAD_EXT = new Set([
+  "pdf",
+  "doc",
+  "docx",
+  "txt",
+  "zip",
+  "rar",
+  "ppt",
+  "pptx",
+  "xls",
+  "xlsx",
+  "csv",
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "webp",
+]);
+
+function mimeFromName(name = "") {
+  const ext = String(name).split(".").pop()?.toLowerCase() || "";
+  const map = {
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    txt: "text/plain",
+    csv: "text/csv",
+    zip: "application/zip",
+    rar: "application/vnd.rar",
+    ppt: "application/vnd.ms-powerpoint",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    xls: "application/vnd.ms-excel",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+  };
+  return map[ext] || "application/octet-stream";
+}
 
 function midiaTipoFromMime(mime) {
   if (!mime) return "arquivo";
@@ -17,6 +92,86 @@ function midiaTipoFromMime(mime) {
   if (mime.startsWith("image/")) return "imagem";
   if (mime.startsWith("video/")) return "video";
   return "arquivo";
+}
+
+function mimeFromDataUrl(url = "") {
+  const match = String(url).match(/^data:([^;,]+)/);
+  return match?.[1] || "";
+}
+
+function inferNameFromUrl(url = "") {
+  const value = String(url || "");
+  if (value.startsWith("data:")) {
+    const mime = mimeFromDataUrl(value);
+    if (mime === "application/pdf") return "documento.pdf";
+    if (mime.includes("wordprocessingml") || mime === "application/msword") return "documento.docx";
+    if (mime.includes("spreadsheetml") || mime === "application/vnd.ms-excel") return "planilha.xlsx";
+    if (mime.includes("presentationml") || mime === "application/vnd.ms-powerpoint") return "apresentacao.pptx";
+    if (mime === "application/zip") return "arquivo.zip";
+    if (mime.startsWith("image/")) return `imagem.${mime.split("/")[1] || "png"}`;
+    return "arquivo";
+  }
+  try {
+    const last = value.split("?")[0].split("/").pop();
+    if (last) return decodeURIComponent(last);
+  } catch {
+    /* ignore */
+  }
+  return "arquivo";
+}
+
+function serializeAnexo(row) {
+  if (!row?.url) return null;
+  const nome = row.nome_original || row.nome_arquivo || inferNameFromUrl(row.url);
+  const tipo =
+    row.mime_original ||
+    mimeFromDataUrl(row.url) ||
+    mimeFromName(nome) ||
+    (row.tipo === "video" ? "video/*" : "application/octet-stream");
+  return {
+    url: row.url,
+    tipo,
+    nome,
+    tamanho: row.tamanho_bytes || null,
+  };
+}
+
+function safeDownloadName(name) {
+  return String(name || "arquivo").replace(/[\r\n"]/g, "").slice(0, 180) || "arquivo";
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || "").slice(0, 10).toLowerCase().replace(/[^.a-z0-9]/g, "");
+      cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext}`);
+    },
+  }),
+  limits: { fileSize: MAX_UPLOAD_BYTES },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || "").slice(1).toLowerCase();
+    const mime = file.mimetype || mimeFromName(file.originalname);
+    if (ALLOWED_UPLOAD_EXT.has(ext) || mime.startsWith("image/")) return cb(null, true);
+    cb(new Error("Tipo de arquivo não permitido. Use PDF, documento, zip ou imagem."));
+  },
+});
+
+async function ensureMidiaAnexoColumns() {
+  const nome = await queryOne(
+    `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'midias' AND COLUMN_NAME = 'nome_original'`
+  );
+  if (!nome) {
+    await query("ALTER TABLE midias ADD COLUMN nome_original VARCHAR(255) DEFAULT NULL AFTER tamanho_bytes");
+  }
+  const mime = await queryOne(
+    `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'midias' AND COLUMN_NAME = 'mime_original'`
+  );
+  if (!mime) {
+    await query("ALTER TABLE midias ADD COLUMN mime_original VARCHAR(255) DEFAULT NULL AFTER nome_original");
+  }
 }
 
 // ---------- Usuarios ----------
@@ -73,16 +228,31 @@ async function getStarProgress(usuarioId) {
   };
 }
 
-async function mapUsuario(row) {
+async function getRatingSummary(userId, reviewerId = null) {
+  const [aggRows, minha] = await Promise.all([
+    query("SELECT AVG(nota) AS media, COUNT(*) AS total FROM avaliacoes_perfil WHERE avaliado_id = ?", [userId]),
+    reviewerId
+      ? queryOne("SELECT nota FROM avaliacoes_perfil WHERE avaliado_id = ? AND avaliador_id = ?", [userId, reviewerId])
+      : Promise.resolve(null),
+  ]);
+  return {
+    ratingMedia: Number(aggRows[0]?.media || 0),
+    ratingCount: Number(aggRows[0]?.total || 0),
+    minhaNota: minha ? Number(minha.nota) : 0,
+  };
+}
+
+async function mapUsuario(row, { self = false, reviewerId = null } = {}) {
   if (!row) return null;
 
-  const [seguidoresRows, seguindoRows, starProgress] = await Promise.all([
+  const [seguidoresRows, seguindoRows, starProgress, ratings] = await Promise.all([
     query("SELECT COUNT(*) AS c FROM seguidores WHERE seguido_id = ?", [row.id]),
     query(
       "SELECT u.username FROM seguidores s JOIN usuarios u ON u.id = s.seguido_id WHERE s.seguidor_id = ?",
       [row.id]
     ),
     getStarProgress(row.id),
+    getRatingSummary(row.id, reviewerId),
   ]);
 
   const isAdmin = !!row.is_admin || (row.email || "").toLowerCase() === ADMIN_EMAIL;
@@ -92,8 +262,8 @@ async function mapUsuario(row) {
     id: row.id,
     username: row.nome_exibicao || row.username,
     handle: row.username,
-    email: row.email,
-    telefone: row.telefone || "",
+    email: self ? row.email || "" : "",
+    telefone: self ? row.telefone || "" : "",
     bio: row.bio || "",
     fotoPerfil: row.avatar_url || "",
     fotoCapa: row.foto_capa_url || "",
@@ -103,7 +273,8 @@ async function mapUsuario(row) {
     stack: row.stack || "",
     linguagemPrincipal: row.linguagem_principal || "",
     disponivelContratacao: !!row.disponivel_contratacao,
-    isAdmin,
+    authProvider: self ? row.auth_provider || "local" : undefined,
+    isAdmin: self ? isAdmin : undefined,
     posPerfil: { x: Number(row.pos_perfil_x ?? 50), y: Number(row.pos_perfil_y ?? 50) },
     posCapa: { x: Number(row.pos_capa_x ?? 50), y: Number(row.pos_capa_y ?? 50) },
     zoomPerfil: Number(row.zoom_perfil ?? 100),
@@ -113,24 +284,31 @@ async function mapUsuario(row) {
     seguindo: seguindoRows.map((r) => r.username),
     estrelas,
     avaliacao: estrelas,
+    ratingMedia: ratings.ratingMedia,
+    ratingCount: ratings.ratingCount,
+    minhaNota: ratings.minhaNota,
     starStats: { ...starProgress, firstPostAwarded: starProgress.postsCreated > 0 },
+    notifPrefs: self
+      ? {
+          contatos: row.notif_contatos !== 0,
+          mensagens: row.notif_mensagens !== 0,
+          atividade: row.notif_atividade !== 0,
+        }
+      : undefined,
     projetos: [],
     comments: 0,
   };
 }
 
-async function findUsuarioIdByEmailOrHandle(email, handle) {
-  const row = await queryOne(
-    "SELECT id FROM usuarios WHERE (email IS NOT NULL AND LOWER(email) = LOWER(?)) OR (username IS NOT NULL AND LOWER(username) = LOWER(?)) LIMIT 1",
-    [email || "", handle || ""]
-  );
-  return row?.id || null;
+async function sendAuth(res, row, status = 200) {
+  const token = await createSession(row.id);
+  res.status(status).json({ token, user: await mapUsuario(row, { self: true }) });
 }
 
 app.get("/api/users", async (req, res) => {
   try {
-    const rows = await query("SELECT * FROM usuarios WHERE ativo = 1 ORDER BY id DESC");
-    const usuarios = await Promise.all(rows.map(mapUsuario));
+    const rows = await query("SELECT * FROM usuarios WHERE ativo = 1 ORDER BY id DESC LIMIT 100");
+    const usuarios = await Promise.all(rows.map((row) => mapUsuario(row)));
     res.json(usuarios);
   } catch (error) {
     console.error(error);
@@ -142,15 +320,20 @@ app.get("/api/users/:id(\\d+)", async (req, res) => {
   try {
     const row = await queryOne("SELECT * FROM usuarios WHERE id = ?", [req.params.id]);
     if (!row) return res.status(404).json({ message: "Usuário não encontrado." });
-    res.json(await mapUsuario(row));
+    const session = await getSessionUser(req);
+    const reviewerId = session?.usuario?.id || null;
+    res.json(await mapUsuario(row, { self: reviewerId === row.id, reviewerId }));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao buscar usuário." });
   }
 });
 
-app.put("/api/users/:id(\\d+)", async (req, res) => {
+app.put("/api/users/:id(\\d+)", requireAuth, async (req, res) => {
   try {
+    if (Number(req.params.id) !== req.usuario.id) {
+      return res.status(403).json({ message: "Você só pode editar o próprio perfil." });
+    }
     const updates = req.body || {};
     const columnMap = {
       username: "nome_exibicao",
@@ -176,7 +359,15 @@ app.put("/api/users/:id(\\d+)", async (req, res) => {
       const column = columnMap[key];
       if (!column) return;
       fields.push(`${column} = ?`);
-      values.push(key === "disponivelContratacao" ? (value ? 1 : 0) : value);
+      if (key === "disponivelContratacao") {
+        values.push(value ? 1 : 0);
+      } else if (key === "telefone") {
+        values.push(onlyDigits(value) || null);
+      } else if (key === "handle") {
+        values.push(normalizeHandle(value));
+      } else {
+        values.push(value);
+      }
     });
 
     // posPerfil/posCapa sao objetos {x, y}, cada um mapeando pra duas colunas
@@ -212,7 +403,7 @@ app.put("/api/users/:id(\\d+)", async (req, res) => {
     await query(`UPDATE usuarios SET ${fields.join(", ")} WHERE id = ?`, values);
     const updated = await queryOne("SELECT * FROM usuarios WHERE id = ?", [req.params.id]);
     if (!updated) return res.status(404).json({ message: "Usuário não encontrado." });
-    res.json(await mapUsuario(updated));
+    res.json(await mapUsuario(updated, { self: true }));
   } catch (error) {
     console.error(error);
     if (error.code === "ER_DUP_ENTRY") {
@@ -222,8 +413,11 @@ app.put("/api/users/:id(\\d+)", async (req, res) => {
   }
 });
 
-app.delete("/api/users/:id(\\d+)", async (req, res) => {
+app.delete("/api/users/:id(\\d+)", requireAuth, async (req, res) => {
   try {
+    if (Number(req.params.id) !== req.usuario.id) {
+      return res.status(403).json({ message: "Você só pode excluir a própria conta." });
+    }
     const result = await query("DELETE FROM usuarios WHERE id = ?", [req.params.id]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Usuário não encontrado." });
@@ -235,12 +429,12 @@ app.delete("/api/users/:id(\\d+)", async (req, res) => {
   }
 });
 
-app.post("/api/users/:id(\\d+)/follow", async (req, res) => {
+app.post("/api/users/:id(\\d+)/follow", requireAuth, async (req, res) => {
   try {
     const seguidoId = Number(req.params.id);
-    const seguidorId = Number(req.body?.seguidorId);
-    if (!seguidorId || seguidorId === seguidoId) {
-      return res.status(400).json({ message: "seguidorId inválido." });
+    const seguidorId = req.usuario.id;
+    if (!seguidoId || seguidorId === seguidoId) {
+      return res.status(400).json({ message: "Não é possível seguir este perfil." });
     }
 
     const existente = await queryOne(
@@ -252,13 +446,67 @@ app.post("/api/users/:id(\\d+)/follow", async (req, res) => {
       await query("DELETE FROM seguidores WHERE id = ?", [existente.id]);
     } else {
       await query("INSERT INTO seguidores (seguidor_id, seguido_id) VALUES (?, ?)", [seguidorId, seguidoId]);
+      await criarNotificacao(seguidoId, seguidorId, "seguidor");
     }
 
-    const seguidorRow = await queryOne("SELECT * FROM usuarios WHERE id = ?", [seguidorId]);
-    res.json({ seguindo: !existente, usuario: await mapUsuario(seguidorRow) });
+    const [seguidorRow, alvoRow] = await Promise.all([
+      queryOne("SELECT * FROM usuarios WHERE id = ?", [seguidorId]),
+      queryOne("SELECT * FROM usuarios WHERE id = ?", [seguidoId]),
+    ]);
+    res.json({
+      seguindo: !existente,
+      usuario: await mapUsuario(seguidorRow, { self: true }),
+      alvo: await mapUsuario(alvoRow, { reviewerId: seguidorId }),
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao seguir/deixar de seguir usuário." });
+  }
+});
+
+app.get("/api/users/:id(\\d+)/followers", async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT u.* FROM seguidores s JOIN usuarios u ON u.id = s.seguidor_id WHERE s.seguido_id = ? ORDER BY s.criado_em DESC LIMIT 100`,
+      [req.params.id]
+    );
+    res.json(await Promise.all(rows.map((row) => mapUsuario(row))));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao listar seguidores." });
+  }
+});
+
+app.get("/api/users/:id(\\d+)/following", async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT u.* FROM seguidores s JOIN usuarios u ON u.id = s.seguido_id WHERE s.seguidor_id = ? ORDER BY s.criado_em DESC LIMIT 100`,
+      [req.params.id]
+    );
+    res.json(await Promise.all(rows.map((row) => mapUsuario(row))));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao listar quem segue." });
+  }
+});
+
+app.put("/api/users/me/notification-prefs", requireAuth, async (req, res) => {
+  try {
+    const prefs = req.body || {};
+    await query(
+      "UPDATE usuarios SET notif_contatos = ?, notif_mensagens = ?, notif_atividade = ? WHERE id = ?",
+      [
+        prefs.contatos === false ? 0 : 1,
+        prefs.mensagens === false ? 0 : 1,
+        prefs.atividade === false ? 0 : 1,
+        req.usuario.id,
+      ]
+    );
+    const row = await queryOne("SELECT * FROM usuarios WHERE id = ?", [req.usuario.id]);
+    res.json(await mapUsuario(row, { self: true }));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao salvar preferências." });
   }
 });
 
@@ -275,12 +523,12 @@ async function isBlocked(usuarioAId, usuarioBId) {
   return !!row;
 }
 
-app.post("/api/users/:id(\\d+)/block", async (req, res) => {
+app.post("/api/users/:id(\\d+)/block", requireAuth, async (req, res) => {
   try {
     const bloqueadoId = Number(req.params.id);
-    const bloqueadorId = Number(req.body?.bloqueadorId);
-    if (!bloqueadorId || bloqueadorId === bloqueadoId) {
-      return res.status(400).json({ message: "bloqueadorId inválido." });
+    const bloqueadorId = req.usuario.id;
+    if (!bloqueadoId || bloqueadorId === bloqueadoId) {
+      return res.status(400).json({ message: "Não é possível bloquear este perfil." });
     }
 
     await query(
@@ -294,12 +542,12 @@ app.post("/api/users/:id(\\d+)/block", async (req, res) => {
   }
 });
 
-app.post("/api/users/:id(\\d+)/unblock", async (req, res) => {
+app.post("/api/users/:id(\\d+)/unblock", requireAuth, async (req, res) => {
   try {
     const bloqueadoId = Number(req.params.id);
-    const bloqueadorId = Number(req.body?.bloqueadorId);
-    if (!bloqueadorId) {
-      return res.status(400).json({ message: "bloqueadorId inválido." });
+    const bloqueadorId = req.usuario.id;
+    if (!bloqueadoId) {
+      return res.status(400).json({ message: "Perfil inválido." });
     }
 
     await query("DELETE FROM bloqueios WHERE usuario_id = ? AND bloqueado_id = ?", [
@@ -313,9 +561,12 @@ app.post("/api/users/:id(\\d+)/unblock", async (req, res) => {
   }
 });
 
-app.get("/api/users/:id(\\d+)/blocked", async (req, res) => {
+app.get("/api/users/:id(\\d+)/blocked", requireAuth, async (req, res) => {
   try {
-    const usuarioId = Number(req.params.id);
+    if (Number(req.params.id) !== req.usuario.id) {
+      return res.status(403).json({ message: "Você só pode ver os próprios bloqueios." });
+    }
+    const usuarioId = req.usuario.id;
     const rows = await query(
       `SELECT u.* FROM bloqueios b JOIN usuarios u ON u.id = b.bloqueado_id
        WHERE b.usuario_id = ? ORDER BY b.criado_em DESC`,
@@ -346,12 +597,12 @@ function mapSolicitacao(row) {
   };
 }
 
-app.post("/api/users/:id(\\d+)/contact-request", async (req, res) => {
+app.post("/api/users/:id(\\d+)/contact-request", requireAuth, async (req, res) => {
   try {
     const destinatarioId = Number(req.params.id);
-    const remetenteId = Number(req.body?.remetenteId);
-    if (!remetenteId || remetenteId === destinatarioId) {
-      return res.status(400).json({ message: "remetenteId inválido." });
+    const remetenteId = req.usuario.id;
+    if (!destinatarioId || remetenteId === destinatarioId) {
+      return res.status(400).json({ message: "Não é possível contatar este perfil." });
     }
 
     if (await isBlocked(remetenteId, destinatarioId)) {
@@ -382,9 +633,12 @@ app.post("/api/users/:id(\\d+)/contact-request", async (req, res) => {
   }
 });
 
-app.get("/api/users/:id(\\d+)/contact-requests", async (req, res) => {
+app.get("/api/users/:id(\\d+)/contact-requests", requireAuth, async (req, res) => {
   try {
-    const destinatarioId = Number(req.params.id);
+    if (Number(req.params.id) !== req.usuario.id) {
+      return res.status(403).json({ message: "Você só pode ver as próprias solicitações." });
+    }
+    const destinatarioId = req.usuario.id;
     const rows = await query(
       `SELECT sc.id, sc.criado_em, sc.remetente_id,
         u.username AS remetente_username, u.nome_exibicao AS remetente_nome, u.avatar_url AS remetente_avatar
@@ -399,12 +653,12 @@ app.get("/api/users/:id(\\d+)/contact-requests", async (req, res) => {
   }
 });
 
-app.post("/api/contact-requests/:id(\\d+)/accept", async (req, res) => {
+app.post("/api/contact-requests/:id(\\d+)/accept", requireAuth, async (req, res) => {
   try {
     const solicitacao = await queryOne("SELECT * FROM solicitacoes_contato WHERE id = ?", [req.params.id]);
     if (!solicitacao) return res.status(404).json({ message: "Solicitação não encontrada." });
 
-    const usuarioId = Number(req.body?.usuarioId);
+    const usuarioId = req.usuario.id;
     if (usuarioId !== solicitacao.destinatario_id) {
       return res.status(403).json({ message: "Você não pode responder essa solicitação." });
     }
@@ -419,12 +673,12 @@ app.post("/api/contact-requests/:id(\\d+)/accept", async (req, res) => {
   }
 });
 
-app.post("/api/contact-requests/:id(\\d+)/decline", async (req, res) => {
+app.post("/api/contact-requests/:id(\\d+)/decline", requireAuth, async (req, res) => {
   try {
     const solicitacao = await queryOne("SELECT * FROM solicitacoes_contato WHERE id = ?", [req.params.id]);
     if (!solicitacao) return res.status(404).json({ message: "Solicitação não encontrada." });
 
-    const usuarioId = Number(req.body?.usuarioId);
+    const usuarioId = req.usuario.id;
     if (usuarioId !== solicitacao.destinatario_id) {
       return res.status(403).json({ message: "Você não pode responder essa solicitação." });
     }
@@ -441,34 +695,158 @@ app.get("/api/users/:handle", async (req, res) => {
   try {
     const row = await queryOne("SELECT * FROM usuarios WHERE LOWER(username) = LOWER(?)", [req.params.handle]);
     if (!row) return res.status(404).json({ message: "Usuário não encontrado." });
-    res.json(await mapUsuario(row));
+    const session = await getSessionUser(req);
+    const reviewerId = session?.usuario?.id || null;
+    res.json(await mapUsuario(row, { self: reviewerId === row.id, reviewerId }));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao buscar usuário." });
   }
 });
 
+app.post("/api/users/:id(\\d+)/ratings", requireAuth, async (req, res) => {
+  try {
+    const avaliadoId = Number(req.params.id);
+    const avaliadorId = req.usuario.id;
+    const nota = Number(req.body?.nota);
+    if (!avaliadoId || avaliadorId === avaliadoId) {
+      return res.status(400).json({ message: "Você não pode avaliar o próprio perfil." });
+    }
+    if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
+      return res.status(400).json({ message: "A avaliação deve ser de 1 a 5 estrelas." });
+    }
+    const alvo = await queryOne("SELECT * FROM usuarios WHERE id = ? AND ativo = 1", [avaliadoId]);
+    if (!alvo) return res.status(404).json({ message: "Usuário não encontrado." });
+
+    await query(
+      `INSERT INTO avaliacoes_perfil (avaliador_id, avaliado_id, nota)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE nota = VALUES(nota), atualizado_em = CURRENT_TIMESTAMP`,
+      [avaliadorId, avaliadoId, nota]
+    );
+    await criarNotificacao(avaliadoId, avaliadorId, "avaliacao");
+
+    res.json(await mapUsuario(alvo, { reviewerId: avaliadorId }));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao avaliar perfil." });
+  }
+});
+
 // ---------- Autenticação ----------
 
-// Aceita email, @ (username) ou telefone (comparado so pelos digitos, pra
-// tolerar espacos/traco/parenteses no que a pessoa digitar).
+function onlyDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function normalizeHandle(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^@+/, "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+}
+
+function phoneEmailFromDigits(digits) {
+  return digits ? `${digits}@phone.devspace.local` : "";
+}
+
+function digitsFromSyntheticEmail(email) {
+  const value = String(email || "").trim().toLowerCase();
+  if (value.endsWith("@phone.devspace.local")) return onlyDigits(value.split("@")[0]);
+  if (value.startsWith("tel_")) return onlyDigits(value.slice(4));
+  return "";
+}
+
+function normalizeRegisterEmail({ email, telefone, authProvider }) {
+  const trimmed = String(email || "").trim().toLowerCase();
+  const digits = onlyDigits(telefone);
+  if (trimmed && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) && !trimmed.startsWith("tel_")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("tel_")) {
+    return phoneEmailFromDigits(onlyDigits(trimmed.slice(4)) || digits);
+  }
+  if (digits) return phoneEmailFromDigits(digits);
+  if (authProvider === "google") return trimmed;
+  return trimmed;
+}
+
 async function encontrarUsuarioPorIdentificador(identificadorBruto) {
   const identificador = (identificadorBruto || "").trim();
-  // O @ e so decoracao visual do handle (nao fica salvo no banco), entao
-  // precisa ser removido antes de comparar com a coluna username.
-  const semArroba = identificador.replace(/^@+/, "");
-  const somenteDigitos = identificador.replace(/\D/g, "");
+  const semArroba = normalizeHandle(identificador);
+  const somenteDigitos = onlyDigits(identificador);
+  const phoneEmail = phoneEmailFromDigits(somenteDigitos);
+  const legacyPhoneEmail = somenteDigitos ? `tel_${somenteDigitos}` : "";
 
   return queryOne(
     `SELECT * FROM usuarios
      WHERE LOWER(email) = LOWER(?)
         OR LOWER(username) = LOWER(?)
-        OR (telefone IS NOT NULL AND telefone <> '' AND ? <> '' AND telefone = ?)`,
-    [identificador, semArroba, somenteDigitos, somenteDigitos]
+        OR (? <> '' AND LOWER(email) = LOWER(?))
+        OR (? <> '' AND LOWER(email) = LOWER(?))
+        OR (telefone IS NOT NULL AND telefone <> '' AND ? <> '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(telefone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?)`,
+    [
+      identificador,
+      semArroba,
+      phoneEmail, phoneEmail,
+      legacyPhoneEmail, legacyPhoneEmail,
+      somenteDigitos, somenteDigitos,
+    ]
   );
 }
 
-app.post("/api/auth/login", async (req, res) => {
+async function fetchGoogleProfile(accessToken) {
+  const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) {
+    throw new Error("GOOGLE_USERINFO");
+  }
+  return response.json();
+}
+
+app.post("/api/auth/check", rateLimit({ max: 30 }), async (req, res) => {
+  try {
+    const email = normalizeRegisterEmail(req.body || {});
+    const handle = normalizeHandle(req.body?.handle);
+    const telefone = onlyDigits(req.body?.telefone) || digitsFromSyntheticEmail(req.body?.email || email);
+
+    const [emailRow, handleRow, phoneRow] = await Promise.all([
+      email
+        ? queryOne("SELECT id FROM usuarios WHERE LOWER(email) = LOWER(?) LIMIT 1", [email])
+        : null,
+      handle
+        ? queryOne("SELECT id FROM usuarios WHERE LOWER(username) = LOWER(?) LIMIT 1", [handle])
+        : null,
+      telefone
+        ? queryOne(
+            `SELECT id FROM usuarios
+             WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(telefone,''), '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?
+                OR LOWER(email) = LOWER(?)
+                OR LOWER(email) = LOWER(?)
+             LIMIT 1`,
+            [telefone, phoneEmailFromDigits(telefone), `tel_${telefone}`],
+          )
+        : null,
+    ]);
+
+    res.json({
+      email: email || null,
+      handle: handle || null,
+      telefone: telefone || null,
+      emailTaken: Boolean(emailRow),
+      handleTaken: Boolean(handleRow),
+      telefoneTaken: Boolean(phoneRow),
+      available: !emailRow && !handleRow && !phoneRow,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao verificar disponibilidade." });
+  }
+});
+
+app.post("/api/auth/login", rateLimit({ max: 12 }), async (req, res) => {
   try {
     const { emailOrHandle, senha } = req.body;
     if (!emailOrHandle || !senha) {
@@ -476,26 +854,136 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     const row = await encontrarUsuarioPorIdentificador(emailOrHandle);
-    const senhaOk = row ? await bcrypt.compare(senha, row.senha_hash) : false;
-    if (!row || !senhaOk) {
+    if (!row) {
       return res.status(401).json({ message: "Email/@ ou senha incorretos." });
     }
 
-    res.json(await mapUsuario(row));
+    let senhaOk = false;
+    try {
+      senhaOk = row.senha_hash ? await bcrypt.compare(senha, row.senha_hash) : false;
+    } catch {
+      senhaOk = false;
+    }
+
+    if (!senhaOk) {
+      if (row.auth_provider === "google") {
+        return res.status(401).json({ message: "Esta conta entra com Google." });
+      }
+      return res.status(401).json({ message: "Email/@ ou senha incorretos." });
+    }
+
+    await sendAuth(res, row);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao autenticar o usuário." });
   }
 });
 
-// A verificacao de identidade ("codigo enviado") acontece so no frontend
-// (simulada, sem SMS/email de verdade) -- por isso essa rota nao pede a
-// senha atual, so o identificador (ja "confirmado" pela etapa anterior).
-app.post("/api/auth/reset-password", async (req, res) => {
+app.post("/api/auth/google", rateLimit({ max: 12 }), async (req, res) => {
   try {
-    const { emailOrHandle, novaSenha } = req.body;
-    if (!emailOrHandle || !novaSenha) {
-      return res.status(400).json({ message: "Identificador e nova senha são obrigatórios." });
+    const accessToken = req.body?.accessToken;
+    if (!accessToken) {
+      return res.status(400).json({ message: "Token do Google é obrigatório." });
+    }
+
+    const profile = await fetchGoogleProfile(accessToken);
+    const email = String(profile.email || "").trim().toLowerCase();
+    const googleId = String(profile.sub || profile.id || "").trim();
+    if (!email || !googleId) {
+      return res.status(400).json({ message: "A conta Google não retornou um email válido." });
+    }
+    if (profile.email_verified !== true && String(profile.email_verified) !== "true") {
+      return res.status(401).json({ message: "Confirme o e-mail da conta Google antes de entrar." });
+    }
+
+    let row = googleId
+      ? await queryOne("SELECT * FROM usuarios WHERE google_id = ? LIMIT 1", [googleId])
+      : null;
+    if (!row) {
+      row = await queryOne("SELECT * FROM usuarios WHERE LOWER(email) = LOWER(?) LIMIT 1", [email]);
+    }
+
+    if (row) {
+      await query(
+        "UPDATE usuarios SET google_id = COALESCE(google_id, ?), auth_provider = IF(auth_provider = 'local', 'google', auth_provider), avatar_url = COALESCE(NULLIF(avatar_url, ''), ?) WHERE id = ?",
+        [googleId, profile.picture || null, row.id],
+      );
+      const updated = await queryOne("SELECT * FROM usuarios WHERE id = ?", [row.id]);
+      return sendAuth(res, updated);
+    }
+
+    res.json({
+      needsProfile: true,
+      profile: {
+        email,
+        name: profile.name || "",
+        picture: profile.picture || "",
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({ message: "Não foi possível validar a conta Google." });
+  }
+});
+
+app.post("/api/auth/forgot", rateLimit({ max: 8 }), async (req, res) => {
+  try {
+    const emailOrHandle = String(req.body?.emailOrHandle || "").trim();
+    if (!emailOrHandle) {
+      return res.status(400).json({ message: "Informe seu e-mail, usuário ou @." });
+    }
+
+    const row = await encontrarUsuarioPorIdentificador(emailOrHandle);
+    if (!row) {
+      return res.json({ message: "Se a conta existir, um código foi gerado." });
+    }
+
+    const codigo = await storePasswordReset(row.id);
+    res.json({
+      message: "Use o código para continuar.",
+      codigo,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao iniciar a recuperação de senha." });
+  }
+});
+
+app.post("/api/auth/send-code", rateLimit({ max: 8 }), async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const telefone = onlyDigits(req.body?.telefone);
+    const destino = email || telefone;
+    if (!destino) {
+      return res.status(400).json({ message: "Informe um e-mail ou celular." });
+    }
+
+    const codigo = await storeVerificationCode(destino);
+    res.json({
+      message: "Use o código para continuar.",
+      codigo,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao gerar o código de verificação." });
+  }
+});
+
+app.post("/api/auth/logout", requireAuth, async (req, res) => {
+  try {
+    await destroySession(req.sessionToken);
+    res.json({ message: "Sessão encerrada." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao sair." });
+  }
+});
+
+app.post("/api/auth/reset-password", rateLimit({ max: 8 }), async (req, res) => {
+  try {
+    const { emailOrHandle, codigo, novaSenha } = req.body;
+    if (!emailOrHandle || !codigo || !novaSenha) {
+      return res.status(400).json({ message: "Identificador, código e nova senha são obrigatórios." });
     }
     if (novaSenha.length < 6) {
       return res.status(400).json({ message: "A nova senha precisa ter pelo menos 6 caracteres." });
@@ -506,8 +994,14 @@ app.post("/api/auth/reset-password", async (req, res) => {
       return res.status(404).json({ message: "Não encontramos uma conta com esses dados." });
     }
 
+    const codigoOk = await consumePasswordReset(row.id, codigo);
+    if (!codigoOk) {
+      return res.status(401).json({ message: "Código inválido ou expirado." });
+    }
+
     const hash = await bcrypt.hash(novaSenha, 10);
     await query("UPDATE usuarios SET senha_hash = ? WHERE id = ?", [hash, row.id]);
+    await query("DELETE FROM sessoes WHERE usuario_id = ?", [row.id]);
 
     res.json({ message: "Senha redefinida com sucesso." });
   } catch (error) {
@@ -516,34 +1010,99 @@ app.post("/api/auth/reset-password", async (req, res) => {
   }
 });
 
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", rateLimit({ max: 12 }), async (req, res) => {
   try {
-    const { username, handle, email, senha, telefone, bio, fotoPerfil, fotoCapa } = req.body;
-    if (!handle || !email || !senha) {
-      return res.status(400).json({ message: "handle, email e senha são obrigatórios." });
+    const {
+      username,
+      handle,
+      email,
+      senha,
+      telefone,
+      bio,
+      fotoPerfil,
+      fotoCapa,
+      disponivelContratacao,
+      authProvider,
+      codigo,
+      accessToken,
+    } = req.body;
+
+    const handleLimpo = normalizeHandle(handle);
+    const telefoneLimpo = onlyDigits(telefone);
+    let emailLimpo = normalizeRegisterEmail({ email, telefone: telefoneLimpo, authProvider });
+    let provider = authProvider === "google" ? "google" : telefoneLimpo && !String(email || "").includes("@") ? "sms" : "local";
+    let googleId = null;
+    const senhaEfetiva = senha || (provider === "google" ? crypto.randomBytes(24).toString("hex") : "");
+
+    if (!handleLimpo || !emailLimpo) {
+      return res.status(400).json({ message: "handle e email/telefone são obrigatórios." });
+    }
+    if (provider !== "google" && !senhaEfetiva) {
+      return res.status(400).json({ message: "handle, email/telefone e senha são obrigatórios." });
+    }
+    if (!/^[a-z0-9._]{3,30}$/.test(handleLimpo)) {
+      return res.status(400).json({ message: "O @ deve ter 3-30 caracteres (letras, números, . ou _)." });
+    }
+    if (provider !== "google" && String(senhaEfetiva).length < 6) {
+      return res.status(400).json({ message: "A senha precisa ter pelo menos 6 caracteres." });
+    }
+
+    if (provider === "google") {
+      if (!accessToken) {
+        return res.status(400).json({ message: "Token do Google é obrigatório." });
+      }
+      const profile = await fetchGoogleProfile(accessToken);
+      emailLimpo = String(profile.email || "").trim().toLowerCase();
+      googleId = String(profile.sub || profile.id || "").trim();
+      if (!emailLimpo || !googleId) {
+        return res.status(400).json({ message: "A conta Google não retornou um email válido." });
+      }
+    } else {
+      const destino = emailLimpo.includes("@phone.devspace.local") ? telefoneLimpo : emailLimpo;
+      const codigoOk = await consumeVerificationCode(destino, codigo);
+      if (!codigoOk) {
+        return res.status(401).json({ message: "Código de verificação inválido ou expirado." });
+      }
     }
 
     const existing = await queryOne(
-      "SELECT id FROM usuarios WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)",
-      [email, handle]
+      `SELECT id FROM usuarios
+       WHERE LOWER(email) = LOWER(?)
+          OR LOWER(username) = LOWER(?)
+          OR (? <> '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(telefone,''), '+', ''), ' ', ''), '-', ''), '(', ''), ')', '') = ?)
+       LIMIT 1`,
+      [emailLimpo, handleLimpo, telefoneLimpo, telefoneLimpo],
     );
     if (existing) {
-      return res.status(409).json({ message: "Email ou @ já cadastrado." });
+      return res.status(409).json({ message: "Email, telefone ou @ já cadastrado." });
     }
 
-    const senhaHash = await bcrypt.hash(senha, 10);
+    const senhaHash = await bcrypt.hash(senhaEfetiva, 10);
     const result = await query(
-      `INSERT INTO usuarios (username, email, senha_hash, telefone, nome_exibicao, bio, avatar_url, foto_capa_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [handle, email, senhaHash, telefone || null, username || handle, bio || null, fotoPerfil || null, fotoCapa || null]
+      `INSERT INTO usuarios
+        (username, email, senha_hash, telefone, nome_exibicao, bio, avatar_url, foto_capa_url, disponivel_contratacao, google_id, auth_provider)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        handleLimpo,
+        emailLimpo,
+        senhaHash,
+        telefoneLimpo || null,
+        String(username || handleLimpo).slice(0, 100),
+        bio || null,
+        fotoPerfil || null,
+        fotoCapa || null,
+        disponivelContratacao ? 1 : 0,
+        googleId,
+        provider,
+      ],
     );
 
     const user = await queryOne("SELECT * FROM usuarios WHERE id = ?", [result.insertId]);
-    res.status(201).json(await mapUsuario(user));
+    await sendAuth(res, user, 201);
   } catch (error) {
     console.error(error);
     if (error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ message: "Email ou @ já cadastrado." });
+      return res.status(409).json({ message: "Email, telefone ou @ já cadastrado." });
     }
     res.status(500).json({ message: "Erro ao registrar usuário." });
   }
@@ -551,7 +1110,7 @@ app.post("/api/auth/register", async (req, res) => {
 
 // ---------- Posts ----------
 
-async function getPostFull(postRow) {
+async function getPostFull(postRow, viewerUsername = null) {
   const [likesRows, sharesRows, bookmarksRows, imagemRow, anexoRow, commentsRows, pollRow] = await Promise.all([
     query(
       "SELECT u.username FROM post_interacoes pi JOIN usuarios u ON u.id = pi.usuario_id WHERE pi.post_id = ? AND pi.tipo = 'like'",
@@ -570,7 +1129,7 @@ async function getPostFull(postRow) {
       [postRow.id]
     ),
     queryOne(
-      "SELECT url, tamanho_bytes, nome_original, mime_original FROM midias WHERE post_id = ? AND nome_original IS NOT NULL ORDER BY id ASC LIMIT 1",
+      "SELECT url, tipo, tamanho_bytes, nome_original, mime_original FROM midias WHERE post_id = ? AND nome_original IS NOT NULL ORDER BY id ASC LIMIT 1",
       [postRow.id]
     ),
     query(
@@ -630,14 +1189,6 @@ async function getPostFull(postRow) {
     fotoPerfil: postRow.autor_avatar || "",
     texto: postRow.conteudo,
     imagem: imagemRow?.url || "",
-    anexo: anexoRow
-      ? {
-          nome: anexoRow.nome_original || "",
-          tipo: anexoRow.mime_original || "",
-          url: anexoRow.url,
-          tamanho: anexoRow.tamanho_bytes || 0,
-        }
-      : null,
     criadoEm: postRow.criado_em,
     tag: postRow.linguagem_tag || "",
     agendadoPara: postRow.publicar_em ? new Date(postRow.publicar_em).toISOString() : "",
@@ -646,10 +1197,12 @@ async function getPostFull(postRow) {
     likes: likesRows.length,
     bookmarks: bookmarksRows.length,
     likedBy: likesRows.map((r) => r.username),
-    savedBy: bookmarksRows.map((r) => r.username),
+    savedBy:
+      viewerUsername && bookmarksRows.some((r) => r.username === viewerUsername) ? [viewerUsername] : [],
     repostedBy: sharesRows.map((r) => r.username),
     commentsList,
     poll,
+    anexo: serializeAnexo(anexoRow),
     isSeedFake: false,
   };
 }
@@ -661,10 +1214,12 @@ const POST_SELECT = `
 
 app.get("/api/posts", async (req, res) => {
   try {
+    const session = await getSessionUser(req);
+    const viewerUsername = session?.usuario?.username || null;
     const rows = await query(
-      `${POST_SELECT} WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW() ORDER BY p.criado_em DESC`
+      `${POST_SELECT} WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW() ORDER BY p.criado_em DESC LIMIT 80`
     );
-    const posts = await Promise.all(rows.map(getPostFull));
+    const posts = await Promise.all(rows.map((row) => getPostFull(row, viewerUsername)));
     res.json(posts);
   } catch (error) {
     console.error(error);
@@ -672,25 +1227,50 @@ app.get("/api/posts", async (req, res) => {
   }
 });
 
+app.get("/api/me/collections/:tipo", requireAuth, async (req, res) => {
+  try {
+    const tipo = String(req.params.tipo || "").toLowerCase();
+    const usuarioId = req.usuario.id;
+    let sql;
+    if (tipo === "salvos") {
+      sql = `${POST_SELECT} INNER JOIN post_bookmarks b ON b.post_id = p.id AND b.usuario_id = ?
+             WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW()
+             ORDER BY b.criado_em DESC LIMIT 80`;
+    } else if (tipo === "curtidos") {
+      sql = `${POST_SELECT} INNER JOIN post_interacoes pi ON pi.post_id = p.id AND pi.usuario_id = ? AND pi.tipo = 'like'
+             WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW()
+             ORDER BY pi.criado_em DESC LIMIT 80`;
+    } else if (tipo === "republicados") {
+      sql = `${POST_SELECT} INNER JOIN post_shares s ON s.post_id = p.id AND s.usuario_id = ?
+             WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW()
+             ORDER BY s.criado_em DESC LIMIT 80`;
+    } else {
+      return res.status(400).json({ message: "Coleção inválida." });
+    }
+    const rows = await query(sql, [usuarioId]);
+    res.json(await Promise.all(rows.map((row) => getPostFull(row, req.usuario.username))));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar coleção." });
+  }
+});
+
 app.get("/api/posts/:id(\\d+)", async (req, res) => {
   try {
+    const session = await getSessionUser(req);
     const row = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [req.params.id]);
     if (!row) return res.status(404).json({ message: "Post não encontrado." });
-    res.json(await getPostFull(row));
+    res.json(await getPostFull(row, session?.usuario?.username || null));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao buscar publicação." });
   }
 });
 
-app.post("/api/posts", async (req, res) => {
+app.post("/api/posts", requireAuth, async (req, res) => {
   try {
-    const { email, handle, texto, imagem, anexo, poll, tag, agendadoPara } = req.body;
-
-    const usuarioId = await findUsuarioIdByEmailOrHandle(email, handle);
-    if (!usuarioId) {
-      return res.status(400).json({ message: "Usuário autor não encontrado." });
-    }
+    const { texto, imagem, anexo, poll, tag, agendadoPara } = req.body;
+    const usuarioId = req.usuario.id;
     if (!texto?.trim() && !imagem && !anexo && !(poll?.options?.length >= 2)) {
       return res.status(400).json({ message: "Post vazio." });
     }
@@ -712,10 +1292,22 @@ app.post("/api/posts", async (req, res) => {
     }
 
     if (anexo?.url) {
-      const tipo = MIDIA_TIPOS.includes(midiaTipoFromMime(anexo.tipo)) ? midiaTipoFromMime(anexo.tipo) : "arquivo";
+      const mime = anexo.tipo || mimeFromName(anexo.nome);
+      const tipo = midiaTipoFromMime(mime) === "video" ? "video" : "arquivo";
+      if (!MIDIA_TIPOS.includes(tipo)) {
+        return res.status(400).json({ message: "Tipo de anexo inválido." });
+      }
       await query(
         "INSERT INTO midias (usuario_id, post_id, url, tipo, tamanho_bytes, nome_original, mime_original) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [usuarioId, postId, anexo.url, tipo, anexo.tamanho ?? null, anexo.nome || null, anexo.tipo || null]
+        [
+          usuarioId,
+          postId,
+          anexo.url,
+          tipo,
+          anexo.tamanho ?? null,
+          anexo.nome || inferNameFromUrl(anexo.url),
+          anexo.tipo || mimeFromName(anexo.nome) || null,
+        ]
       );
     }
 
@@ -734,17 +1326,20 @@ app.post("/api/posts", async (req, res) => {
     await notificarMencoes(texto, postId, usuarioId);
 
     const createdRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [postId]);
-    res.status(201).json(await getPostFull(createdRow));
+    res.status(201).json(await getPostFull(createdRow, req.usuario.username));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao criar publicação." });
   }
 });
 
-app.put("/api/posts/:id(\\d+)", async (req, res) => {
+app.put("/api/posts/:id(\\d+)", requireAuth, async (req, res) => {
   try {
     const post = await queryOne("SELECT * FROM posts WHERE id = ?", [req.params.id]);
     if (!post) return res.status(404).json({ message: "Post não encontrado." });
+    if (post.usuario_id !== req.usuario.id) {
+      return res.status(403).json({ message: "Você só pode editar os próprios posts." });
+    }
 
     const { texto, tag } = req.body || {};
     const fields = [];
@@ -766,15 +1361,20 @@ app.put("/api/posts/:id(\\d+)", async (req, res) => {
     values.push(req.params.id);
     await query(`UPDATE posts SET ${fields.join(", ")} WHERE id = ?`, values);
     const updatedRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [req.params.id]);
-    res.json(await getPostFull(updatedRow));
+    res.json(await getPostFull(updatedRow, req.usuario.username));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao atualizar publicação." });
   }
 });
 
-app.delete("/api/posts/:id(\\d+)", async (req, res) => {
+app.delete("/api/posts/:id(\\d+)", requireAuth, async (req, res) => {
   try {
+    const post = await queryOne("SELECT usuario_id FROM posts WHERE id = ?", [req.params.id]);
+    if (!post) return res.status(404).json({ message: "Post não encontrado." });
+    if (post.usuario_id !== req.usuario.id) {
+      return res.status(403).json({ message: "Você só pode excluir os próprios posts." });
+    }
     const result = await query("DELETE FROM posts WHERE id = ?", [req.params.id]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Post não encontrado." });
@@ -791,10 +1391,14 @@ app.delete("/api/posts/:id(\\d+)", async (req, res) => {
 
 async function criarNotificacao(destinatarioId, atorId, tipo, extras = {}) {
   if (!destinatarioId || !atorId || destinatarioId === atorId) return;
-  await query(
-    "INSERT INTO notificacoes (destinatario_id, ator_id, tipo, post_id, comentario_id) VALUES (?, ?, ?, ?, ?)",
-    [destinatarioId, atorId, tipo, extras.postId || null, extras.comentarioId || null]
-  );
+  try {
+    await query(
+      "INSERT INTO notificacoes (destinatario_id, ator_id, tipo, post_id, comentario_id) VALUES (?, ?, ?, ?, ?)",
+      [destinatarioId, atorId, tipo, extras.postId || null, extras.comentarioId || null]
+    );
+  } catch (error) {
+    console.warn("Notificação não criada:", error.message);
+  }
 }
 
 // Detecta @handles no texto do post e notifica cada usuario real e existente
@@ -827,11 +1431,10 @@ async function toggleSimpleRelation(table, postId, usuarioId) {
   return true;
 }
 
-app.post("/api/posts/:id(\\d+)/like", async (req, res) => {
+app.post("/api/posts/:id(\\d+)/like", requireAuth, async (req, res) => {
   try {
     const postId = Number(req.params.id);
-    const usuarioId = Number(req.body?.usuarioId);
-    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+    const usuarioId = req.usuario.id;
 
     const existente = await queryOne(
       "SELECT id FROM post_interacoes WHERE post_id = ? AND usuario_id = ? AND tipo = 'like'",
@@ -864,11 +1467,10 @@ app.post("/api/posts/:id(\\d+)/like", async (req, res) => {
   }
 });
 
-app.post("/api/posts/:id(\\d+)/share", async (req, res) => {
+app.post("/api/posts/:id(\\d+)/share", requireAuth, async (req, res) => {
   try {
     const postId = Number(req.params.id);
-    const usuarioId = Number(req.body?.usuarioId);
-    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+    const usuarioId = req.usuario.id;
 
     const shared = await toggleSimpleRelation("post_shares", postId, usuarioId);
     const [{ c: shares }] = await query("SELECT COUNT(*) AS c FROM post_shares WHERE post_id = ?", [postId]);
@@ -879,11 +1481,10 @@ app.post("/api/posts/:id(\\d+)/share", async (req, res) => {
   }
 });
 
-app.post("/api/posts/:id(\\d+)/bookmark", async (req, res) => {
+app.post("/api/posts/:id(\\d+)/bookmark", requireAuth, async (req, res) => {
   try {
     const postId = Number(req.params.id);
-    const usuarioId = Number(req.body?.usuarioId);
-    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+    const usuarioId = req.usuario.id;
 
     const bookmarked = await toggleSimpleRelation("post_bookmarks", postId, usuarioId);
     const [{ c: bookmarks }] = await query("SELECT COUNT(*) AS c FROM post_bookmarks WHERE post_id = ?", [postId]);
@@ -896,13 +1497,13 @@ app.post("/api/posts/:id(\\d+)/bookmark", async (req, res) => {
 
 // ---------- Enquetes ----------
 
-app.post("/api/posts/:id(\\d+)/poll/vote", async (req, res) => {
+app.post("/api/posts/:id(\\d+)/poll/vote", requireAuth, async (req, res) => {
   try {
     const postId = Number(req.params.id);
-    const usuarioId = Number(req.body?.usuarioId);
+    const usuarioId = req.usuario.id;
     const optionIndex = Number(req.body?.optionIndex);
-    if (!usuarioId || Number.isNaN(optionIndex)) {
-      return res.status(400).json({ message: "usuarioId e optionIndex são obrigatórios." });
+    if (Number.isNaN(optionIndex)) {
+      return res.status(400).json({ message: "optionIndex é obrigatório." });
     }
 
     const poll = await queryOne("SELECT id FROM post_polls WHERE post_id = ?", [postId]);
@@ -932,7 +1533,7 @@ app.post("/api/posts/:id(\\d+)/poll/vote", async (req, res) => {
     }
 
     const postRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [postId]);
-    res.json(await getPostFull(postRow));
+    res.json(await getPostFull(postRow, req.usuario.username));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao votar na enquete." });
@@ -941,12 +1542,13 @@ app.post("/api/posts/:id(\\d+)/poll/vote", async (req, res) => {
 
 // ---------- Comentários ----------
 
-app.post("/api/posts/:id(\\d+)/comments", async (req, res) => {
+app.post("/api/posts/:id(\\d+)/comments", requireAuth, async (req, res) => {
   try {
     const postId = Number(req.params.id);
-    const { usuarioId, texto, parentId, imagem } = req.body || {};
-    if (!usuarioId || (!texto?.trim() && !imagem)) {
-      return res.status(400).json({ message: "usuarioId e texto ou imagem são obrigatórios." });
+    const usuarioId = req.usuario.id;
+    const { texto, parentId, imagem } = req.body || {};
+    if (!texto?.trim() && !imagem) {
+      return res.status(400).json({ message: "Texto ou imagem são obrigatórios." });
     }
 
     const result = await query(
@@ -970,33 +1572,36 @@ app.post("/api/posts/:id(\\d+)/comments", async (req, res) => {
       comentarioId: result.insertId,
     });
 
-    res.status(201).json(await getPostFull(postRow));
+    res.status(201).json(await getPostFull(postRow, req.usuario.username));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao comentar." });
   }
 });
 
-app.delete("/api/comments/:id(\\d+)", async (req, res) => {
+app.delete("/api/comments/:id(\\d+)", requireAuth, async (req, res) => {
   try {
-    const comentario = await queryOne("SELECT post_id FROM comentarios WHERE id = ?", [req.params.id]);
+    const comentario = await queryOne("SELECT post_id, usuario_id FROM comentarios WHERE id = ?", [req.params.id]);
     if (!comentario) return res.status(404).json({ message: "Comentário não encontrado." });
+    const postDono = await queryOne("SELECT usuario_id FROM posts WHERE id = ?", [comentario.post_id]);
+    if (comentario.usuario_id !== req.usuario.id && postDono?.usuario_id !== req.usuario.id) {
+      return res.status(403).json({ message: "Você não pode excluir este comentário." });
+    }
 
     await query("DELETE FROM comentarios WHERE id = ?", [req.params.id]);
 
     const postRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [comentario.post_id]);
-    res.json(await getPostFull(postRow));
+    res.json(await getPostFull(postRow, req.usuario.username));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao excluir comentário." });
   }
 });
 
-app.post("/api/comments/:id(\\d+)/like", async (req, res) => {
+app.post("/api/comments/:id(\\d+)/like", requireAuth, async (req, res) => {
   try {
     const comentarioId = Number(req.params.id);
-    const usuarioId = Number(req.body?.usuarioId);
-    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+    const usuarioId = req.usuario.id;
 
     const comentario = await queryOne("SELECT post_id, usuario_id FROM comentarios WHERE id = ?", [comentarioId]);
     if (!comentario) return res.status(404).json({ message: "Comentário não encontrado." });
@@ -1019,7 +1624,7 @@ app.post("/api/comments/:id(\\d+)/like", async (req, res) => {
     }
 
     const postRow = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [comentario.post_id]);
-    res.json(await getPostFull(postRow));
+    res.json(await getPostFull(postRow, req.usuario.username));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao curtir comentário." });
@@ -1158,10 +1763,9 @@ async function mapConversa(conversaId) {
   };
 }
 
-app.get("/api/conversas", async (req, res) => {
+app.get("/api/conversas", requireAuth, async (req, res) => {
   try {
-    const usuarioId = Number(req.query.usuarioId);
-    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+    const usuarioId = req.usuario.id;
 
     const conversaIds = await query(
       `SELECT c.id FROM conversas c
@@ -1205,12 +1809,12 @@ async function criarOuBuscarConversa(usuarioAId, usuarioBId) {
   return conversaId;
 }
 
-app.post("/api/conversas", async (req, res) => {
+app.post("/api/conversas", requireAuth, async (req, res) => {
   try {
-    const usuarioId = Number(req.body?.usuarioId);
+    const usuarioId = req.usuario.id;
     const outroUsuarioId = Number(req.body?.outroUsuarioId);
-    if (!usuarioId || !outroUsuarioId || usuarioId === outroUsuarioId) {
-      return res.status(400).json({ message: "usuarioId e outroUsuarioId (diferentes) são obrigatórios." });
+    if (!outroUsuarioId || usuarioId === outroUsuarioId) {
+      return res.status(400).json({ message: "outroUsuarioId (diferente) é obrigatório." });
     }
 
     if (await isBlocked(usuarioId, outroUsuarioId)) {
@@ -1225,12 +1829,13 @@ app.post("/api/conversas", async (req, res) => {
   }
 });
 
-app.post("/api/conversas/:id(\\d+)/mensagens", async (req, res) => {
+app.post("/api/conversas/:id(\\d+)/mensagens", requireAuth, async (req, res) => {
   try {
     const conversaId = Number(req.params.id);
-    const { usuarioId, texto, imagem } = req.body || {};
-    if (!usuarioId || (!texto?.trim() && !imagem)) {
-      return res.status(400).json({ message: "usuarioId e texto ou imagem são obrigatórios." });
+    const usuarioId = req.usuario.id;
+    const { texto, imagem } = req.body || {};
+    if (!texto?.trim() && !imagem) {
+      return res.status(400).json({ message: "Texto ou imagem são obrigatórios." });
     }
 
     const participante = await queryOne(
@@ -1261,6 +1866,9 @@ app.post("/api/conversas/:id(\\d+)/mensagens", async (req, res) => {
     }
 
     await query("UPDATE conversas SET atualizado_em = CURRENT_TIMESTAMP WHERE id = ?", [conversaId]);
+    if (outroParticipante) {
+      await criarNotificacao(outroParticipante.usuario_id, usuarioId, "mensagem");
+    }
 
     res.status(201).json(await mapConversa(conversaId));
   } catch (error) {
@@ -1269,10 +1877,9 @@ app.post("/api/conversas/:id(\\d+)/mensagens", async (req, res) => {
   }
 });
 
-app.get("/api/conversas/unread", async (req, res) => {
+app.get("/api/conversas/unread", requireAuth, async (req, res) => {
   try {
-    const usuarioId = Number(req.query.usuarioId);
-    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+    const usuarioId = req.usuario.id;
 
     const rows = await query(
       `SELECT c.id AS conversa_id, c.atualizado_em,
@@ -1306,11 +1913,15 @@ app.get("/api/conversas/unread", async (req, res) => {
   }
 });
 
-app.post("/api/conversas/:id(\\d+)/marcar-lida", async (req, res) => {
+app.post("/api/conversas/:id(\\d+)/marcar-lida", requireAuth, async (req, res) => {
   try {
     const conversaId = Number(req.params.id);
-    const usuarioId = Number(req.body?.usuarioId);
-    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
+    const usuarioId = req.usuario.id;
+    const participante = await queryOne(
+      "SELECT id FROM conversa_participantes WHERE conversa_id = ? AND usuario_id = ?",
+      [conversaId, usuarioId]
+    );
+    if (!participante) return res.status(403).json({ message: "Você não participa dessa conversa." });
 
     await query("UPDATE mensagens SET lida = 1 WHERE conversa_id = ? AND remetente_id != ?", [
       conversaId,
@@ -1341,9 +1952,12 @@ function mapNotificacao(row) {
   };
 }
 
-app.get("/api/users/:id(\\d+)/notifications", async (req, res) => {
+app.get("/api/users/:id(\\d+)/notifications", requireAuth, async (req, res) => {
   try {
-    const destinatarioId = Number(req.params.id);
+    if (Number(req.params.id) !== req.usuario.id) {
+      return res.status(403).json({ message: "Você só pode ver as próprias notificações." });
+    }
+    const destinatarioId = req.usuario.id;
     const rows = await query(
       `SELECT n.*, u.username AS ator_username, u.nome_exibicao AS ator_nome, u.avatar_url AS ator_avatar,
         COALESCE(c.conteudo, p.conteudo) AS trecho
@@ -1363,9 +1977,12 @@ app.get("/api/users/:id(\\d+)/notifications", async (req, res) => {
   }
 });
 
-app.post("/api/notifications/:id(\\d+)/read", async (req, res) => {
+app.post("/api/notifications/:id(\\d+)/read", requireAuth, async (req, res) => {
   try {
-    await query("UPDATE notificacoes SET lida = 1 WHERE id = ?", [req.params.id]);
+    await query("UPDATE notificacoes SET lida = 1 WHERE id = ? AND destinatario_id = ?", [
+      req.params.id,
+      req.usuario.id,
+    ]);
     res.json({ message: "Notificação marcada como lida." });
   } catch (error) {
     console.error(error);
@@ -1373,11 +1990,9 @@ app.post("/api/notifications/:id(\\d+)/read", async (req, res) => {
   }
 });
 
-app.post("/api/notifications/read-all", async (req, res) => {
+app.post("/api/notifications/read-all", requireAuth, async (req, res) => {
   try {
-    const usuarioId = Number(req.body?.usuarioId);
-    if (!usuarioId) return res.status(400).json({ message: "usuarioId é obrigatório." });
-    await query("UPDATE notificacoes SET lida = 1 WHERE destinatario_id = ?", [usuarioId]);
+    await query("UPDATE notificacoes SET lida = 1 WHERE destinatario_id = ?", [req.usuario.id]);
     res.json({ message: "Notificações marcadas como lidas." });
   } catch (error) {
     console.error(error);
@@ -1385,10 +2000,47 @@ app.post("/api/notifications/read-all", async (req, res) => {
   }
 });
 
+app.post("/api/uploads", requireAuth, (req, res) => {
+  upload.single("file")(req, res, (err) => {
+    if (err) {
+      const message =
+        err.code === "LIMIT_FILE_SIZE"
+          ? "O arquivo pode ter no máximo 12 MB."
+          : err.message || "Falha no upload.";
+      return res.status(400).json({ message });
+    }
+    if (!req.file) return res.status(400).json({ message: "Arquivo obrigatório." });
+    res.status(201).json({
+      url: `/api/uploads/${req.file.filename}`,
+      nome: req.file.originalname,
+      tipo: req.file.mimetype || mimeFromName(req.file.originalname),
+      tamanho: req.file.size,
+    });
+  });
+});
+
+app.get("/api/uploads/:filename", (req, res) => {
+  const filename = path.basename(req.params.filename);
+  if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
+    return res.status(400).json({ message: "Arquivo inválido." });
+  }
+  const filePath = path.join(UPLOAD_DIR, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ message: "Arquivo não encontrado." });
+  const original = req.query.nome ? safeDownloadName(req.query.nome) : filename;
+  res.setHeader("Content-Disposition", `inline; filename="${original}"`);
+  res.sendFile(filePath);
+});
+
 app.use((req, res) => {
   res.status(404).json({ message: "Rota não encontrada." });
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend DevSpace (MySQL) rodando em http://localhost:${PORT}/api`);
-});
+Promise.all([ensureAuthTables(), ensureMidiaAnexoColumns()])
+  .catch((error) => {
+    console.error("Não foi possível preparar tabelas de sessão:", error.message);
+  })
+  .finally(() => {
+    app.listen(PORT, () => {
+      console.log(`Backend DevSpace (MySQL) rodando em http://localhost:${PORT}/api`);
+    });
+  });

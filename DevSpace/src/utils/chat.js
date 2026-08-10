@@ -59,7 +59,7 @@ export function saveConversas(conversas) {
 function toParticipante(user) {
   return {
     handle: normalizeHandle(user.handle || user.username),
-    username: user.username || user.handle || "Usuario",
+    username: user.username || user.handle || "Usuário",
     fotoPerfil: user.fotoPerfil || "",
   };
 }

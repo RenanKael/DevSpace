@@ -1,16 +1,69 @@
-# React + Vite
+# DevSpace
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Rede social para quem cria, testa e compartilha projetos. Frontend em React + Vite, backend em Express + MySQL.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20+
+- MySQL 8+
 
-## React Compiler
+## Instalação
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+cd DevSpace
+npm install
+npm install --prefix backend
+```
 
-## Expanding the ESLint configuration
+Copie o exemplo de ambiente (um único `.env` na raiz, frontend + banco):
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+cp .env.example .env
+```
+
+Preencha o `.env` com host, banco, usuário e senha do MySQL.  
+`VITE_GOOGLE_CLIENT_ID` é opcional (login Google).
+
+## Banco
+
+```bash
+npm run check-db
+npm run setup-db --prefix backend
+```
+
+## Desenvolvimento
+
+Sobe frontend (`127.0.0.1:5173`) e backend (`4000`) juntos:
+
+```bash
+npm run dev
+```
+
+Só o frontend: `npm run dev:front`  
+Só o backend: `npm run dev:back`
+
+## Build
+
+```bash
+npm run build
+npm run preview
+```
+
+## Scripts úteis
+
+| Comando | Função |
+|---|---|
+| `npm run lint` | ESLint no frontend |
+| `npm run check-db` | Testa a conexão MySQL |
+| `npm run setup-db --prefix backend` | Cria/atualiza o schema |
+
+## Estrutura
+
+```
+DevSpace/
+  src/                 # React (páginas, componentes, estilos)
+  backend/             # Express + MySQL
+  public/              # favicon, robots.txt
+```
+
+Rotas principais: `/`, `/explorar`, `/perfil`, `/perfil/:handle`, `/chat`, `/notificacoes`, `/configuracoes`, `/perfil/colecao/:tipo`.

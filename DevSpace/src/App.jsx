@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
-import Login from "./paginas/Login";
+import { useOverlayClose } from "./hooks/useOverlayClose";
+import Login from "./paginas/login";
 import Home from "./paginas/Home";
 import { persistSidebarOpen } from "./hooks/useSidebarOpen";
-import Perfil from "./paginas/Perfil";
+import Perfil from "./paginas/perfil";
 import PerfilColecao from "./paginas/PerfilColecao";
 import Explorar from "./paginas/explorar";
 import Chat from "./paginas/Chat";
 import Notificacoes from "./paginas/Notificacoes";
 import Configuracoes from "./paginas/Configuracoes";
+import NaoEncontrada from "./paginas/NaoEncontrada";
 import PostModal from "./components/PostModal";
+import { readSessionUser } from "./utils/storage";
+import { clearAuthToken } from "./api";
 import {
   isSameUser,
   recordUserPostProgress,
@@ -26,6 +30,7 @@ import {
   blockUser,
   unblockUser,
   fetchBlockedUsers,
+  updateNotifPrefs,
 } from "./api";
 
 function fakeAvatar(handle) {
@@ -91,15 +96,25 @@ function mergeUserRecord(baseUser, nextUser) {
   };
 }
 
-function StarAchievement({ open, stars }) {
+function StarAchievement({ open, stars, onClose }) {
+  useOverlayClose(open, onClose);
   if (!open) return null;
   const count = Math.max(1, Math.min(5, Number(stars || 1)));
 
   return (
-    <div className="achievement-overlay" aria-live="polite">
-      <div className="achievement-card">
+    <div
+      className="achievement-overlay"
+      aria-live="polite"
+      role="dialog"
+      aria-label="Conquista desbloqueada"
+      onClick={onClose}
+    >
+      <div className="achievement-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="achievement-close" onClick={onClose} aria-label="Fechar">
+          ×
+        </button>
         <div className="achievement-label">Conquista desbloqueada</div>
-        <h2>{count === 1 ? "Primeiro post publicado" : `Nivel ${count} alcancado`}</h2>
+        <h2>{count === 1 ? "Primeiro post publicado" : `Nível ${count} alcançado`}</h2>
         <p>Seu perfil ganhou {count === 1 ? "a primeira estrela" : `${count} estrelas`}.</p>
         <div className="achievement-stars" aria-label={`${count} de 5 estrelas`}>
           {Array.from({ length: 5 }, (_, index) => (
@@ -108,23 +123,31 @@ function StarAchievement({ open, stars }) {
             </span>
           ))}
         </div>
+        <button type="button" className="achievement-dismiss" onClick={onClose}>
+          Continuar
+        </button>
       </div>
     </div>
   );
 }
 
 function AuthGate({ mensagem, onEntrar, onFechar }) {
+  useOverlayClose(true, onFechar);
   return (
-    <div className="overlay" onClick={onFechar}>
-      <div className="popup" onClick={(e) => e.stopPropagation()}>
-        <button className="close-btn" onClick={onFechar} type="button" title="Fechar">
-          x
+    <div className="auth-gate-overlay" onClick={onFechar} role="dialog" aria-modal="true" aria-labelledby="auth-gate-title">
+      <div className="auth-gate-card" onClick={(e) => e.stopPropagation()}>
+        <button className="auth-gate-close" onClick={onFechar} type="button" title="Fechar" aria-label="Fechar">
+          ×
         </button>
-        <h2>Entre no DevSpace</h2>
+        <h2 id="auth-gate-title">Entre no DevSpace</h2>
         <p>{mensagem}</p>
-        <div className="popup-btns">
-          <button onClick={onEntrar}>Entrar ou criar conta</button>
-          <button onClick={onFechar}>Agora não</button>
+        <div className="auth-gate-actions">
+          <button type="button" className="auth-gate-primary" onClick={onEntrar}>
+            Entrar ou criar conta
+          </button>
+          <button type="button" className="auth-gate-ghost" onClick={onFechar}>
+            Agora não
+          </button>
         </div>
       </div>
     </div>
@@ -132,9 +155,9 @@ function AuthGate({ mensagem, onEntrar, onFechar }) {
 }
 
 const LEGACY_COMMUNITY_USERS = [
-  { username: "Lia Gomes", handle: "liagomes", email: "lia.gomes@dev.com", bio: "Compartilhando ideias, rotina e pequenos avancos no DevSpace." },
-  { username: "Felipe Rocha", handle: "feliperocha", email: "felipe.rocha@dev.com", bio: "Desenvolvedor em modo prototipo, teste e cafe." },
-  { username: "Nina Correa", handle: "ninacorrea", email: "nina.correa@dev.com", bio: "Aprendendo front-end, animacoes e interfaces mais fluidas." },
+  { username: "Lia Gomes", handle: "liagomes", email: "lia.gomes@dev.com", bio: "Compartilhando ideias, rotina e pequenos avanços no DevSpace." },
+  { username: "Felipe Rocha", handle: "feliperocha", email: "felipe.rocha@dev.com", bio: "Desenvolvedor em modo protótipo, teste e café." },
+  { username: "Nina Correa", handle: "ninacorrea", email: "nina.correa@dev.com", bio: "Aprendendo front-end, animações e interfaces mais fluidas." },
   { username: "Arthur Silva", handle: "arthursilva", email: "arthur.silva@dev.com", bio: "Design, produto e detalhes que deixam apps melhores." },
   { username: "Xande", handle: "xande", email: "xande@dev.com", bio: "Conta antiga da comunidade DevSpace." },
   { username: "Xande7", handle: "xande7", email: "xande7@devspace.fake", bio: "Perfil da comunidade DevSpace." },
@@ -152,6 +175,14 @@ const COLLECTION_TYPES = new Set(["curtidos", "salvos", "republicados"]);
 
 function getRouteFromLocation() {
   const parts = window.location.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+
+  if (!parts.length) {
+    return { pagina: "home", perfilAlvo: null, perfilCollection: "curtidos" };
+  }
+
+  if (["login", "entrar", "register", "cadastro", "signup"].includes(parts[0])) {
+    return { pagina: "login", perfilAlvo: null, perfilCollection: "curtidos" };
+  }
 
   if (parts[0] === "explorar") {
     return { pagina: "explorar", perfilAlvo: null, perfilCollection: "curtidos" };
@@ -182,10 +213,12 @@ function getRouteFromLocation() {
     };
   }
 
-  return { pagina: "home", perfilAlvo: null, perfilCollection: "curtidos" };
+  return { pagina: "naoEncontrada", perfilAlvo: null, perfilCollection: "curtidos" };
 }
 
 function buildRouteUrl(pagina, perfilAlvo, perfilCollection) {
+  if (pagina === "naoEncontrada") return window.location.pathname || "/";
+  if (pagina === "login") return "/login";
   if (pagina === "explorar") return "/explorar";
   if (pagina === "chat") return "/chat";
   if (pagina === "notificacoes") return "/notificacoes";
@@ -214,7 +247,7 @@ function createInitialRouteState() {
 function createCommunityUser(user) {
   const handle = (user.handle || user.username || "usuario").replace(/\s+/g, "").toLowerCase();
   return {
-    username: user.username || "Usuario",
+    username: user.username || "Usuário",
     handle,
     email: user.email || `${handle}@devspace.fake`,
     senha: "123456",
@@ -238,11 +271,7 @@ function createCommunityUser(user) {
 }
 
 function getStoredUsuario() {
-  try {
-    return JSON.parse(localStorage.getItem("usuarioLogado")) || JSON.parse(sessionStorage.getItem("usuarioLogado"));
-  } catch {
-    return null;
-  }
+  return readSessionUser();
 }
 
 function normalizeStoredPost(post) {
@@ -256,12 +285,13 @@ function normalizeStoredPost(post) {
   return {
     ...post,
     id: Number(post.id) || Date.now(),
-    username: post.username || "Usuario",
+    username: post.username || "Usuário",
     handle,
     email: post.email || "",
     fotoPerfil: post.fotoPerfil || "",
     texto: post.texto || "",
     imagem: post.imagem || "",
+    anexo: post.anexo && post.anexo.url ? post.anexo : null,
     criadoEm: post.criadoEm || new Date().toISOString(),
     comments,
     commentsList,
@@ -295,6 +325,15 @@ function stripPostForStorage(post) {
     ...post,
     fotoPerfil: "",
     imagem: isSeedFake ? "" : post?.imagem || "",
+    anexo:
+      post?.anexo?.url && !String(post.anexo.url).startsWith("data:")
+        ? {
+            url: post.anexo.url,
+            tipo: post.anexo.tipo || "",
+            nome: post.anexo.nome || "arquivo",
+            tamanho: post.anexo.tamanho || null,
+          }
+        : null,
     commentsList,
   };
 }
@@ -304,11 +343,11 @@ function savePostsToStorage(posts) {
   const serializedPosts = JSON.stringify(storagePosts);
   try {
     localStorage.setItem("posts", serializedPosts);
-  } catch (error) {
+  } catch (_error) {
     localStorage.removeItem("posts");
     try {
       localStorage.setItem("posts", serializedPosts);
-    } catch (retryError) {
+    } catch (_retryError) {
       const emergencyPosts = storagePosts.map((post) => ({ ...post, imagem: "" }));
       localStorage.removeItem("profileImageBackups");
       localStorage.setItem("posts", JSON.stringify(emergencyPosts));
@@ -322,7 +361,7 @@ function App() {
   const [route, setRoute] = useState(createInitialRouteState);
   const [logado, setLogado] = useState(() => {
     const jaLogado = !!getStoredUsuario();
-    if (jaLogado) persistSidebarOpen(true);
+    if (jaLogado && !window.matchMedia("(max-width: 760px)").matches) persistSidebarOpen(true);
     return jaLogado;
   });
   const [usuario, setUsuario] = useState(() => getStoredUsuario());
@@ -372,6 +411,7 @@ function App() {
       } catch {
         // ignora; a preferencia so nao persiste entre sessoes
       }
+      if (usuario?.id) updateNotifPrefs(next).catch(() => {});
       return next;
     });
   }
@@ -484,12 +524,20 @@ function App() {
       return;
     }
     try {
-      const salvo = JSON.parse(localStorage.getItem(notifPrefsStorageKey()));
-      setNotifPrefs({
-        contatos: salvo?.contatos !== false,
-        mensagens: salvo?.mensagens !== false,
-        atividade: salvo?.atividade !== false,
-      });
+      if (usuario?.notifPrefs) {
+        setNotifPrefs({
+          contatos: usuario.notifPrefs.contatos !== false,
+          mensagens: usuario.notifPrefs.mensagens !== false,
+          atividade: usuario.notifPrefs.atividade !== false,
+        });
+      } else {
+        const salvo = JSON.parse(localStorage.getItem(notifPrefsStorageKey()));
+        setNotifPrefs({
+          contatos: salvo?.contatos !== false,
+          mensagens: salvo?.mensagens !== false,
+          atividade: salvo?.atividade !== false,
+        });
+      }
     } catch {
       setNotifPrefs({ contatos: true, mensagens: true, atividade: true });
     }
@@ -514,19 +562,12 @@ function App() {
   }, [contactFeedback]);
 
   useEffect(() => {
-    const savedLocal = JSON.parse(localStorage.getItem("usuarioLogado"));
-    const savedSession = JSON.parse(sessionStorage.getItem("usuarioLogado"));
-
-    if (savedLocal || savedSession) {
-      setLogado(true);
-    }
-
     // Limpa e migra posts antigos
     try {
       const posts = JSON.parse(localStorage.getItem("posts")) || [];
       const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-      const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
-      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
+      const localUser = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
+      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
       const postsValidos = posts.filter((post) => {
         return post && (post.email || post.username || post.handle);
       });
@@ -594,7 +635,7 @@ function App() {
         if (!byEmail.has(email)) {
           byEmail.add(email);
           novosUsuarios.push({
-            username: post.username || "Usuario",
+            username: post.username || "Usuário",
             handle,
             email,
             senha: "123456",
@@ -623,7 +664,7 @@ function App() {
           if (!byEmail.has(cEmail)) {
             byEmail.add(cEmail);
             novosUsuarios.push({
-              username: comment.username || "Usuario",
+              username: comment.username || "Usuário",
               handle: cHandle,
               email: cEmail,
               senha: "123456",
@@ -765,13 +806,25 @@ function App() {
 
   useEffect(() => {
     if (logado) {
-      const localUser = JSON.parse(localStorage.getItem("usuarioLogado"));
-      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado"));
-      setUsuario(localUser || sessionUser);
+      setUsuario(readSessionUser());
     } else {
       setUsuario(null);
     }
   }, [logado]);
+
+  useEffect(() => {
+    function onUnauthorized() {
+      clearAuthToken();
+      localStorage.removeItem("usuarioLogado");
+      sessionStorage.removeItem("usuarioLogado");
+      localStorage.removeItem("lembrarMe");
+      setLogado(false);
+      setUsuario(null);
+      setMostrarLogin(true);
+    }
+    window.addEventListener("devspace:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("devspace:unauthorized", onUnauthorized);
+  }, []);
 
   function handleOpenPost() {
     setUsuario(getStoredUsuario());
@@ -802,6 +855,10 @@ function App() {
       "",
       nextUrl
     );
+  }
+
+  function irParaConfiguracoes() {
+    navigate({ pagina: "configuracoes", perfilAlvo: null });
   }
 
   function abrirPerfilAlvo(userRef) {
@@ -998,11 +1055,29 @@ function App() {
     pagina === "configuracoes" ||
     (pagina === "perfil" && !perfilAlvo);
 
-  if (mostrarLogin || (!logado && paginaExigeLogin)) {
+  useEffect(() => {
+    if (!logado && (mostrarLogin || pagina === "login" || paginaExigeLogin)) {
+      document.title = "Entrar · DevSpace";
+      return;
+    }
+    if (pagina === "explorar") document.title = "Explorar · DevSpace";
+    else if (pagina === "chat") document.title = "Mensagens · DevSpace";
+    else if (pagina === "notificacoes") document.title = "Notificações · DevSpace";
+    else if (pagina === "configuracoes") document.title = "Configurações · DevSpace";
+    else if (pagina === "perfilColecao") document.title = "Coleção · DevSpace";
+    else if (pagina === "perfil") {
+      const handle = String(perfilAlvo?.handle || "").replace(/^@+/, "");
+      document.title = handle ? `@${handle} · DevSpace` : "Perfil · DevSpace";
+    } else if (pagina === "naoEncontrada") document.title = "Não encontrada · DevSpace";
+    else document.title = "Início · DevSpace";
+  }, [pagina, perfilAlvo, mostrarLogin, logado, paginaExigeLogin]);
+
+  if (!logado && (mostrarLogin || pagina === "login" || paginaExigeLogin)) {
     return (
       <Login
         onLogin={() => {
-          persistSidebarOpen(true);
+          persistSidebarOpen(!window.matchMedia("(max-width: 760px)").matches);
+          setUsuario(readSessionUser());
           setLogado(true);
           setMostrarLogin(false);
           setPostRefresh((value) => value + 1);
@@ -1037,7 +1112,7 @@ function App() {
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
-          irConfiguracoes={() => navigate({ pagina: "configuracoes", perfilAlvo: null })}
+          irConfiguracoes={irParaConfiguracoes}
           blockedUsers={blockedUsers}
           onBlockUser={bloquearUsuario}
           onUnblockUser={desbloquearUsuario}
@@ -1049,11 +1124,11 @@ function App() {
           usuario={usuario}
           onPostSaved={handlePostCreated}
         />
-        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} onClose={() => setAchievementStars(0)} />
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
-        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
+        {contactFeedback && <div className="contact-toast" role="status" aria-live="polite">{contactFeedback}</div>}
       </>
     );
   }
@@ -1080,6 +1155,7 @@ function App() {
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+          irConfiguracoes={irParaConfiguracoes}
         />
 
         <PostModal
@@ -1088,11 +1164,11 @@ function App() {
           usuario={usuario}
           onPostSaved={handlePostCreated}
         />
-        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} onClose={() => setAchievementStars(0)} />
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
-        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
+        {contactFeedback && <div className="contact-toast" role="status" aria-live="polite">{contactFeedback}</div>}
       </>
     );
   }
@@ -1116,6 +1192,7 @@ function App() {
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+          irConfiguracoes={irParaConfiguracoes}
           blockedUsers={blockedUsers}
         />
 
@@ -1125,11 +1202,11 @@ function App() {
           usuario={usuario}
           onPostSaved={handlePostCreated}
         />
-        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} onClose={() => setAchievementStars(0)} />
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
-        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
+        {contactFeedback && <div className="contact-toast" role="status" aria-live="polite">{contactFeedback}</div>}
       </>
     );
   }
@@ -1155,6 +1232,7 @@ function App() {
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+          irConfiguracoes={irParaConfiguracoes}
           blockedUsers={blockedUsers}
         />
 
@@ -1164,11 +1242,11 @@ function App() {
           usuario={usuario}
           onPostSaved={handlePostCreated}
         />
-        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} onClose={() => setAchievementStars(0)} />
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
-        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
+        {contactFeedback && <div className="contact-toast" role="status" aria-live="polite">{contactFeedback}</div>}
       </>
     );
   }
@@ -1193,6 +1271,7 @@ function App() {
           onOpenActivityNotification={abrirNotificacaoAtividade}
           notifPrefs={notifPrefs}
           onUpdateNotifPref={atualizarNotifPref}
+          irConfiguracoes={irParaConfiguracoes}
         />
 
         <PostModal
@@ -1201,12 +1280,28 @@ function App() {
           usuario={usuario}
           onPostSaved={handlePostCreated}
         />
-        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} onClose={() => setAchievementStars(0)} />
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
-        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
+        {contactFeedback && <div className="contact-toast" role="status" aria-live="polite">{contactFeedback}</div>}
       </>
+    );
+  }
+
+  if (pagina === "naoEncontrada") {
+    return (
+      <NaoEncontrada
+        irHome={() => navigate({ pagina: "home", perfilAlvo: null })}
+        irPerfil={() => navigate({ pagina: "perfil", perfilAlvo: null })}
+        irExplorar={() => navigate({ pagina: "explorar", perfilAlvo: null })}
+        irChat={() => navigate({ pagina: "chat", perfilAlvo: null })}
+        onOpenPost={handleOpenPost}
+        logado={logado}
+        onRequireAuth={solicitarLogin}
+        irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+        irConfiguracoes={irParaConfiguracoes}
+      />
     );
   }
 
@@ -1229,6 +1324,7 @@ function App() {
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
+          irConfiguracoes={irParaConfiguracoes}
           blockedUsers={blockedUsers}
           onUnblockUser={desbloquearUsuario}
         />
@@ -1239,11 +1335,11 @@ function App() {
           usuario={usuario}
           onPostSaved={handlePostCreated}
         />
-        <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+        <StarAchievement open={achievementStars > 0} stars={achievementStars} onClose={() => setAchievementStars(0)} />
         {authGateMsg && (
           <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
         )}
-        {contactFeedback && <div className="contact-toast">{contactFeedback}</div>}
+        {contactFeedback && <div className="contact-toast" role="status" aria-live="polite">{contactFeedback}</div>}
       </>
     );
   }
@@ -1270,7 +1366,7 @@ function App() {
         onOpenActivityNotification={abrirNotificacaoAtividade}
         onActivityNotificationSeen={marcarNotificacoesDoPostComoVistas}
         irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
-        irConfiguracoes={() => navigate({ pagina: "configuracoes", perfilAlvo: null })}
+        irConfiguracoes={irParaConfiguracoes}
         blockedUsers={blockedUsers}
         onLogout={() => setLogado(false)}
       />
@@ -1281,7 +1377,7 @@ function App() {
         usuario={usuario}
         onPostSaved={handlePostCreated}
       />
-      <StarAchievement open={achievementStars > 0} stars={achievementStars} />
+      <StarAchievement open={achievementStars > 0} stars={achievementStars} onClose={() => setAchievementStars(0)} />
       {authGateMsg && (
         <AuthGate mensagem={authGateMsg} onEntrar={abrirLoginDoGate} onFechar={fecharAuthGate} />
       )}

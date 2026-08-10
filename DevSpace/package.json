@@ -4,14 +4,20 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "backend": "node backend/index.js",
+    "dev": "concurrently -n front,back -c cyan,magenta \"npm run dev:front\" \"npm run dev:back\"",
+    "dev:front": "vite --host 127.0.0.1 --port 5173",
+    "dev:back": "npm run dev --prefix backend",
+    "backend": "npm run start --prefix backend",
+    "check-db": "npm run check-db --prefix backend",
+    "seed:dev": "npm run seed:dev --prefix backend",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "heic2any": "^0.0.4",
+    "highlight.js": "^11.11.1",
+    "lucide-react": "^1.30.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
@@ -20,6 +26,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
