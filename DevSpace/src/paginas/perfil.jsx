@@ -9,6 +9,7 @@ import { readSessionUser, readJson } from "../utils/storage";
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 import { avatarInitial, avatarStyle } from "../utils/avatar";
+import { resizeImageForChat } from "../utils/image";
 import { DsIcon } from "../components/icons";
 import { Icons } from "../components/iconKit";
 import { PostContent } from "../components/CodeBlock";
@@ -433,24 +434,28 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  function handleImagem(e, tipo) {
+  async function handleImagem(e, tipo) {
     if (!isOwnProfile) return;
     const file = e.target.files[0];
+    e.target.value = "";
     if (!file) return;
 
-    const reader = new FileReader();
+    // Converte HEIC/HEIF (padrao de fotos de iPhone, que nenhum navegador
+    // decodifica sozinho) e redimensiona antes de exibir/salvar -- senao a
+    // foto "sobe" mas nunca aparece.
+    const dataUrl = await resizeImageForChat(file);
+    if (!dataUrl) {
+      setErro("Não foi possível ler essa imagem. Tente outro arquivo.");
+      return;
+    }
 
-    reader.onloadend = () => {
-      setPreviewImg(reader.result);
-      setEditandoImagem(tipo);
+    setPreviewImg(dataUrl);
+    setEditandoImagem(tipo);
 
-      if (tipo === "perfil") setEditPosPerfil(posPerfil);
-      if (tipo === "capa") setEditPosCapa(posCapa);
-      if (tipo === "perfil") setEditZoomPerfil(zoomPerfil);
-      if (tipo === "capa") setEditZoomCapa(zoomCapa);
-    };
-
-    reader.readAsDataURL(file);
+    if (tipo === "perfil") setEditPosPerfil(posPerfil);
+    if (tipo === "capa") setEditPosCapa(posCapa);
+    if (tipo === "perfil") setEditZoomPerfil(zoomPerfil);
+    if (tipo === "capa") setEditZoomCapa(zoomCapa);
   }
 
   function salvarImagem() {
