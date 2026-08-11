@@ -409,6 +409,16 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
   }, [usuario, refreshFeed]);
 
   useEffect(() => {
+    if (!usuario?.id || !usuarioLogado || isOwnProfile) {
+      setIsFollowing(false);
+      return;
+    }
+    const seguindoList = Array.isArray(usuarioLogado.seguindo) ? usuarioLogado.seguindo : [];
+    const alvoHandle = (usuario.handle || usuario.username || "").toLowerCase();
+    setIsFollowing(seguindoList.some((h) => String(h).toLowerCase() === alvoHandle));
+  }, [usuario?.id, usuario?.handle, usuario?.username, usuarioLogado, isOwnProfile]);
+
+  useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape") {
         setEditando(false);
