@@ -676,7 +676,9 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
   }
 
   function postEstaSalvo(post) {
-    const key = String(usuarioLogado?.email || usuarioLogado?.handle || "").toLowerCase();
+    // Bate com o que o backend devolve em savedBy (username/handle), nao
+    // com o email -- senao posts salvos de verdade aparecem como "nao salvos".
+    const key = String(usuarioLogado?.handle || usuarioLogado?.username || usuarioLogado?.email || "").toLowerCase();
     if (post?.salvo) return true;
     const savedBy = Array.isArray(post?.savedBy) ? post.savedBy.map((item) => String(item).toLowerCase()) : [];
     return key ? savedBy.includes(key) : false;
@@ -684,7 +686,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
 
   function toggleSavePost(post) {
     if (!isOwnProfile) return;
-    const key = String(usuarioLogado?.email || usuarioLogado?.handle || usuarioLogado?.username || "").toLowerCase();
+    const key = String(usuarioLogado?.handle || usuarioLogado?.username || usuarioLogado?.email || "").toLowerCase();
     const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
     const updatedPosts = savedPosts.map((item) => {
       if (item.id !== post.id) return item;

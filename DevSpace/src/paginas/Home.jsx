@@ -627,7 +627,10 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
       ? userKeys.some((key) => currentOwners.includes(key))
       : !!activeActions[postId]?.[action];
     const nextValue = !isActive;
-    const ownerKey = userKeys[0];
+    // Sempre grava a chave pelo handle (bate com o que o backend devolve em
+    // likedBy/repostedBy/savedBy). Usar userKeys[0] alternava entre email e
+    // handle a cada toggle, deixando o botao dessincronizado ate recarregar.
+    const ownerKey = normalizeActionKey(usuario?.handle || usuario?.username || usuario?.email);
 
     if (nextValue) {
       const recorder = ACTION_PROGRESS_RECORDERS[action];
