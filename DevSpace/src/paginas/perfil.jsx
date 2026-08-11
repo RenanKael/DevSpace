@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import backArrow from "../assets/IMGS/DawnFlech (2).png";
 import Sidebar from "../components/Sidebar";
 import GearIcon from "../components/GearIcon";
 import "../style/perfil.css";
@@ -1042,6 +1043,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
       : null;
   const displayFotoPerfil = usuario.fotoPerfil || fallbackAvatar(usuario);
   const displayFotoCapa = usuario.fotoCapa || fallbackCover(usuario);
+  const starCount = 5;
+  const displayActiveStars = adminOverrideStars !== null ? adminOverrideStars : Number(usuario.estrelas || 0);
 
   return (
     <div className="home">
