@@ -27,6 +27,7 @@ import {
   fetchUnreadConversas,
   fetchNotifications,
   markNotificationAsRead,
+  markAllNotificationsAsRead,
   blockUser,
   unblockUser,
   fetchBlockedUsers,
@@ -375,6 +376,10 @@ function App() {
   const [contactRequestsRaw, setContactRequestsRaw] = useState([]);
   const [unreadConversasRaw, setUnreadConversasRaw] = useState([]);
   const [activityNotificationsRaw, setActivityNotificationsRaw] = useState([]);
+  // Historico completo (lidas + nao lidas), independente do que aparece no
+  // sininho/badge -- usado so pela pagina de Notificacoes, que precisa
+  // continuar mostrando os avisos mesmo depois de marcados como lidos.
+  const [activityNotificationsAllRaw, setActivityNotificationsAllRaw] = useState([]);
   const [notifPrefs, setNotifPrefs] = useState({ contatos: true, mensagens: true, atividade: true });
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [contactFeedback, setContactFeedback] = useState("");
@@ -388,6 +393,7 @@ function App() {
   const contactRequests = notifPrefs.contatos ? contactRequestsRaw : [];
   const unreadConversas = notifPrefs.mensagens ? unreadConversasRaw : [];
   const activityNotifications = notifPrefs.atividade ? activityNotificationsRaw : [];
+  const activityNotificationsAll = notifPrefs.atividade ? activityNotificationsAllRaw : [];
 
   const blockedIds = new Set(blockedUsers.map((u) => u.id));
   const blockedHandles = new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase()));
@@ -478,14 +484,20 @@ function App() {
   async function recarregarNotificacoes() {
     if (!usuario?.id) {
       setActivityNotificationsRaw([]);
+      setActivityNotificationsAllRaw([]);
       return;
     }
     try {
       const lista = await fetchNotifications(usuario.id);
+      const arr = Array.isArray(lista) ? lista : [];
       // So mantem as nao lidas: sem isso, uma notificacao ja vista/marcada
       // como lida voltava a aparecer no proximo polling (o backend devolve
-      // o historico inteiro, lidas e nao lidas, nessa mesma rota).
-      setActivityNotificationsRaw(Array.isArray(lista) ? lista.filter((n) => !n.lida) : []);
+      // o historico inteiro, lidas e nao lidas, nessa mesma rota). Essa lista
+      // e so o que conta pro sininho/badge -- a pagina de Notificacoes usa o
+      // historico completo (activityNotificationsAllRaw) pra continuar
+      // mostrando os avisos mesmo depois de vistos.
+      setActivityNotificationsRaw(arr.filter((n) => !n.lida));
+      setActivityNotificationsAllRaw(arr);
     } catch {
       // backend indisponivel; mantem a lista atual
     }
@@ -1055,6 +1067,16 @@ function App() {
     pagina === "configuracoes" ||
     (pagina === "perfil" && !perfilAlvo);
 
+  // Entrar na pagina de Notificacoes so precisa sumir com o numero vermelho
+  // do sininho (voce ja viu que tem coisa nova) -- os avisos em si continuam
+  // na lista pra sempre, sao a lista completa (activityNotificationsAllRaw)
+  // que nao e afetada por isso.
+  useEffect(() => {
+    if (pagina !== "notificacoes" || !usuario?.id) return;
+    setActivityNotificationsRaw([]);
+    markAllNotificationsAsRead(usuario.id).catch(() => {});
+  }, [pagina, usuario?.id]);
+
   useEffect(() => {
     if (!logado && (mostrarLogin || pagina === "login" || paginaExigeLogin)) {
       document.title = "Entrar · DevSpace";
@@ -1268,6 +1290,7 @@ function App() {
           unreadConversas={unreadConversas}
           onOpenUnreadConversa={abrirConversaNaoLida}
           activityNotifications={activityNotifications}
+          activityNotificationsAll={activityNotificationsAll}
           onOpenActivityNotification={abrirNotificacaoAtividade}
           notifPrefs={notifPrefs}
           onUpdateNotifPref={atualizarNotifPref}

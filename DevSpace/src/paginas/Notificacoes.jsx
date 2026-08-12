@@ -38,6 +38,7 @@ export default function Notificacoes({
   unreadConversas = [],
   onOpenUnreadConversa,
   activityNotifications = [],
+  activityNotificationsAll = activityNotifications,
   onOpenActivityNotification,
   notifPrefs = { contatos: true, mensagens: true, atividade: true },
   onUpdateNotifPref,
@@ -46,7 +47,7 @@ export default function Notificacoes({
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
 
   const totalNotificacoes =
-    contactRequests.length + unreadConversas.length + activityNotifications.length;
+    contactRequests.length + unreadConversas.length + activityNotificationsAll.length;
 
   return (
     <div className="home">
@@ -149,10 +150,10 @@ export default function Notificacoes({
             </div>
           )}
 
-          {activityNotifications.length > 0 && (
+          {activityNotificationsAll.length > 0 && (
             <div className="notif-section">
               <h4>Atividade</h4>
-              {activityNotifications.map((notificacao) => (
+              {activityNotificationsAll.map((notificacao) => (
                 <button
                   type="button"
                   key={notificacao.id}
