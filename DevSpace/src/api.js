@@ -261,6 +261,12 @@ export async function markNotificationAsRead(notificacaoId) {
   });
 }
 
+export async function markMessageNotificationsAsRead(atorHandle) {
+  return request(`/notifications/read-from/${encodeURIComponent(atorHandle)}`, {
+    method: "POST",
+  });
+}
+
 export async function markAllNotificationsAsRead(usuarioId) {
   return request("/notifications/read-all", {
     method: "POST",

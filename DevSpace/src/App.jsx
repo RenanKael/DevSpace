@@ -28,6 +28,7 @@ import {
   fetchNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  markMessageNotificationsAsRead,
   blockUser,
   unblockUser,
   fetchBlockedUsers,
@@ -988,6 +989,25 @@ function App() {
     navigate({ pagina: "chat", perfilAlvo: null });
   }
 
+  // Uma mensagem gera DUAS "notificacoes" distintas: a conversa fica marcada
+  // como nao lida (badge de Mensagens) e um aviso tipo "mensagem" na lista de
+  // Atividade/sino. Abrir e ler a conversa (em Chat.jsx, seja clicando direto
+  // na lista ou vindo de uma notificacao) precisa consumir as duas -- senao
+  // o outro badge fica com uma contagem de algo que voce ja viu ate o
+  // proximo poll (ate 20s depois).
+  function marcarConversaVisualizada(conversaId, outroParticipante) {
+    if (conversaId) {
+      setUnreadConversasRaw((prev) => prev.filter((c) => c.conversaId !== conversaId));
+    }
+    const atorHandle = outroParticipante?.handle;
+    if (!atorHandle) return;
+    const handleLower = atorHandle.toLowerCase();
+    setActivityNotificationsRaw((prev) =>
+      prev.filter((n) => !(n.tipo === "mensagem" && (n.ator?.handle || "").toLowerCase() === handleLower))
+    );
+    markMessageNotificationsAsRead(atorHandle).catch(() => {});
+  }
+
   // Clicar numa notificacao de atividade (curtida/comentario/mencao) marca
   // como lida e leva pro feed, reaproveitando o mesmo "rolar ate o post e
   // destacar" que ja existe pra quando voce acabou de postar.
@@ -1253,6 +1273,7 @@ function App() {
           onOpenUnreadConversa={abrirConversaNaoLida}
           activityNotifications={activityNotifications}
           onOpenActivityNotification={abrirNotificacaoAtividade}
+          onConversaVisualizada={marcarConversaVisualizada}
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
           irConfiguracoes={irParaConfiguracoes}
           blockedUsers={blockedUsers}

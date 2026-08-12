@@ -51,6 +51,7 @@ export default function Chat({
   onOpenUnreadConversa,
   activityNotifications,
   onOpenActivityNotification,
+  onConversaVisualizada,
   irNotificacoes,
   irConfiguracoes,
   blockedUsers = [],
@@ -219,13 +220,16 @@ export default function Chat({
     conversaAtiva?.participantes.find((p) => p.handle !== meuHandle) || null;
 
   // Marca a conversa como lida no backend assim que ela e aberta (conversas
-  // com bot sao locais e nao tem conceito de "lida" no servidor).
+  // com bot sao locais e nao tem conceito de "lida" no servidor). Uma
+  // mensagem gera duas notificacoes distintas (badge de Mensagens + aviso
+  // "mensagem" no sino) -- ler a conversa precisa consumir as duas.
   useEffect(() => {
     if (!conversaAtivaId || isBotConversaId(conversaAtivaId) || !usuarioLogado?.id) return;
     markConversaAsRead(conversaAtivaId, usuarioLogado.id).catch(() => {
       // backend indisponivel; sem problema, so afeta o contador de notificacao
     });
-  }, [conversaAtivaId, usuarioLogado?.id]);
+    onConversaVisualizada?.(conversaAtivaId, outroParticipante);
+  }, [conversaAtivaId, usuarioLogado?.id, outroParticipante?.handle]);
 
   // Envia a mensagem (texto e/ou imagem) da conversa ativa e limpa o formulario
   async function enviar() {

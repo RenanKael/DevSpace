@@ -1990,6 +1990,21 @@ app.post("/api/notifications/:id(\\d+)/read", requireAuth, async (req, res) => {
   }
 });
 
+app.post("/api/notifications/read-from/:handle", requireAuth, async (req, res) => {
+  try {
+    const ator = await queryOne("SELECT id FROM usuarios WHERE username = ?", [req.params.handle]);
+    if (!ator) return res.json({ message: "Nenhuma notificação para marcar." });
+    await query(
+      "UPDATE notificacoes SET lida = 1 WHERE destinatario_id = ? AND ator_id = ? AND tipo = 'mensagem'",
+      [req.usuario.id, ator.id]
+    );
+    res.json({ message: "Notificações de mensagem marcadas como lidas." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao marcar notificações como lidas." });
+  }
+});
+
 app.post("/api/notifications/read-all", requireAuth, async (req, res) => {
   try {
     await query("UPDATE notificacoes SET lida = 1 WHERE destinatario_id = ?", [req.usuario.id]);
