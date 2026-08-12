@@ -245,7 +245,7 @@ async function getRatingSummary(userId, reviewerId = null) {
 async function mapUsuario(row, { self = false, reviewerId = null } = {}) {
   if (!row) return null;
 
-  const [seguidoresRows, seguindoRows, starProgress, ratings] = await Promise.all([
+  const [seguidoresRows, seguindoRows, starProgress, ratings, bloqueado] = await Promise.all([
     query("SELECT COUNT(*) AS c FROM seguidores WHERE seguido_id = ?", [row.id]),
     query(
       "SELECT u.username FROM seguidores s JOIN usuarios u ON u.id = s.seguido_id WHERE s.seguidor_id = ?",
@@ -253,6 +253,7 @@ async function mapUsuario(row, { self = false, reviewerId = null } = {}) {
     ),
     getStarProgress(row.id),
     getRatingSummary(row.id, reviewerId),
+    reviewerId && reviewerId !== row.id ? isBlocked(reviewerId, row.id) : Promise.resolve(false),
   ]);
 
   const isAdmin = !!row.is_admin || (row.email || "").toLowerCase() === ADMIN_EMAIL;
@@ -273,6 +274,7 @@ async function mapUsuario(row, { self = false, reviewerId = null } = {}) {
     stack: row.stack || "",
     linguagemPrincipal: row.linguagem_principal || "",
     disponivelContratacao: !!row.disponivel_contratacao,
+    bloqueado,
     authProvider: self ? row.auth_provider || "local" : undefined,
     isAdmin: self ? isAdmin : undefined,
     posPerfil: { x: Number(row.pos_perfil_x ?? 50), y: Number(row.pos_perfil_y ?? 50) },
@@ -307,7 +309,17 @@ async function sendAuth(res, row, status = 200) {
 
 app.get("/api/users", async (req, res) => {
   try {
-    const rows = await query("SELECT * FROM usuarios WHERE ativo = 1 ORDER BY id DESC LIMIT 100");
+    const session = await getSessionUser(req);
+    const reviewerId = session?.usuario?.id || null;
+    const rows = reviewerId
+      ? await query(
+          `SELECT * FROM usuarios WHERE ativo = 1 AND id NOT IN (
+             SELECT bloqueado_id FROM bloqueios WHERE usuario_id = ?
+             UNION SELECT usuario_id FROM bloqueios WHERE bloqueado_id = ?
+           ) ORDER BY id DESC LIMIT 100`,
+          [reviewerId, reviewerId]
+        )
+      : await query("SELECT * FROM usuarios WHERE ativo = 1 ORDER BY id DESC LIMIT 100");
     const usuarios = await Promise.all(rows.map((row) => mapUsuario(row)));
     res.json(usuarios);
   } catch (error) {
@@ -436,6 +448,9 @@ app.post("/api/users/:id(\\d+)/follow", requireAuth, async (req, res) => {
     if (!seguidoId || seguidorId === seguidoId) {
       return res.status(400).json({ message: "Não é possível seguir este perfil." });
     }
+    if (await isBlocked(seguidorId, seguidoId)) {
+      return res.status(403).json({ message: "Não é possível seguir este perfil." });
+    }
 
     const existente = await queryOne(
       "SELECT id FROM seguidores WHERE seguidor_id = ? AND seguido_id = ?",
@@ -511,10 +526,11 @@ app.put("/api/users/me/notification-prefs", requireAuth, async (req, res) => {
 });
 
 // ---------- Bloqueios ----------
-// Bloquear e uma via so: quem bloqueia deixa de ver o perfil/posts de quem
-// bloqueou (filtrado no frontend com a lista de bloqueados). Mensagem e
-// solicitacao de contato, porem, ficam proibidas nos dois sentidos enquanto
-// o bloqueio existir (checkForaBloqueado abaixo).
+// Bloqueio e mutuo: enquanto existir uma linha em qualquer sentido, nenhum
+// dos dois ve o perfil nem os posts (velhos ou novos) do outro, e nenhum
+// consegue seguir/mandar solicitacao de contato/mensagem pro outro. So quem
+// bloqueou ve a outra pessoa listada (em Configuracoes > Bloqueados) e so
+// quem bloqueou consegue desfazer.
 async function isBlocked(usuarioAId, usuarioBId) {
   const row = await queryOne(
     "SELECT id FROM bloqueios WHERE (usuario_id = ? AND bloqueado_id = ?) OR (usuario_id = ? AND bloqueado_id = ?) LIMIT 1",
@@ -1216,9 +1232,21 @@ app.get("/api/posts", async (req, res) => {
   try {
     const session = await getSessionUser(req);
     const viewerUsername = session?.usuario?.username || null;
-    const rows = await query(
-      `${POST_SELECT} WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW() ORDER BY p.criado_em DESC LIMIT 80`
-    );
+    const viewerId = session?.usuario?.id || null;
+    const rows = viewerId
+      ? await query(
+          `${POST_SELECT} WHERE (p.publicar_em IS NULL OR p.publicar_em <= NOW())
+             AND NOT EXISTS (
+               SELECT 1 FROM bloqueios bl
+               WHERE (bl.usuario_id = ? AND bl.bloqueado_id = p.usuario_id)
+                  OR (bl.usuario_id = p.usuario_id AND bl.bloqueado_id = ?)
+             )
+             ORDER BY p.criado_em DESC LIMIT 80`,
+          [viewerId, viewerId]
+        )
+      : await query(
+          `${POST_SELECT} WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW() ORDER BY p.criado_em DESC LIMIT 80`
+        );
     const posts = await Promise.all(rows.map((row) => getPostFull(row, viewerUsername)));
     res.json(posts);
   } catch (error) {
@@ -1231,23 +1259,28 @@ app.get("/api/me/collections/:tipo", requireAuth, async (req, res) => {
   try {
     const tipo = String(req.params.tipo || "").toLowerCase();
     const usuarioId = req.usuario.id;
+    const naoBloqueado = `AND NOT EXISTS (
+      SELECT 1 FROM bloqueios bl
+      WHERE (bl.usuario_id = ? AND bl.bloqueado_id = p.usuario_id)
+         OR (bl.usuario_id = p.usuario_id AND bl.bloqueado_id = ?)
+    )`;
     let sql;
     if (tipo === "salvos") {
       sql = `${POST_SELECT} INNER JOIN post_bookmarks b ON b.post_id = p.id AND b.usuario_id = ?
-             WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW()
+             WHERE (p.publicar_em IS NULL OR p.publicar_em <= NOW()) ${naoBloqueado}
              ORDER BY b.criado_em DESC LIMIT 80`;
     } else if (tipo === "curtidos") {
       sql = `${POST_SELECT} INNER JOIN post_interacoes pi ON pi.post_id = p.id AND pi.usuario_id = ? AND pi.tipo = 'like'
-             WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW()
+             WHERE (p.publicar_em IS NULL OR p.publicar_em <= NOW()) ${naoBloqueado}
              ORDER BY pi.criado_em DESC LIMIT 80`;
     } else if (tipo === "republicados") {
       sql = `${POST_SELECT} INNER JOIN post_shares s ON s.post_id = p.id AND s.usuario_id = ?
-             WHERE p.publicar_em IS NULL OR p.publicar_em <= NOW()
+             WHERE (p.publicar_em IS NULL OR p.publicar_em <= NOW()) ${naoBloqueado}
              ORDER BY s.criado_em DESC LIMIT 80`;
     } else {
       return res.status(400).json({ message: "Coleção inválida." });
     }
-    const rows = await query(sql, [usuarioId]);
+    const rows = await query(sql, [usuarioId, usuarioId, usuarioId]);
     res.json(await Promise.all(rows.map((row) => getPostFull(row, req.usuario.username))));
   } catch (error) {
     console.error(error);
@@ -1260,6 +1293,10 @@ app.get("/api/posts/:id(\\d+)", async (req, res) => {
     const session = await getSessionUser(req);
     const row = await queryOne(`${POST_SELECT} WHERE p.id = ?`, [req.params.id]);
     if (!row) return res.status(404).json({ message: "Post não encontrado." });
+    const viewerId = session?.usuario?.id || null;
+    if (viewerId && viewerId !== row.usuario_id && (await isBlocked(viewerId, row.usuario_id))) {
+      return res.status(404).json({ message: "Post não encontrado." });
+    }
     res.json(await getPostFull(row, session?.usuario?.username || null));
   } catch (error) {
     console.error(error);

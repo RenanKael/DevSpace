@@ -331,6 +331,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
             seguidores: remote.seguidores ?? prev.seguidores,
             seguindo: Array.isArray(remote.seguindo) ? remote.seguindo : prev.seguindo,
             disponivelContratacao: remote.disponivelContratacao ?? prev.disponivelContratacao,
+            bloqueado: !!remote.bloqueado,
           };
         });
       })
@@ -381,6 +382,11 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
       (u) => (usuario.id && u.id === usuario.id) || (handle && (u.handle || "").toLowerCase() === handle)
     );
   }, [usuario, isOwnProfile, blockedUsers]);
+
+  // Bloqueio e mutuo: o backend ja devolve usuario.bloqueado quando existe
+  // uma linha em qualquer sentido (eu bloqueei ou fui bloqueado). Sem isso,
+  // quem foi bloqueado ainda conseguia abrir o perfil de quem o bloqueou.
+  const bloqueadoPeloOutro = !isOwnProfile && !!usuario?.bloqueado && !isBlockedByMe;
 
   useEffect(() => {
     if (!usuario) return;
@@ -1013,7 +1019,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     );
   }
 
-  if (isBlockedByMe) {
+  if (isBlockedByMe || bloqueadoPeloOutro) {
     return (
       <div className="home">
         <Sidebar
@@ -1039,14 +1045,20 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
         <div className={`profile-page${sidebarOpen ? "" : " sidebar-closed"}`}>
           <PageHeader eyebrow="Privacidade" title="Perfil bloqueado" description="Você não vê posts nem pode interagir com esta conta." />
           <div className="perfil-bloqueado-aviso">
-            <p>Você bloqueou este perfil. Ele não aparece mais pra você no site, e vocês não podem trocar mensagens.</p>
-            <button
-              type="button"
-              className="btn-editar"
-              onClick={() => onUnblockUser?.(usuario.id)}
-            >
-              Desbloquear perfil
-            </button>
+            {isBlockedByMe ? (
+              <>
+                <p>Você bloqueou este perfil. Ele não aparece mais pra você no site, e vocês não podem trocar mensagens.</p>
+                <button
+                  type="button"
+                  className="btn-editar"
+                  onClick={() => onUnblockUser?.(usuario.id)}
+                >
+                  Desbloquear perfil
+                </button>
+              </>
+            ) : (
+              <p>Este perfil não está disponível.</p>
+            )}
           </div>
         </div>
       </div>
