@@ -140,7 +140,11 @@ export default function Sidebar({
           >
             <span className={`nav-icon${unreadCount > 0 ? " nav-icon-badge" : ""}`}>
               <DsIcon icon={Icons.MessageCircle} size="sidebar" />
-              {unreadCount > 0 && <i className="nav-unread" aria-hidden="true" />}
+              {unreadCount > 0 && (
+                <i className="nav-unread" aria-hidden="true">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </i>
+              )}
             </span>
             <span className="nav-label">Mensagens</span>
           </button>
