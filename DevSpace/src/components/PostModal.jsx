@@ -341,7 +341,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
               style={
                 usuario?.fotoPerfil && usuario?.posPerfil
                   ? {
-                      backgroundImage: `url(${usuario.fotoPerfil})`,
+                      backgroundImage: `url("${usuario.fotoPerfil}")`,
                       backgroundSize: "cover",
                       backgroundPosition: `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%`,
                     }
@@ -641,7 +641,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
               <div
                 className="post-modal-avatar"
                 style={{
-                  backgroundImage: usuario?.fotoPerfil ? `url(${usuario.fotoPerfil})` : "none",
+                  backgroundImage: usuario?.fotoPerfil ? `url("${usuario.fotoPerfil}")` : "none",
                   backgroundSize: "cover",
                   backgroundPosition: usuario?.posPerfil
                     ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%`

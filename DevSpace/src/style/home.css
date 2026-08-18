@@ -1082,7 +1082,7 @@ body {
 .post-card-window-body img {
   width: 100%;
   height: auto;
-  max-height: 520px;
+  max-height: 320px;
   object-fit: contain;
   display: block;
   background: #070a10;
@@ -1306,10 +1306,38 @@ body {
   max-height: 220px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-right: 4px;
-  scrollbar-width: thin;
-  scrollbar-color: #3a3f46 transparent;
+  padding-right: 8px;
+  /* Antes a barra de rolagem era fina e quase da mesma cor do fundo --
+     dava pra rolar (o mecanismo sempre funcionou), mas nada indicava isso,
+     entao o ultimo comentario visivel parecia so "cortado" em cima da
+     caixa de comentar. Deixando a barra bem mais visivel. */
+  scrollbar-width: auto;
+  scrollbar-color: #7a828e #1b1e24;
   touch-action: pan-y;
+  border-bottom: 2px solid var(--ds-accent, #5b8cff);
+  /* Sombra interna no rodape: sinaliza "tem mais comentario pra rolar"
+     mesmo em ambientes onde a barra de rolagem customizada nao pinta
+     (ex: alguns compositors headless) -- box-shadow sempre renderiza. */
+  box-shadow: inset 0 -22px 16px -16px rgba(0, 0, 0, 0.75);
+}
+
+.post-comments-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.post-comments-list::-webkit-scrollbar-track {
+  background: #1b1e24;
+  border-radius: 999px;
+}
+
+.post-comments-list::-webkit-scrollbar-thumb {
+  background: #565d68;
+  border-radius: 999px;
+  border: 2px solid #1b1e24;
+}
+
+.post-comments-list::-webkit-scrollbar-thumb:hover {
+  background: #6d7684;
 }
 
 .comments-overlay {
@@ -1363,7 +1391,8 @@ body {
 }
 
 .comments-popup .post-comments-list {
-  max-height: min(440px, 54vh);
+  max-height: min(480px, 58vh);
+  margin-bottom: 10px;
 }
 
 @keyframes commentsSlideDown {
@@ -1616,7 +1645,9 @@ body {
 .post-preview-overlay {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  /* Tem que ficar acima da sidebar (z-index 1000) -- senao o popup do post
+     aberto renderiza atras dela, com a sidebar sobrepondo o canto esquerdo. */
+  z-index: 15000;
   background: rgba(0,0,0,0.8);
   display: flex;
   align-items: center;
@@ -1656,6 +1687,13 @@ body {
   flex-shrink: 0;
 }
 
+/* O botao de fechar (x) e absoluto, flutuando sobre o canto superior
+   direito do popup -- sem esse respiro, a tag #hashtag (que tem
+   margin-left: auto no header) fica embaixo dele. */
+.post-expanded-popup .post-card-header {
+  padding-right: 46px;
+}
+
 .post-expanded-actions {
   margin-top: 0;
 }
@@ -1691,16 +1729,23 @@ body {
 
 .post-expanded-text {
   margin: 0;
-  max-height: 16vh;
+  max-height: min(55vh, 520px);
   overflow-y: auto;
   flex-shrink: 0;
+}
+
+/* O bloco de codigo tem um teto de 360px fixo em qualquer lugar do site
+   (preview compacta no feed) -- no post aberto ha mais espaco de sobra,
+   entao aqui ele pode respirar mais antes de precisar do scroll interno. */
+.post-expanded-popup .ds-code pre {
+  max-height: min(48vh, 480px);
 }
 
 .post-expanded-window {
   margin: 0;
   flex: 1 1 auto;
   min-height: 0;
-  max-height: min(48vh, 430px);
+  max-height: min(60vh, 560px);
 }
 
 .image-only-popup {
@@ -1714,14 +1759,14 @@ body {
 .post-expanded-window .post-card-window-body img {
   width: auto;
   max-width: 100%;
-  max-height: min(42vh, 380px);
+  max-height: min(54vh, 500px);
   object-fit: contain;
   border-radius: 18px;
 }
 
 .post-expanded-window .post-card-window-body {
   min-height: 0;
-  max-height: min(42vh, 380px);
+  max-height: min(54vh, 500px);
   background: #050505;
 }
 
@@ -1729,7 +1774,7 @@ body {
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: min(42vh, 380px);
+  max-height: min(54vh, 500px);
 }
 
 .post-modal-header {

@@ -3,9 +3,10 @@ import "../style/perfil.css";
 import "../style/notificacoes.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 import PageHeader from "../components/PageHeader";
+import { placeholderAvatarUri, usableFotoPerfil } from "../utils/avatar";
 
 function fallbackAvatar(seed) {
-  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed || "usuario")}`;
+  return placeholderAvatarUri(seed || "usuario");
 }
 
 const TEXTO_ATIVIDADE = {
@@ -95,7 +96,7 @@ export default function Notificacoes({
                   <div
                     className="notif-row-avatar"
                     style={{
-                      backgroundImage: `url(${req.remetente.fotoPerfil || fallbackAvatar(req.remetente.handle)})`,
+                      backgroundImage: `url("${usableFotoPerfil(req.remetente.fotoPerfil) || fallbackAvatar(req.remetente.handle)}")`,
                     }}
                   />
                   <div className="notif-row-info">
@@ -136,7 +137,7 @@ export default function Notificacoes({
                   <div
                     className="notif-row-avatar"
                     style={{
-                      backgroundImage: `url(${conv.outroParticipante.fotoPerfil || fallbackAvatar(conv.outroParticipante.handle)})`,
+                      backgroundImage: `url("${usableFotoPerfil(conv.outroParticipante.fotoPerfil) || fallbackAvatar(conv.outroParticipante.handle)}")`,
                     }}
                   />
                   <div className="notif-row-info">
@@ -163,7 +164,7 @@ export default function Notificacoes({
                   <div
                     className="notif-row-avatar"
                     style={{
-                      backgroundImage: `url(${notificacao.ator.fotoPerfil || fallbackAvatar(notificacao.ator.handle)})`,
+                      backgroundImage: `url("${usableFotoPerfil(notificacao.ator.fotoPerfil) || fallbackAvatar(notificacao.ator.handle)}")`,
                     }}
                   />
                   <div className="notif-row-info">

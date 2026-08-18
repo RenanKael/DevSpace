@@ -8,7 +8,7 @@ import { deletePost as deletePostRequest, updateUser as updateUserRequest, updat
 import { readSessionUser, readJson } from "../utils/storage";
 import { syncUsersStarProgress } from "../utils/starProgress";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
-import { avatarInitial, avatarStyle } from "../utils/avatar";
+import { avatarInitial, avatarStyle, placeholderAvatarUri, usableFotoPerfil } from "../utils/avatar";
 import { resizeImageForChat } from "../utils/image";
 import { DsIcon } from "../components/icons";
 import { Icons } from "../components/iconKit";
@@ -143,7 +143,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
 
   function fallbackAvatar(user) {
     const seed = user?.handle || user?.username || user?.email || "usuario";
-    return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed)}`;
+    return placeholderAvatarUri(seed);
   }
 
   function fallbackCover() {
@@ -536,14 +536,21 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
           username: form.username,
           handle: form.handle.toLowerCase(),
           bio: form.bio || "",
-          fotoPerfil: atualizado.fotoPerfil,
-          fotoCapa: atualizado.fotoCapa,
           disponivelContratacao: atualizado.disponivelContratacao,
           posPerfil: atualizado.posPerfil,
           posCapa: atualizado.posCapa,
           zoomPerfil: atualizado.zoomPerfil,
           zoomCapa: atualizado.zoomCapa,
         };
+        // So manda a foto (base64, ~centenas de KB) quando ela de fato mudou --
+        // senao toda vez que voce so edita o nome/bio, o app reenvia e regrava
+        // no banco a mesma imagem inteira de novo, deixando o salvar lento.
+        if (form.fotoPerfil && form.fotoPerfil !== usuario.fotoPerfil) {
+          payload.fotoPerfil = atualizado.fotoPerfil;
+        }
+        if (form.fotoCapa && form.fotoCapa !== usuario.fotoCapa) {
+          payload.fotoCapa = atualizado.fotoCapa;
+        }
         const backendUser = await updateUserRequest(usuario.id, payload);
         // backendUser ja inclui posPerfil/posCapa/zoom confirmados pelo
         // servidor; so a senha nunca volta (nem deveria).
@@ -1070,7 +1077,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     criadoEmDate && !Number.isNaN(criadoEmDate.getTime())
       ? criadoEmDate.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })
       : null;
-  const displayFotoPerfil = usuario.fotoPerfil || fallbackAvatar(usuario);
+  const displayFotoPerfil = usableFotoPerfil(usuario.fotoPerfil) || fallbackAvatar(usuario);
   const displayFotoCapa = usuario.fotoCapa || fallbackCover(usuario);
   const starCount = 5;
   const displayActiveStars = adminOverrideStars !== null ? adminOverrideStars : Number(usuario.estrelas || 0);

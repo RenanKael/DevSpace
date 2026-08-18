@@ -1800,19 +1800,79 @@ async function mapConversa(conversaId) {
   };
 }
 
+// Quantidade de mensagens mais recentes trazidas por conversa na lista. A
+// lista completa (sem limite, N+1 por conversa) era o principal motivo do
+// chat demorar pra carregar -- cada abertura/poll de 3s repetia o historico
+// inteiro de todas as conversas.
+const MENSAGENS_POR_CONVERSA_NA_LISTA = 50;
+
 app.get("/api/conversas", requireAuth, async (req, res) => {
   try {
     const usuarioId = req.usuario.id;
 
-    const conversaIds = await query(
-      `SELECT c.id FROM conversas c
+    const conversaRows = await query(
+      `SELECT c.id, c.atualizado_em FROM conversas c
        JOIN conversa_participantes cp ON cp.conversa_id = c.id
        WHERE cp.usuario_id = ? ORDER BY c.atualizado_em DESC`,
       [usuarioId]
     );
 
-    const conversas = await Promise.all(conversaIds.map((row) => mapConversa(row.id)));
-    res.json(conversas.filter(Boolean));
+    if (!conversaRows.length) return res.json([]);
+    const conversaIds = conversaRows.map((row) => row.id);
+
+    // Antes: uma rodada de 3 queries por conversa (N+1) buscando o historico
+    // inteiro de mensagens a cada carregamento/poll. Agora: 2 queries batched
+    // pra todas as conversas de uma vez, trazendo so as ultimas N mensagens.
+    const [participantesRows, mensagensRows] = await Promise.all([
+      query(
+        `SELECT cp.conversa_id, u.username, u.nome_exibicao, u.avatar_url
+         FROM conversa_participantes cp JOIN usuarios u ON u.id = cp.usuario_id
+         WHERE cp.conversa_id IN (?)`,
+        [conversaIds]
+      ),
+      query(
+        `SELECT ranked.conversa_id, ranked.id, ranked.conteudo, ranked.criado_em, ranked.autor_username,
+           (SELECT url FROM midias WHERE mensagem_id = ranked.id LIMIT 1) AS imagem_url
+         FROM (
+           SELECT m.id, m.conversa_id, m.conteudo, m.criado_em, u.username AS autor_username,
+             ROW_NUMBER() OVER (PARTITION BY m.conversa_id ORDER BY m.criado_em DESC) AS rn
+           FROM mensagens m JOIN usuarios u ON u.id = m.remetente_id
+           WHERE m.conversa_id IN (?)
+         ) ranked
+         WHERE ranked.rn <= ?
+         ORDER BY ranked.conversa_id, ranked.criado_em ASC`,
+        [conversaIds, MENSAGENS_POR_CONVERSA_NA_LISTA]
+      ),
+    ]);
+
+    const participantesPorConversa = new Map();
+    for (const row of participantesRows) {
+      const lista = participantesPorConversa.get(row.conversa_id) || [];
+      lista.push(mapParticipante(row));
+      participantesPorConversa.set(row.conversa_id, lista);
+    }
+
+    const mensagensPorConversa = new Map();
+    for (const row of mensagensRows) {
+      const lista = mensagensPorConversa.get(row.conversa_id) || [];
+      lista.push({
+        id: row.id,
+        autor: row.autor_username,
+        texto: row.conteudo,
+        imagem: row.imagem_url || "",
+        criadoEm: row.criado_em,
+      });
+      mensagensPorConversa.set(row.conversa_id, lista);
+    }
+
+    const conversas = conversaRows.map((row) => ({
+      id: row.id,
+      participantes: participantesPorConversa.get(row.id) || [],
+      mensagens: mensagensPorConversa.get(row.id) || [],
+      atualizadoEm: row.atualizado_em,
+    }));
+
+    res.json(conversas);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao buscar conversas." });

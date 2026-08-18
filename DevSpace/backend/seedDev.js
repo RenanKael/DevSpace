@@ -7,6 +7,18 @@ import { dbConfig } from "./loadEnv.js";
 const SEED_PASSWORD = "devspace123";
 const SEED_DOMAIN = "@seed.devspace.local";
 
+// Mockup de screenshot pra posts com imagem: um retangulo colorido com
+// titulo, gerado na hora (sem depender de nenhum arquivo/rede externa).
+function mockImage(seed, titulo) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = Math.abs(hash) % 360;
+  const c1 = `hsl(${hue} 55% 28%)`;
+  const c2 = `hsl(${(hue + 40) % 360} 55% 14%)`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/><rect x="24" y="24" width="592" height="312" rx="12" fill="rgba(255,255,255,0.06)"/><text x="48" y="190" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#ffffff">${titulo}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 const USERS = [
   { username: "ana.codes", nome: "Ana Codes", bio: "Frontend React + acessibilidade. Curto CSS bem feito e PRs pequenos.", stack: "React, TypeScript", linguagem: "TypeScript", hire: 1 },
   { username: "bruno.api", nome: "Bruno API", bio: "Backend Node e PostgreSQL. Tentando não reinventar o monólito.", stack: "Node, PostgreSQL", linguagem: "JavaScript", hire: 1 },
@@ -75,6 +87,31 @@ const POSTS = [
   { user: "nico.cloud", tag: "Carreira", texto: "Alguém indo para o DevOps Day? Quero montar um grupo pra ir junto." },
   { user: "otavio.ml", tag: "Data Science", texto: "Notebook com `%autoreload` e side-effect no import é armadilha clássica. O gráfico “atualiza sozinho” e ninguém sabe por quê." },
   { user: "paula.design", tag: "UI", texto: "Empty state que eu gosto: título curto, uma linha de contexto, um botão. Sem mascote piscando." },
+];
+
+// Posts extras focados em cobrir as funcionalidades que o array POSTS acima
+// nao usa: imagem, enquete, agendamento (post futuro fica oculto) e mencao.
+const POSTS_FEATURES = [
+  { user: "diego.ux", tag: "UI", texto: "Antes/depois do redesign do dashboard. Mais respiro, menos borda.", imagem: "Dashboard v2 — antes/depois" },
+  { user: "marina.game", tag: "Game Dev", texto: "Print do nível novo rodando no editor. Ainda falta iluminação.", imagem: "Level_03.unity — editor" },
+  { user: "carla.mobile", tag: "React Native", texto: "Tela de onboarding do app, versão 3. Reduzi de 5 telas pra 3.", imagem: "Onboarding v3 — 3 telas" },
+  { user: "nico.cloud", tag: "AWS", texto: "Gráfico de custo mensal depois de migrar pra Aurora Serverless.", imagem: "Custo AWS — antes/depois" },
+  { user: "otavio.ml", tag: "Data Science", texto: "Matriz de confusão do modelo novo. Melhorou bastante o recall.", imagem: "Confusion Matrix — v2" },
+  { user: "bruno.api", tag: "Node", texto: "Qual banco vocês prefeririam pra um projeto novo hoje?", poll: ["PostgreSQL", "MySQL", "MongoDB", "SQLite"] },
+  { user: "kira.ts", tag: "TypeScript", texto: "Enquete séria: vocês preferem `interface` ou `type` no dia a dia?", poll: ["interface", "type", "os dois, sem dó"] },
+  { user: "elena.ops", tag: "DevOps", texto: "Pra deploy de um projeto pessoal, o que vocês escolheriam?", poll: ["VPS + Docker", "Serverless", "PaaS (Render/Railway)", "Kubernetes mesmo"] },
+  { user: "paula.design", tag: "UI", texto: "Dark mode devia ser o padrão ou opcional?", poll: ["Padrão", "Opcional, mas com dark", "Não ligo"] },
+  { user: "felipe.data", tag: "SQL", texto: "Time pequeno, qual orquestrador vocês usam pra pipelines?", poll: ["Airflow", "Dagster", "Cron mesmo", "dbt Cloud"] },
+  { user: "hugo.java", tag: "Java", texto: "Semana que vem vou postar a comparação completa de Spring Boot vs Quarkus com benchmarks. Aguardem 👀", agendadoPara: 3 },
+  { user: "leo.security", tag: "Segurança", texto: "Preparando um checklist de OWASP Top 10 aplicado a APIs REST. Sai em breve.", agendadoPara: 5 },
+  { user: "gabi.ia", tag: "IA", texto: "@otavio.ml vi seu post sobre feature store, bate demais com o que eu tô fazendo com embeddings. Bora trocar ideia?" },
+  { user: "iris.sql", tag: "Carreira", texto: "@felipe.data seu post sobre incremental no dbt me salvou hoje, valeu!" },
+  { user: "joao.rn", tag: "React Native", texto: "@carla.mobile como você resolveu o crop de imagem no Android? Aqui ainda corta errado." },
+  { user: "ana.codes", tag: "React", texto: "Refatorei o hook de paginação infinita pra usar IntersectionObserver em vez de scroll listener.\n\n```javascript\nconst observer = new IntersectionObserver((entries) => {\n  if (entries[0].isIntersecting) carregarMais();\n});\n```" },
+  { user: "diego.ux", tag: "Acessibilidade", texto: "Testei o app inteiro só de teclado hoje. Achei 4 armadilhas de foco que ninguém tinha notado." },
+  { user: "nico.cloud", tag: "Terraform", texto: "Módulo reutilizável de VPC finalmente ficou genérico o bastante pra outros times usarem sem copiar/colar." },
+  { user: "marina.game", tag: "Unity", texto: "Object pooling pra inimigos: de 40fps pra 60fps estável em cena cheia.\n\n```csharp\npublic class Pool<T> where T : Component {\n    private readonly Queue<T> _itens = new();\n}\n```" },
+  { user: "paula.design", tag: "Design Systems", texto: "Tokens de espaçamento em vez de valores soltos mudou completamente a consistência do nosso design system." },
 ];
 
 const COMMENTS = [
@@ -240,6 +277,36 @@ async function main() {
     post._id = result.insertId;
   }
 
+  for (const post of POSTS_FEATURES) {
+    const publicarEm = post.agendadoPara
+      ? new Date(Date.now() + post.agendadoPara * 86400000)
+      : null;
+    const [result] = await conn.query(
+      "INSERT INTO posts (usuario_id, conteudo, linguagem_tag, publicar_em) VALUES (?, ?, ?, ?)",
+      [ids[post.user], post.texto, post.tag, publicarEm]
+    );
+    post._id = result.insertId;
+
+    if (post.imagem) {
+      await conn.query("INSERT INTO midias (usuario_id, post_id, url, tipo) VALUES (?, ?, ?, 'imagem')", [
+        ids[post.user],
+        post._id,
+        mockImage(post.user, post.imagem),
+      ]);
+    }
+
+    if (post.poll) {
+      const [pollResult] = await conn.query("INSERT INTO post_polls (post_id) VALUES (?)", [post._id]);
+      for (let i = 0; i < post.poll.length; i += 1) {
+        await conn.query("INSERT INTO post_poll_opcoes (poll_id, texto, ordem) VALUES (?, ?, ?)", [
+          pollResult.insertId,
+          post.poll[i],
+          i,
+        ]);
+      }
+    }
+  }
+
   for (const comment of COMMENTS) {
     const post = POSTS.find((p) => p.user === comment.postUser && p.tag === comment.postTag);
     if (!post?._id || !ids[comment.by]) continue;
@@ -256,6 +323,44 @@ async function main() {
     await conn.query("INSERT IGNORE INTO post_interacoes (post_id, usuario_id, tipo) VALUES (?, ?, 'like')", [POSTS[i]._id, ids[liker]]);
     await conn.query("INSERT IGNORE INTO post_bookmarks (post_id, usuario_id) VALUES (?, ?)", [POSTS[i]._id, ids[saver]]);
     await conn.query("INSERT IGNORE INTO post_shares (post_id, usuario_id) VALUES (?, ?)", [POSTS[i]._id, ids[sharer]]);
+  }
+
+  // Posts agendados pro futuro ficam de fora das interacoes fake -- ainda
+  // nao estao "publicados", entao ninguem deveria ter curtido/votado neles.
+  const postsPublicados = POSTS_FEATURES.filter((p) => !p.agendadoPara);
+  for (let i = 0; i < postsPublicados.length; i += 1) {
+    const post = postsPublicados[i];
+    const liker = USERS[(i + 2) % USERS.length].username;
+    const saver = USERS[(i + 4) % USERS.length].username;
+    const sharer = USERS[(i + 6) % USERS.length].username;
+    await conn.query("INSERT IGNORE INTO post_interacoes (post_id, usuario_id, tipo) VALUES (?, ?, 'like')", [post._id, ids[liker]]);
+    await conn.query("INSERT IGNORE INTO post_bookmarks (post_id, usuario_id) VALUES (?, ?)", [post._id, ids[saver]]);
+    await conn.query("INSERT IGNORE INTO post_shares (post_id, usuario_id) VALUES (?, ?)", [post._id, ids[sharer]]);
+
+    if (post.poll) {
+      const opcoes = await conn.query(
+        "SELECT po.id, po.poll_id FROM post_poll_opcoes po JOIN post_polls pp ON pp.id = po.poll_id WHERE pp.post_id = ? ORDER BY po.ordem ASC",
+        [post._id]
+      );
+      const rows = opcoes[0];
+      // Distribui alguns votos de usuarios diferentes entre as opcoes, pra
+      // enquete nao aparecer vazia/zerada ao testar.
+      for (let v = 0; v < Math.min(6, USERS.length); v += 1) {
+        const votante = USERS[(i + v) % USERS.length].username;
+        const opcao = rows[v % rows.length];
+        if (!ids[votante] || !opcao) continue;
+        await conn.query("INSERT IGNORE INTO post_poll_votos (poll_id, opcao_id, usuario_id) VALUES (?, ?, ?)", [opcao.poll_id, opcao.id, ids[votante]]);
+      }
+    }
+
+    const mencoes = [...new Set((post.texto.match(/@([a-zA-Z0-9._-]{3,30})/g) || []).map((m) => m.slice(1)))];
+    for (const handle of mencoes) {
+      if (!ids[handle]) continue;
+      await conn.query(
+        `INSERT INTO notificacoes (destinatario_id, ator_id, tipo, post_id) VALUES (?, ?, 'mencao', ?)`,
+        [ids[handle], ids[post.user], post._id]
+      );
+    }
   }
 
   for (const [a, b] of FOLLOWS) {

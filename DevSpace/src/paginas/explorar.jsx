@@ -4,6 +4,7 @@ import "../style/explorar.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 import { fetchPosts, fetchUsers } from "../api";
 import PageHeader from "../components/PageHeader";
+import { placeholderAvatarUri, usableFotoPerfil } from "../utils/avatar";
 
 const GROUPS = [
   {
@@ -73,7 +74,7 @@ const KNOWN_PROFILES = [
 ];
 
 function userAvatar(handle) {
-  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle)}`;
+  return placeholderAvatarUri(handle || "usuario");
 }
 
 function normalizeHandle(value) {
@@ -184,7 +185,7 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
         deduped.set(handle, {
           ...profile,
           handle,
-          fotoPerfil: profile.fotoPerfil || userAvatar(handle),
+          fotoPerfil: usableFotoPerfil(profile.fotoPerfil) || userAvatar(handle),
           fotoCapa: profile.fotoCapa || fakeCover(handle),
         });
       }
@@ -304,12 +305,12 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                       >
                         <div
                           className="profile-mini-cover"
-                          style={{ backgroundImage: `url(${profile.fotoCapa || fakeCover(profile.handle)})` }}
+                          style={{ backgroundImage: `url("${profile.fotoCapa || fakeCover(profile.handle)}")` }}
                         />
                         <div className="profile-mini-body">
                           <span
                             className="profile-mini-avatar"
-                            style={{ backgroundImage: `url(${profile.fotoPerfil || userAvatar(profile.handle)})` }}
+                            style={{ backgroundImage: `url("${usableFotoPerfil(profile.fotoPerfil) || userAvatar(profile.handle)}")` }}
                           />
                           <strong>{profile.username || "Usuário"}</strong>
                           <small>@{profile.handle}</small>
@@ -355,7 +356,7 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                     <div className="group-feed-head">
                       <div
                         className="group-feed-avatar"
-                        style={{ backgroundImage: `url(${post.fotoPerfil || userAvatar(post.handle || post.username)})` }}
+                        style={{ backgroundImage: `url("${usableFotoPerfil(post.fotoPerfil) || userAvatar(post.handle || post.username)}")` }}
                       />
                       <button
                         className="group-post-user"
@@ -400,7 +401,7 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                         <button
                           type="button"
                           className="for-you-avatar"
-                          style={{ backgroundImage: `url(${post.fotoPerfil || userAvatar(handle)})` }}
+                          style={{ backgroundImage: `url("${usableFotoPerfil(post.fotoPerfil) || userAvatar(handle)}")` }}
                           onClick={() => onOpenUserProfile?.({ username: user, handle, email: post.email })}
                           aria-label={`Abrir perfil de ${user}`}
                         />
@@ -443,12 +444,12 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                       >
                         <div
                           className="profile-mini-cover"
-                          style={{ backgroundImage: `url(${profile.fotoCapa || fakeCover(handle)})` }}
+                          style={{ backgroundImage: `url("${profile.fotoCapa || fakeCover(handle)}")` }}
                         />
                         <div className="profile-mini-body">
                           <span
                             className="profile-mini-avatar"
-                            style={{ backgroundImage: `url(${profile.fotoPerfil || userAvatar(handle)})` }}
+                            style={{ backgroundImage: `url("${usableFotoPerfil(profile.fotoPerfil) || userAvatar(handle)}")` }}
                           />
                           <strong>{profile.username || "Usuário"}</strong>
                           <small>@{handle}</small>

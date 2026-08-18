@@ -12,6 +12,7 @@ import Configuracoes from "./paginas/Configuracoes";
 import NaoEncontrada from "./paginas/NaoEncontrada";
 import PostModal from "./components/PostModal";
 import { readSessionUser } from "./utils/storage";
+import { placeholderAvatarUri, usableFotoPerfil } from "./utils/avatar";
 import { clearAuthToken } from "./api";
 import {
   isSameUser,
@@ -36,7 +37,7 @@ import {
 } from "./api";
 
 function fakeAvatar(handle) {
-  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle || "usuario")}`;
+  return placeholderAvatarUri(handle || "usuario");
 }
 
 function fakeCover(handle) {
@@ -255,7 +256,7 @@ function createCommunityUser(user) {
     senha: "123456",
     criadoEm: new Date().toISOString(),
     bio: user.bio || "Perfil da comunidade DevSpace.",
-    fotoPerfil: user.fotoPerfil || fakeAvatar(handle),
+    fotoPerfil: usableFotoPerfil(user.fotoPerfil) || fakeAvatar(handle),
     fotoCapa: user.fotoCapa || fakeCover(handle),
     estrelas: 0,
     avaliacao: 0,
@@ -629,7 +630,7 @@ function App() {
         return {
           ...u,
           handle,
-          fotoPerfil: u.fotoPerfil || fakeAvatar(handle),
+          fotoPerfil: usableFotoPerfil(u.fotoPerfil) || fakeAvatar(handle),
           fotoCapa: u.fotoCapa || fakeCover(handle),
         };
       });
@@ -654,7 +655,7 @@ function App() {
             senha: "123456",
             criadoEm: post.criadoEm || new Date().toISOString(),
             bio: "Perfil da comunidade DevSpace.",
-            fotoPerfil: post.fotoPerfil || fakeAvatar(handle),
+            fotoPerfil: usableFotoPerfil(post.fotoPerfil) || fakeAvatar(handle),
             fotoCapa: fakeCover(handle),
             estrelas: 0,
             avaliacao: 0,
@@ -683,7 +684,7 @@ function App() {
               senha: "123456",
               criadoEm: comment.criadoEm || new Date().toISOString(),
               bio: "Pessoa da comunidade DevSpace.",
-              fotoPerfil: comment.fotoPerfil || fakeAvatar(cHandle),
+              fotoPerfil: usableFotoPerfil(comment.fotoPerfil) || fakeAvatar(cHandle),
               fotoCapa: fakeCover(cHandle),
               estrelas: 0,
               avaliacao: 0,
@@ -707,7 +708,7 @@ function App() {
         return {
           ...u,
           handle,
-          fotoPerfil: u.fotoPerfil || fakeAvatar(handle),
+          fotoPerfil: usableFotoPerfil(u.fotoPerfil) || fakeAvatar(handle),
           fotoCapa: u.fotoCapa || fakeCover(handle),
         };
       });

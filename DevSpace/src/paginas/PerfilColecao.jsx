@@ -7,7 +7,7 @@ import PageHeader from "../components/PageHeader";
 import { PostContent } from "../components/CodeBlock";
 import { DsIcon } from "../components/icons";
 import { Icons } from "../components/iconKit";
-import { avatarInitial, avatarStyle } from "../utils/avatar";
+import { avatarInitial, avatarStyle, placeholderAvatarUri } from "../utils/avatar";
 import { fetchMyCollection, addComment, deleteComment, likeComment, likePost, sharePost, bookmarkPost } from "../api";
 import {
   recordUserLikeProgress,
@@ -429,7 +429,7 @@ export default function PerfilColecao({
               <div
                 className="post-card-avatar"
                 style={{
-                  backgroundImage: `url(${selectedPost.fotoPerfil || `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(selectedPost.handle || selectedPost.username || "usuario")}`})`,
+                  backgroundImage: `url("${selectedPost.fotoPerfil || placeholderAvatarUri(selectedPost.handle || selectedPost.username || "usuario")}")`,
                 }}
                 onClick={() => {
                   setSelectedPost(null);
@@ -506,7 +506,7 @@ export default function PerfilColecao({
             <div className="comments-popup-head">
               <div
                 className="post-card-avatar"
-                style={{ backgroundImage: selectedPost.fotoPerfil ? `url(${selectedPost.fotoPerfil})` : "none" }}
+                style={{ backgroundImage: selectedPost.fotoPerfil ? `url("${selectedPost.fotoPerfil}")` : "none" }}
               />
               <div>
                 <small className="post-card-handle">@{selectedPost.handle || selectedPost.username}</small>

@@ -150,7 +150,7 @@ export default function PostComments({
           <div
             className="comment-avatar"
             style={{
-              backgroundImage: comment.fotoPerfil ? `url(${comment.fotoPerfil})` : "none",
+              backgroundImage: comment.fotoPerfil ? `url("${comment.fotoPerfil}")` : "none",
             }}
             onClick={(e) => {
               e.stopPropagation();

@@ -13,6 +13,7 @@ import {
 } from "../utils/chat";
 import { resizeImageForChat } from "../utils/image";
 import { carregarImagem } from "../utils/imageStore";
+import { placeholderAvatarUri, usableFotoPerfil } from "../utils/avatar";
 import { fetchConversas, getOrCreateConversaApi, enviarMensagemApi, markConversaAsRead } from "../api";
 
 // Conversas com "bots" (perfis de demonstracao, sem conta real no backend)
@@ -22,9 +23,9 @@ function isBotConversaId(id) {
   return typeof id === "string";
 }
 
-// Gera um avatar padrao (via DiceBear) quando o usuario nao tem foto de perfil
+// Gera um avatar padrao localmente (gradiente + inicial) quando o usuario nao tem foto de perfil
 function fallbackAvatar(seed) {
-  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed || "usuario")}`;
+  return placeholderAvatarUri(seed || "usuario");
 }
 
 // Lista fixa de emojis exibida no seletor do input de mensagem
@@ -382,7 +383,7 @@ export default function Chat({
                 <div className="chat-avatar-wrap">
                   <div
                     className="chat-avatar"
-                    style={{ backgroundImage: `url(${outro.fotoPerfil || fallbackAvatar(outro.handle)})` }}
+                    style={{ backgroundImage: `url("${usableFotoPerfil(outro.fotoPerfil) || fallbackAvatar(outro.handle)}")` }}
                   />
                   {naoLidas > 0 && (
                     <span className="sidebar-notif-badge chat-avatar-badge">
@@ -446,7 +447,7 @@ export default function Chat({
                   <div
                     className="chat-avatar"
                     style={{
-                      backgroundImage: `url(${outroParticipante.fotoPerfil || fallbackAvatar(outroParticipante.handle)})`,
+                      backgroundImage: `url("${usableFotoPerfil(outroParticipante.fotoPerfil) || fallbackAvatar(outroParticipante.handle)}")`,
                     }}
                   />
                   <strong>{outroParticipante.username}</strong>

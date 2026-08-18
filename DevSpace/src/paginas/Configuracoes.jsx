@@ -6,9 +6,10 @@ import { updateUser as updateUserRequest } from "../api";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
 import PageHeader from "../components/PageHeader";
 import ProfileForm from "../components/ProfileForm";
+import { placeholderAvatarUri, usableFotoPerfil } from "../utils/avatar";
 
 function fallbackAvatar(seed) {
-  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed || "usuario")}`;
+  return placeholderAvatarUri(seed || "usuario");
 }
 
 function getUsuarioLogadoDoStorage() {
@@ -268,7 +269,7 @@ export default function Configuracoes({
                   <div
                     className="notif-row-avatar"
                     style={{
-                      backgroundImage: `url(${user.fotoPerfil || fallbackAvatar(user.handle)})`,
+                      backgroundImage: `url("${usableFotoPerfil(user.fotoPerfil) || fallbackAvatar(user.handle)}")`,
                     }}
                   />
                   <div className="notif-row-info">

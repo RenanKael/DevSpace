@@ -4,7 +4,7 @@ import Topbar from "../components/Topbar";
 import PostComments from "../components/PostComments";
 import { useOverlayClose } from "../hooks/useOverlayClose";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
-import { avatarInitial, avatarStyle } from "../utils/avatar";
+import { avatarInitial, avatarStyle, placeholderAvatarUri, usableFotoPerfil } from "../utils/avatar";
 import {
   fetchPosts,
   fetchUsers,
@@ -165,7 +165,7 @@ const SUGGESTED_POOL_BY_HANDLE = new Map(
 );
 
 function fakeAvatar(handle) {
-  return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(handle)}`;
+  return placeholderAvatarUri(handle || "usuario");
 }
 
 function fakeCover(handle) {
@@ -382,7 +382,14 @@ function hydratePostsForDisplay(posts, users) {
         username: commentProfile?.username || comment.username || "Usuário",
         handle: commentProfile?.handle || comment.handle || commentHandle,
         email: commentProfile?.email || comment.email || "",
-        fotoPerfil: commentProfile?.fotoPerfil || comment.fotoPerfil || (commentIsFake ? fakeAvatar(commentHandle) : ""),
+        // post/comment.fotoPerfil vem do backend, ja com o avatar_url atual do
+        // autor (join feito na hora, sempre em dia). postProfile vem de uma
+        // lista de usuarios cacheada no localStorage, que pode estar
+        // desatualizada de forma diferente em cada navegador -- por isso ela
+        // so entra como fallback, nunca sobrescrevendo um valor ja vindo do
+        // backend (senao o mesmo post mostrava avatares diferentes em
+        // navegadores/contas diferentes).
+        fotoPerfil: comment.fotoPerfil || commentProfile?.fotoPerfil || (commentIsFake ? fakeAvatar(commentHandle) : ""),
       };
     });
 
@@ -391,7 +398,7 @@ function hydratePostsForDisplay(posts, users) {
       username: postProfile?.username || post.username || "Usuário",
       handle: postProfile?.handle || post.handle || postHandle,
       email: postProfile?.email || post.email || "",
-      fotoPerfil: postProfile?.fotoPerfil || post.fotoPerfil || (isFakePost ? fakeAvatar(postHandle) : ""),
+      fotoPerfil: post.fotoPerfil || postProfile?.fotoPerfil || (isFakePost ? fakeAvatar(postHandle) : ""),
       commentsList,
       comments: commentsList.length,
     };
@@ -1089,7 +1096,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
             username: commentProfile?.username || comment?.username,
             handle: commentProfile?.handle || handle,
             email: commentProfile?.email || comment?.email,
-            fotoPerfil: commentProfile?.fotoPerfil || comment?.fotoPerfil || (commentIsFake ? fakeAvatar(handle) : ""),
+            fotoPerfil: comment?.fotoPerfil || commentProfile?.fotoPerfil || (commentIsFake ? fakeAvatar(handle) : ""),
           };
         });
         const postHandle = normalizeHandle(post.handle || post.username);
@@ -1103,7 +1110,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
           username: seedDef?.username || postProfile?.username || post.username,
           handle: postProfile?.handle || post.handle,
           email: postProfile?.email || post.email,
-          fotoPerfil: postProfile?.fotoPerfil || post.fotoPerfil || (isLegacyFake ? fakeAvatar(postHandle) : ""),
+          fotoPerfil: post.fotoPerfil || postProfile?.fotoPerfil || (isLegacyFake ? fakeAvatar(postHandle) : ""),
           imagem: isLegacyFake ? (fakeCodeImage || "") : post.imagem,
           texto: seedDef?.texto ?? post.texto,
           commentsList,
@@ -1117,12 +1124,12 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
           const commentProfile = isFakeIdentity(comment) ? null : findUserProfile(comment, usersList);
           return {
             ...comment,
-            fotoPerfil: commentProfile?.fotoPerfil || comment.fotoPerfil,
+            fotoPerfil: comment.fotoPerfil || commentProfile?.fotoPerfil,
           };
         });
         postsParaSalvar.push({
           ...normalizedPost,
-          fotoPerfil: postProfile?.fotoPerfil || normalizedPost.fotoPerfil,
+          fotoPerfil: normalizedPost.fotoPerfil,
           commentsList: storageComments,
         });
         return normalizedPost;
@@ -1450,7 +1457,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
           ...profile,
           handle,
           username: pool?.username || profile.username,
-          fotoPerfil: profile.fotoPerfil || fakeAvatar(handle),
+          fotoPerfil: usableFotoPerfil(profile.fotoPerfil) || fakeAvatar(handle),
           bio: pool?.bio || profile.bio || "Ainda sem bio.",
         });
       }
@@ -1758,12 +1765,12 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                 >
                   <div
                     className="profile-search-cover"
-                    style={{ backgroundImage: u.fotoCapa ? `url(${u.fotoCapa})` : "none" }}
+                    style={{ backgroundImage: u.fotoCapa ? `url("${u.fotoCapa}")` : "none" }}
                   />
                   <div className="profile-search-body">
                     <div
                       className="profile-search-avatar"
-                      style={{ backgroundImage: u.fotoPerfil ? `url(${u.fotoPerfil})` : "none" }}
+                      style={{ backgroundImage: u.fotoPerfil ? `url("${u.fotoPerfil}")` : "none" }}
                     />
                     <div className="profile-search-meta">
                       <strong>{u.username}</strong>
@@ -1965,7 +1972,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
               <div
                 className="post-card-avatar"
                 style={{
-                  backgroundImage: selectedPostData.fotoPerfil ? `url(${selectedPostData.fotoPerfil})` : "none",
+                  backgroundImage: selectedPostData.fotoPerfil ? `url("${selectedPostData.fotoPerfil}")` : "none",
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -2070,7 +2077,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
               <div
                 className="post-card-avatar"
                 style={{
-                  backgroundImage: commentsPost.fotoPerfil ? `url(${commentsPost.fotoPerfil})` : "none",
+                  backgroundImage: commentsPost.fotoPerfil ? `url("${commentsPost.fotoPerfil}")` : "none",
                 }}
               />
               <div>

@@ -75,7 +75,7 @@ export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true,
           </div>
 
           <div className="avatar" style={{
-            backgroundImage: `url(${usuario.fotoPerfil || semFoto})`,
+            backgroundImage: `url("${usuario.fotoPerfil || semFoto}")`,
             backgroundPosition: usuario.posPerfil ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%` : 'center',
             backgroundSize: 'cover'
           }}></div>
