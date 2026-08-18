@@ -24,6 +24,7 @@ import {
   Smile,
   Star,
   User,
+  Wrench,
   X,
 } from "lucide-react";
 
@@ -62,4 +63,5 @@ export const Icons = {
   Star,
   Copy,
   Code2,
+  Wrench,
 };

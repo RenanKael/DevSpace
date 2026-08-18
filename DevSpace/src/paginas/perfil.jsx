@@ -1142,9 +1142,11 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                 {profileMenuOpen && (
                   <div className="perfil-settings-menu">
                     <button type="button" onClick={() => openProfileCollection("curtidos")}>
+                      <DsIcon icon={Icons.Heart} size="small" />
                       Curtidos
                     </button>
                     <button type="button" onClick={() => openProfileCollection("salvos")}>
+                      <DsIcon icon={Icons.Bookmark} size="small" />
                       Posts salvos
                     </button>
                     <button
@@ -1154,14 +1156,17 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                         irConfiguracoes?.();
                       }}
                     >
+                      <DsIcon icon={Icons.Settings} size="small" />
                       Configurações
                     </button>
                     {isAdmin && (
                       <button type="button" onClick={() => { setAdminMode(true); setProfileMenuOpen(false); }}>
+                        <DsIcon icon={Icons.Wrench} size="small" />
                         Admin Tools
                       </button>
                     )}
                     <button type="button" className="danger" onClick={logout}>
+                      <DsIcon icon={Icons.LogOut} size="small" />
                       Sair da conta
                     </button>
                   </div>
@@ -1292,6 +1297,10 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                       <button type="button" onClick={() => openProfileCollection("salvos")}>
                         <DsIcon icon={Icons.Bookmark} size="small" />
                         Posts salvos
+                      </button>
+                      <button type="button" onClick={() => openProfileCollection("republicados")}>
+                        <DsIcon icon={Icons.Repeat2} size="small" />
+                        Republicados
                       </button>
                     </div>
                   )}
