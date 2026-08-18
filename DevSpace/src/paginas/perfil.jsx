@@ -29,6 +29,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
   const [editingText, setEditingText] = useState("");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [perfilOpcoesAberto, setPerfilOpcoesAberto] = useState(false);
+  const [colecoesMenuOpen, setColecoesMenuOpen] = useState(false);
   const [postMenuPosition, setPostMenuPosition] = useState(null);
   const [adminMode, setAdminMode] = useState(false);
   const [adminOverrideStars, setAdminOverrideStars] = useState(null);
@@ -830,6 +831,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
   function openProfileCollection(tipo) {
     if (!isOwnProfile) return;
     setProfileMenuOpen(false);
+    setColecoesMenuOpen(false);
     onOpenProfileCollection?.(tipo);
   }
 
@@ -1145,9 +1147,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                     <button type="button" onClick={() => openProfileCollection("salvos")}>
                       Posts salvos
                     </button>
-                    <button type="button" onClick={() => openProfileCollection("republicados")}>
-                      Republicados
-                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -1277,14 +1276,14 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                   <button
                     type="button"
                     className="perfil-settings-btn"
-                    onClick={() => (isOwnProfile ? setProfileMenuOpen((open) => !open) : setPerfilOpcoesAberto((open) => !open))}
+                    onClick={() => (isOwnProfile ? setColecoesMenuOpen((open) => !open) : setPerfilOpcoesAberto((open) => !open))}
                     aria-label="Mais opções"
                     title="Mais opções"
-                    aria-expanded={isOwnProfile ? profileMenuOpen : perfilOpcoesAberto}
+                    aria-expanded={isOwnProfile ? colecoesMenuOpen : perfilOpcoesAberto}
                   >
                     ⋯
                   </button>
-                  {isOwnProfile && profileMenuOpen && (
+                  {isOwnProfile && colecoesMenuOpen && (
                     <div className="perfil-settings-menu">
                       <button type="button" onClick={() => openProfileCollection("curtidos")}>
                         <DsIcon icon={Icons.Heart} size="small" />
@@ -1294,28 +1293,6 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
                         <DsIcon icon={Icons.Bookmark} size="small" />
                         Posts salvos
                       </button>
-                      <button type="button" onClick={() => openProfileCollection("republicados")}>
-                        <DsIcon icon={Icons.Repeat2} size="small" />
-                        Republicados
-                      </button>
-                      <div className="perfil-settings-sep" role="separator" />
-                      <button type="button" onClick={() => { setProfileMenuOpen(false); irConfiguracoes?.(); }}>
-                        <DsIcon icon={Icons.Settings} size="small" />
-                        Configurações
-                      </button>
-                      <div className="perfil-settings-sep" role="separator" />
-                      <button type="button" className="danger" onClick={logout}>
-                        <DsIcon icon={Icons.LogOut} size="small" />
-                        Sair da conta
-                      </button>
-                      {isAdmin && (
-                        <>
-                          <div className="perfil-settings-sep" role="separator" />
-                          <button type="button" onClick={() => { setAdminMode(true); setProfileMenuOpen(false); }}>
-                            Ferramentas de admin
-                          </button>
-                        </>
-                      )}
                     </div>
                   )}
                   {!isOwnProfile && perfilOpcoesAberto && (
