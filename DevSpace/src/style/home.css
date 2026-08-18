@@ -1347,6 +1347,11 @@ body {
 .comments-popup {
   position: relative;
   width: min(620px, 94vw);
+  /* max-height (nao height fixo): posts com poucos comentarios continuam
+     compactos, do tamanho do conteudo. So quando o conteudo passa desse
+     teto e que o flex (list flex:1 + min-height:0, propagado por toda a
+     cadeia de wrappers ate aqui) entra em acao e a lista vira scrollavel,
+     sem nunca espremer o formulario de comentar pra fora do popup. */
   max-height: min(760px, calc(100vh - 48px));
   background: #111;
   border: 1px solid #25282e;
@@ -1364,6 +1369,7 @@ body {
   gap: 12px;
   padding-right: 46px;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .comments-popup-head > div:last-child {
@@ -1376,11 +1382,24 @@ body {
   color: #e6e6e6;
   line-height: 1.45;
   overflow-wrap: anywhere;
+  /* Limite proprio + scroll: um post com texto/codigo longo nao pode
+     comer o espaco reservado pra lista de comentarios e pro formulario. */
+  max-height: 25vh;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .comments-popup .post-comments-section {
   max-height: none;
   overflow: visible;
+  /* Esse wrapper (do componente PostComments) fica entre o popup e a
+     lista -- sem ele tambem virar flex:1/min-height:0, o "espaco que
+     sobra" nao se propaga da altura fixa do popup ate a lista, e ela
+     volta a crescer pro tamanho natural do conteudo. */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .comments-popup .post-comments-container {
@@ -1391,7 +1410,12 @@ body {
 }
 
 .comments-popup .post-comments-list {
-  max-height: min(480px, 58vh);
+  /* Sem max-height fixo aqui de proposito: com o popup em altura fixa e
+     .post-comments-container como flex:1, a lista (tambem flex:1 dentro
+     do container) preenche exatamente o espaco que sobra depois do
+     cabecalho, do texto do post e do formulario -- nunca mais nem menos,
+     entao o formulario nunca fica espremido pra fora do popup. */
+  max-height: none;
   margin-bottom: 10px;
 }
 
