@@ -46,7 +46,7 @@ function clampSuggestionsWidth(value) {
 }
 
 const FAKE_COMMENT_POOL = [
-  { username: "Maria Silva", handle: "mariasilva", texto: "Curti muito essa ideia, ficou bem legal." },
+  { username: "Groot", handle: "groot01", texto: "Eu sou o Groot." },
   { username: "Carlos Devs", handle: "carlosdevs", texto: "Testei aqui e funcionou direitinho." },
   { username: "Ana Tech", handle: "anatech", texto: "Boa! Depois posta a evolução disso." },
   { username: "Pedro Code", handle: "pedrocode", texto: "Visual limpo e com boa leitura." },
@@ -635,7 +635,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
       : !!activeActions[postId]?.[action];
     const nextValue = !isActive;
     // Sempre grava a chave pelo handle (bate com o que o backend devolve em
-    // likedBy/repostedBy/savedBy). Usar userKeys[0] alternava entre email e
+    // likedBy/repostedBy/savedBy). Usar userKeys0 alternava entre email e
     // handle a cada toggle, deixando o botao dessincronizado ate recarregar.
     const ownerKey = normalizeActionKey(usuario?.handle || usuario?.username || usuario?.email);
 
