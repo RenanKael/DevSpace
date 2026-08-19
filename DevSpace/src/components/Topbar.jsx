@@ -5,6 +5,7 @@ import semFoto from "../assets/IMGS/NoPerfil.png";
 import { logoutApi } from "../api";
 import { DsIcon } from "./icons";
 import { Icons } from "./iconKit";
+import { usableFotoPerfil } from "../utils/avatar";
 
 export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true, onOpenUserProfile, onOpenSettings, onLogout, onLogin }) {
   const [query, setQuery] = useState("");
@@ -75,7 +76,7 @@ export default function Topbar({ visible, usuario, onSearch, sidebarOpen = true,
           </div>
 
           <div className="avatar" style={{
-            backgroundImage: `url("${usuario.fotoPerfil || semFoto}")`,
+            backgroundImage: `url("${usableFotoPerfil(usuario.fotoPerfil) || semFoto}")`,
             backgroundPosition: usuario.posPerfil ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%` : 'center',
             backgroundSize: 'cover'
           }}></div>

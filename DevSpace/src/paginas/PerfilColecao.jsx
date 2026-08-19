@@ -7,7 +7,7 @@ import PageHeader from "../components/PageHeader";
 import { PostContent } from "../components/CodeBlock";
 import { DsIcon } from "../components/icons";
 import { Icons } from "../components/iconKit";
-import { avatarInitial, avatarStyle, placeholderAvatarUri } from "../utils/avatar";
+import { avatarInitial, avatarStyle, placeholderAvatarUri, usableFotoPerfil } from "../utils/avatar";
 import { fetchMyCollection, addComment, deleteComment, likeComment, likePost, sharePost, bookmarkPost } from "../api";
 import {
   recordUserLikeProgress,
@@ -349,13 +349,13 @@ export default function PerfilColecao({
                   <div className="post-card-header">
                     <div
                       className="post-card-avatar"
-                      style={avatarStyle(post.fotoPerfil, post.handle || post.username)}
+                      style={avatarStyle(usableFotoPerfil(post.fotoPerfil), post.handle || post.username)}
                       onClick={(e) => {
                         e.stopPropagation();
                         onOpenUserProfile?.(post);
                       }}
                     >
-                      {!post.fotoPerfil && avatarInitial(post.username || post.handle)}
+                      {!usableFotoPerfil(post.fotoPerfil) && avatarInitial(post.username || post.handle)}
                     </div>
                     <div className="post-card-user">
                       <strong onClick={(e) => { e.stopPropagation(); onOpenUserProfile?.(post); }}>{post.username || "Usuário"}</strong>
@@ -429,7 +429,7 @@ export default function PerfilColecao({
               <div
                 className="post-card-avatar"
                 style={{
-                  backgroundImage: `url("${selectedPost.fotoPerfil || placeholderAvatarUri(selectedPost.handle || selectedPost.username || "usuario")}")`,
+                  backgroundImage: `url("${usableFotoPerfil(selectedPost.fotoPerfil) || placeholderAvatarUri(selectedPost.handle || selectedPost.username || "usuario")}")`,
                 }}
                 onClick={() => {
                   setSelectedPost(null);
@@ -506,7 +506,7 @@ export default function PerfilColecao({
             <div className="comments-popup-head">
               <div
                 className="post-card-avatar"
-                style={{ backgroundImage: selectedPost.fotoPerfil ? `url("${selectedPost.fotoPerfil}")` : "none" }}
+                style={{ backgroundImage: usableFotoPerfil(selectedPost.fotoPerfil) ? `url("${usableFotoPerfil(selectedPost.fotoPerfil)}")` : "none" }}
               />
               <div>
                 <small className="post-card-handle">@{selectedPost.handle || selectedPost.username}</small>

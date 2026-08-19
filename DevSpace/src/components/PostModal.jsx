@@ -5,7 +5,7 @@ import { usePostImageEditor } from "../hooks/usePostImageEditor";
 import { TAG_OPTIONS, slugifyHashtag } from "../utils/postTags";
 import "../style/home.css";
 import { createPost, uploadFile } from "../api";
-import { avatarInitial, avatarStyle } from "../utils/avatar";
+import { avatarInitial, avatarStyle, usableFotoPerfil } from "../utils/avatar";
 import { languageLabel, wrapCodeFence } from "../utils/codeBlock";
 import { DsIcon } from "./icons";
 import { Icons } from "./iconKit";
@@ -339,16 +339,16 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
             <div
               className="post-modal-avatar"
               style={
-                usuario?.fotoPerfil && usuario?.posPerfil
+                usableFotoPerfil(usuario?.fotoPerfil) && usuario?.posPerfil
                   ? {
-                      backgroundImage: `url("${usuario.fotoPerfil}")`,
+                      backgroundImage: `url("${usableFotoPerfil(usuario.fotoPerfil)}")`,
                       backgroundSize: "cover",
                       backgroundPosition: `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%`,
                     }
-                  : avatarStyle(usuario?.fotoPerfil, usuario?.handle || usuario?.username)
+                  : avatarStyle(usableFotoPerfil(usuario?.fotoPerfil), usuario?.handle || usuario?.username)
               }
             >
-              {!usuario?.fotoPerfil && avatarInitial(usuario?.username || usuario?.handle)}
+              {!usableFotoPerfil(usuario?.fotoPerfil) && avatarInitial(usuario?.username || usuario?.handle)}
             </div>
 
             <div className="post-modal-user">
@@ -641,7 +641,7 @@ export default function PostModal({ open, onClose, usuario, onPostSaved }) {
               <div
                 className="post-modal-avatar"
                 style={{
-                  backgroundImage: usuario?.fotoPerfil ? `url("${usuario.fotoPerfil}")` : "none",
+                  backgroundImage: usableFotoPerfil(usuario?.fotoPerfil) ? `url("${usableFotoPerfil(usuario.fotoPerfil)}")` : "none",
                   backgroundSize: "cover",
                   backgroundPosition: usuario?.posPerfil
                     ? `${usuario.posPerfil.x}% ${usuario.posPerfil.y}%`

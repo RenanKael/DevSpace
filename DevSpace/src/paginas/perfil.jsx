@@ -110,17 +110,21 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     const key = imageBackupKey(user);
     if (!key || (!user?.fotoPerfil && !user?.fotoCapa)) return;
 
-    const backups = JSON.parse(localStorage.getItem("profileImageBackups")) || {};
-    backups[key] = {
-      ...(backups[key] || {}),
-      fotoPerfil: user.fotoPerfil || backups[key]?.fotoPerfil || "",
-      fotoCapa: user.fotoCapa || backups[key]?.fotoCapa || "",
-      posPerfil: user.posPerfil || backups[key]?.posPerfil,
-      posCapa: user.posCapa || backups[key]?.posCapa,
-      zoomPerfil: user.zoomPerfil || backups[key]?.zoomPerfil,
-      zoomCapa: user.zoomCapa || backups[key]?.zoomCapa,
-    };
-    localStorage.setItem("profileImageBackups", JSON.stringify(backups));
+    try {
+      const backups = JSON.parse(localStorage.getItem("profileImageBackups")) || {};
+      backups[key] = {
+        ...(backups[key] || {}),
+        fotoPerfil: user.fotoPerfil || backups[key]?.fotoPerfil || "",
+        fotoCapa: user.fotoCapa || backups[key]?.fotoCapa || "",
+        posPerfil: user.posPerfil || backups[key]?.posPerfil,
+        posCapa: user.posCapa || backups[key]?.posCapa,
+        zoomPerfil: user.zoomPerfil || backups[key]?.zoomPerfil,
+        zoomCapa: user.zoomCapa || backups[key]?.zoomCapa,
+      };
+      localStorage.setItem("profileImageBackups", JSON.stringify(backups));
+    } catch {
+      // Backup e so um cache auxiliar (armazenamento cheio nao pode travar o salvamento real).
+    }
   }
 
   function notifyPostsUpdated() {
@@ -221,6 +225,31 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
       setPosCapa(normalized.posCapa || { x: 50, y: 50 });
       setZoomPerfil(Number(normalized.zoomPerfil || 100));
       setZoomCapa(Number(normalized.zoomCapa || 100));
+
+      // A tela ja pintou instantaneamente com o cache local (rapido), mas
+      // esse cache pode estar desatualizado -- por exemplo se uma gravacao
+      // anterior no localStorage falhou (armazenamento cheio) ou se a foto
+      // foi trocada em outro dispositivo/aba. Revalida em segundo plano com
+      // o backend (fonte da verdade) e atualiza so se algo realmente mudou,
+      // sem travar a exibicao inicial.
+      if (normalized.id) {
+        let cancelado = false;
+        fetchUser(normalized.handle)
+          .then((remote) => {
+            if (cancelado || !remote) return;
+            const remoteFotoPerfil = usableFotoPerfil(remote.fotoPerfil);
+            const remoteFotoCapa = remote.fotoCapa || "";
+            if (remoteFotoPerfil === (normalized.fotoPerfil || "") && remoteFotoCapa === (normalized.fotoCapa || "")) {
+              return;
+            }
+            setUsuario((prev) => (prev && prev.id === normalized.id ? { ...prev, fotoPerfil: remoteFotoPerfil || prev.fotoPerfil, fotoCapa: remoteFotoCapa || prev.fotoCapa } : prev));
+            setForm((prev) => (prev && prev.id === normalized.id ? { ...prev, fotoPerfil: remoteFotoPerfil || prev.fotoPerfil, fotoCapa: remoteFotoCapa || prev.fotoCapa } : prev));
+          })
+          .catch(() => {});
+        return () => {
+          cancelado = true;
+        };
+      }
     }
   }, [viewedUser, refreshFeed]);
 
@@ -568,13 +597,34 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
       u.email === usuario.email ? atualizado : u
     );
 
-    localStorage.setItem("usuarios", JSON.stringify(usuarios));
-    if (localStorage.getItem("usuarioLogado")) {
-      localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+    // Fotos em base64 (ate ~900KB cada) se acumulam em varias chaves do
+    // localStorage e podem estourar a cota do navegador. Sem esse try/catch,
+    // um setItem que estoura lanca e aborta o resto da funcao -- inclusive os
+    // setUsuario/setForm logo abaixo -- entao a foto que acabou de ser salva
+    // no backend nunca chega a aparecer aqui, e some de vez ao atualizar a
+    // pagina. Se a gravacao falhar, libera espaco descartando o backup (dado
+    // descartavel, ja recriado por saveProfileImageBackup) e tenta de novo.
+    function persistirLocal() {
+      localStorage.setItem("usuarios", JSON.stringify(usuarios));
+      if (localStorage.getItem("usuarioLogado")) {
+        localStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+      }
+      if (sessionStorage.getItem("usuarioLogado")) {
+        sessionStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+      }
     }
-    if (sessionStorage.getItem("usuarioLogado")) {
-      sessionStorage.setItem("usuarioLogado", JSON.stringify(atualizado));
+
+    try {
+      persistirLocal();
+    } catch (_error) {
+      try {
+        localStorage.removeItem("profileImageBackups");
+        persistirLocal();
+      } catch (retryError) {
+        console.warn("Não foi possível salvar o perfil localmente (armazenamento cheio):", retryError);
+      }
     }
+
     sincronizarReferenciasDoUsuario(usuario, atualizado);
 
     setUsuarioLogado(atualizado);
@@ -1390,8 +1440,8 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
             ) : (
               posts.map((post) => (
                 <div key={post.id} className="perfil-post-card">
-                  <div className="perfil-post-avatar-card" style={avatarStyle(post.fotoPerfil || usuario.fotoPerfil, post.handle || post.username)}>
-                    {!(post.fotoPerfil || usuario.fotoPerfil) && avatarInitial(post.username || post.handle)}
+                  <div className="perfil-post-avatar-card" style={avatarStyle(usableFotoPerfil(post.fotoPerfil) || usableFotoPerfil(usuario.fotoPerfil), post.handle || post.username)}>
+                    {!(usableFotoPerfil(post.fotoPerfil) || usableFotoPerfil(usuario.fotoPerfil)) && avatarInitial(post.username || post.handle)}
                   </div>
                   <div className="perfil-post-body">
                     <div className="perfil-post-header-row">

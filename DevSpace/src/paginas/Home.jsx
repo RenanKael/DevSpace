@@ -1770,7 +1770,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                   <div className="profile-search-body">
                     <div
                       className="profile-search-avatar"
-                      style={{ backgroundImage: u.fotoPerfil ? `url("${u.fotoPerfil}")` : "none" }}
+                      style={{ backgroundImage: usableFotoPerfil(u.fotoPerfil) ? `url("${usableFotoPerfil(u.fotoPerfil)}")` : "none" }}
                     />
                     <div className="profile-search-meta">
                       <strong>{u.username}</strong>
@@ -1794,13 +1794,13 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
               <div className="post-card-header">
                 <div
                   className="post-card-avatar"
-                  style={avatarStyle(post.fotoPerfil, post.handle || post.username)}
+                  style={avatarStyle(usableFotoPerfil(post.fotoPerfil), post.handle || post.username)}
                   onClick={(e) => {
                     e.stopPropagation();
                     onOpenUserProfile?.(post);
                   }}
                 >
-                  {!post.fotoPerfil && avatarInitial(post.username || post.handle)}
+                  {!usableFotoPerfil(post.fotoPerfil) && avatarInitial(post.username || post.handle)}
                 </div>
                 <div className="post-card-user">
                   <strong
@@ -1926,11 +1926,11 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
                   <button
                     type="button"
                     className="suggestion-avatar"
-                    style={avatarStyle(profile.fotoPerfil, profile.handle || profile.username)}
+                    style={avatarStyle(usableFotoPerfil(profile.fotoPerfil), profile.handle || profile.username)}
                     onClick={() => onOpenUserProfile?.(profile)}
                     aria-label={`Abrir perfil de ${profile.username}`}
                   >
-                    {!profile.fotoPerfil && avatarInitial(profile.username || profile.handle)}
+                    {!usableFotoPerfil(profile.fotoPerfil) && avatarInitial(profile.username || profile.handle)}
                   </button>
                   <button
                     type="button"
@@ -1972,7 +1972,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
               <div
                 className="post-card-avatar"
                 style={{
-                  backgroundImage: selectedPostData.fotoPerfil ? `url("${selectedPostData.fotoPerfil}")` : "none",
+                  backgroundImage: usableFotoPerfil(selectedPostData.fotoPerfil) ? `url("${usableFotoPerfil(selectedPostData.fotoPerfil)}")` : "none",
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -2077,7 +2077,7 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
               <div
                 className="post-card-avatar"
                 style={{
-                  backgroundImage: commentsPost.fotoPerfil ? `url("${commentsPost.fotoPerfil}")` : "none",
+                  backgroundImage: usableFotoPerfil(commentsPost.fotoPerfil) ? `url("${usableFotoPerfil(commentsPost.fotoPerfil)}")` : "none",
                 }}
               />
               <div>
