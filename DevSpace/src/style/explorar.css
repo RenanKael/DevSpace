@@ -226,9 +226,130 @@
   font-size: 0.78rem;
 }
 
+.group-feed-head .group-post-time {
+  margin-left: auto;
+}
+
 .group-post-likes {
   color: #8f9bb0;
   font-size: 0.8rem;
+}
+
+.opinion-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.opinion-like-btn,
+.opinion-reply-btn {
+  border: none;
+  background: transparent;
+  color: #9aa0a6;
+  padding: 4px 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.opinion-like-btn:hover,
+.opinion-reply-btn:hover {
+  color: #fff;
+}
+
+.opinion-like-btn.liked {
+  color: #ff6b81;
+}
+
+.fake-opinion-replies {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #1f242e;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fake-opinion-reply {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fake-opinion-reply-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.fake-opinion-reply-body strong {
+  font-size: 0.85rem;
+}
+
+.fake-opinion-reply-body span {
+  color: #8f9bb0;
+  font-size: 0.8rem;
+  margin-left: 4px;
+}
+
+.fake-opinion-reply-body p {
+  margin: 2px 0 0;
+  color: #d9dde5;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.fake-opinion-reply-delete {
+  border: none;
+  background: transparent;
+  color: #8f9bb0;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.fake-opinion-reply-delete:hover {
+  color: #ff6b81;
+}
+
+.fake-opinion-reply-form {
+  display: flex;
+  gap: 8px;
+}
+
+.fake-opinion-reply-form input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #2c3548;
+  background: #0f141d;
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.fake-opinion-reply-form input:focus {
+  border-color: var(--ds-accent);
+}
+
+.fake-opinion-reply-form button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #4d8dff, #2f74ff);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fake-opinion-reply-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .group-feed-subhead {

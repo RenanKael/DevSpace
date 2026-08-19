@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/explorar.css";
+import "../style/home.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
-import { createPost, fetchPosts, fetchUsers } from "../api";
+import { createPost, fetchPosts, fetchUsers, likePost, addComment, likeComment, deleteComment } from "../api";
 import PageHeader from "../components/PageHeader";
+import PostComments from "../components/PostComments";
 import { placeholderAvatarUri, usableFotoPerfil } from "../utils/avatar";
 
 const GROUPS = [
@@ -148,6 +150,7 @@ function buildFakeGroupPost(entry, groupId, index) {
   return {
     ...entry,
     handle,
+    fakeId: `${groupId}-${handle}-${index}`,
     avatar: userAvatar(handle),
     time: FAKE_TIME_LABELS[fakeStat(`${groupId}-${handle}-${index}`, FAKE_TIME_LABELS.length)],
     likes: 3 + fakeStat(`${groupId}-${handle}-likes`, 40),
@@ -178,6 +181,24 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
   const [opinionError, setOpinionError] = useState("");
   const [publishingOpinion, setPublishingOpinion] = useState(false);
   const [userTick, setUserTick] = useState(0);
+  const [expandedRealPostId, setExpandedRealPostId] = useState(null);
+  const [expandedFakeId, setExpandedFakeId] = useState(null);
+  const [fakeReplyText, setFakeReplyText] = useState("");
+  const [fakeInteractions, setFakeInteractions] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("explorarFakeOpinionInteractions")) || {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("explorarFakeOpinionInteractions", JSON.stringify(fakeInteractions));
+    } catch {
+      // armazenamento cheio -- reacoes fake sao dispensaveis, ignora
+    }
+  }, [fakeInteractions]);
 
   // currentUser e lido direto do storage a cada render (nao vem de estado);
   // perfil.jsx dispara esse evento na mesma aba ao salvar/corrigir a foto,
@@ -334,8 +355,10 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
   }, [selectedGroupId, blockedHandles, blockedEmails, backendPosts]);
 
   function contarPostsDoGrupo(groupId) {
-    return (backendPosts.length > 0 ? backendPosts : JSON.parse(localStorage.getItem("posts")) || [])
+    const reais = (backendPosts.length > 0 ? backendPosts : JSON.parse(localStorage.getItem("posts")) || [])
       .filter((post) => post?.tag === groupId && post?.texto && !ehBloqueado(post)).length;
+    const fakes = GROUPS.find((g) => g.id === groupId)?.posts.length || 0;
+    return reais + fakes;
   }
 
   async function handlePublicarOpiniao() {
@@ -385,6 +408,228 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
     } finally {
       setPublishingOpinion(false);
     }
+  }
+
+  function isPostLikedByMe(post) {
+    if (!currentUser) return false;
+    const meuHandle = normalizeHandle(currentUser.handle || currentUser.username);
+    return (Array.isArray(post.likedBy) ? post.likedBy : []).some((h) => normalizeHandle(h) === meuHandle);
+  }
+
+  function toggleOpinionLike(post) {
+    if (!logado || !currentUser?.id) {
+      onRequireAuth?.("Entre para curtir opiniões.");
+      return;
+    }
+    const jaCurtido = isPostLikedByMe(post);
+    const meuHandle = normalizeHandle(currentUser.handle || currentUser.username);
+    setBackendPosts((prev) =>
+      prev.map((p) =>
+        p.id === post.id
+          ? {
+              ...p,
+              likes: Number(p.likes || 0) + (jaCurtido ? -1 : 1),
+              likedBy: jaCurtido
+                ? (p.likedBy || []).filter((h) => normalizeHandle(h) !== meuHandle)
+                : [...(p.likedBy || []), meuHandle],
+            }
+          : p
+      )
+    );
+    likePost(post.id, currentUser.id)
+      .then(({ liked, likes }) => {
+        setBackendPosts((prev) =>
+          prev.map((p) => (p.id === post.id ? { ...p, likes, likedBy: liked ? [...new Set([...(p.likedBy || []), meuHandle])] : (p.likedBy || []).filter((h) => normalizeHandle(h) !== meuHandle) } : p))
+        );
+      })
+      .catch(() => {
+        // reverte a curtida otimista se o backend recusar
+        setBackendPosts((prev) =>
+          prev.map((p) =>
+            p.id === post.id
+              ? {
+                  ...p,
+                  likes: Number(p.likes || 0) + (jaCurtido ? 1 : -1),
+                  likedBy: jaCurtido
+                    ? [...(p.likedBy || []), meuHandle]
+                    : (p.likedBy || []).filter((h) => normalizeHandle(h) !== meuHandle),
+                }
+              : p
+          )
+        );
+      });
+  }
+
+  function addOpinionComment(postId, texto, parentId = null, imagem = null) {
+    if (!logado || !currentUser?.id) {
+      onRequireAuth?.("Entre para responder.");
+      return false;
+    }
+    const trimmed = texto.trim();
+    if (!trimmed && !imagem) return false;
+
+    const comentarioOtimista = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      username: currentUser.username || "Usuário",
+      handle: normalizeHandle(currentUser.handle || currentUser.username),
+      email: currentUser.email || "",
+      fotoPerfil: currentUser.fotoPerfil || "",
+      texto: trimmed,
+      imagem: imagem || "",
+      criadoEm: new Date().toISOString(),
+      parentId,
+      likes: 0,
+      likedBy: [],
+    };
+
+    setBackendPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const commentsList = [comentarioOtimista, ...(Array.isArray(p.commentsList) ? p.commentsList : [])];
+        return { ...p, commentsList, comments: commentsList.length };
+      })
+    );
+
+    addComment(postId, currentUser.id, trimmed, parentId, imagem)
+      .then((fullPost) => {
+        setBackendPosts((prev) => prev.map((p) => (p.id === postId ? fullPost : p)));
+      })
+      .catch(() => {
+        // resposta otimista ja aplicada; se o backend recusar, o proximo refresh do feed corrige sozinho
+      });
+
+    return true;
+  }
+
+  function toggleOpinionCommentLike(postId, commentId) {
+    if (!logado || !currentUser?.id) {
+      onRequireAuth?.("Entre para curtir respostas.");
+      return;
+    }
+    likeComment(commentId, currentUser.id)
+      .then((fullPost) => {
+        setBackendPosts((prev) => prev.map((p) => (p.id === postId ? fullPost : p)));
+      })
+      .catch(() => {});
+  }
+
+  function deleteOpinionComment(postId, commentId) {
+    deleteComment(commentId)
+      .then((fullPost) => {
+        setBackendPosts((prev) => prev.map((p) => (p.id === postId ? fullPost : p)));
+      })
+      .catch(() => {});
+  }
+
+  function getFakeInteraction(fakeId) {
+    return fakeInteractions[fakeId] || { likedByMe: false, replies: [] };
+  }
+
+  function toggleFakeLike(fakeId) {
+    if (!logado) {
+      onRequireAuth?.("Entre para curtir opiniões.");
+      return;
+    }
+    setFakeInteractions((prev) => {
+      const atual = prev[fakeId] || { likedByMe: false, replies: [] };
+      return { ...prev, [fakeId]: { ...atual, likedByMe: !atual.likedByMe } };
+    });
+  }
+
+  function addFakeReply(fakeId) {
+    if (!logado || !currentUser) {
+      onRequireAuth?.("Entre para responder.");
+      return;
+    }
+    const trimmed = fakeReplyText.trim();
+    if (!trimmed) return;
+    const reply = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      texto: trimmed,
+      username: currentUser.username || "Usuário",
+      handle: normalizeHandle(currentUser.handle || currentUser.username),
+      fotoPerfil: currentUser.fotoPerfil || "",
+      criadoEm: new Date().toISOString(),
+    };
+    setFakeInteractions((prev) => {
+      const atual = prev[fakeId] || { likedByMe: false, replies: [] };
+      return { ...prev, [fakeId]: { ...atual, replies: [...atual.replies, reply] } };
+    });
+    setFakeReplyText("");
+  }
+
+  function deleteFakeReply(fakeId, replyId) {
+    setFakeInteractions((prev) => {
+      const atual = prev[fakeId];
+      if (!atual) return prev;
+      return { ...prev, [fakeId]: { ...atual, replies: atual.replies.filter((r) => r.id !== replyId) } };
+    });
+  }
+
+  function renderFakeOpinionActions(fake) {
+    const interaction = getFakeInteraction(fake.fakeId);
+    const displayLikes = fake.likes + (interaction.likedByMe ? 1 : 0);
+    const isExpanded = expandedFakeId === fake.fakeId;
+    return (
+      <>
+        <div className="opinion-actions">
+          <button
+            type="button"
+            className={`opinion-like-btn ${interaction.likedByMe ? "liked" : ""}`}
+            onClick={() => toggleFakeLike(fake.fakeId)}
+          >
+            ❤️ {displayLikes}
+          </button>
+          <button
+            type="button"
+            className="opinion-reply-btn"
+            onClick={() => setExpandedFakeId((id) => (id === fake.fakeId ? null : fake.fakeId))}
+          >
+            💬 Responder{interaction.replies.length > 0 ? ` (${interaction.replies.length})` : ""}
+          </button>
+        </div>
+        {isExpanded && (
+          <div className="fake-opinion-replies">
+            {interaction.replies.map((reply) => (
+              <div key={reply.id} className="fake-opinion-reply">
+                <span
+                  className="group-post-avatar"
+                  style={{ backgroundImage: `url("${usableFotoPerfil(reply.fotoPerfil) || userAvatar(reply.handle)}")` }}
+                />
+                <div className="fake-opinion-reply-body">
+                  <strong>{reply.username}</strong> <span>@{reply.handle}</span>
+                  <p>{reply.texto}</p>
+                </div>
+                {currentUser && normalizeHandle(currentUser.handle || currentUser.username) === reply.handle && (
+                  <button
+                    type="button"
+                    className="fake-opinion-reply-delete"
+                    onClick={() => deleteFakeReply(fake.fakeId, reply.id)}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <div className="fake-opinion-reply-form">
+              <input
+                type="text"
+                value={fakeReplyText}
+                onChange={(e) => setFakeReplyText(e.target.value)}
+                placeholder={logado ? "Escreva uma resposta" : "Entre para responder"}
+                disabled={!logado}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") addFakeReply(fake.fakeId);
+                }}
+              />
+              <button type="button" disabled={!logado || !fakeReplyText.trim()} onClick={() => addFakeReply(fake.fakeId)}>
+                Responder
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
@@ -536,9 +781,58 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                       </button>
                     </div>
                     <p>{post.texto}</p>
+                    <div className="opinion-actions">
+                      <button
+                        type="button"
+                        className={`opinion-like-btn ${isPostLikedByMe(post) ? "liked" : ""}`}
+                        onClick={() => toggleOpinionLike(post)}
+                      >
+                        ❤️ {Number(post.likes || 0)}
+                      </button>
+                      <button
+                        type="button"
+                        className="opinion-reply-btn"
+                        onClick={() => setExpandedRealPostId((id) => (id === post.id ? null : post.id))}
+                      >
+                        💬 Responder{post.commentsList?.length ? ` (${post.commentsList.length})` : ""}
+                      </button>
+                    </div>
+                    <PostComments
+                      postId={post.id}
+                      isExpanded={expandedRealPostId === post.id}
+                      comments={Array.isArray(post.commentsList) ? post.commentsList : []}
+                      onAddComment={addOpinionComment}
+                      onDeleteComment={deleteOpinionComment}
+                      onToggleCommentLike={toggleOpinionCommentLike}
+                      usuario={currentUser}
+                      onOpenUserProfile={onOpenUserProfile}
+                      onRequireAuth={onRequireAuth}
+                    />
                   </article>
                 ))}
-                {taggedRealPosts.length === 0 && (
+                {selectedGroup.posts.map((entry, index) => {
+                  const fake = buildFakeGroupPost(entry, selectedGroup.id, index);
+                  return (
+                    <article key={`opiniao-fake-${fake.handle}-${index}`} className="group-feed-post">
+                      <div className="group-feed-head">
+                        <div
+                          className="group-feed-avatar"
+                          style={{ backgroundImage: `url("${fake.avatar}")` }}
+                        />
+                        <button
+                          className="group-post-user"
+                          onClick={() => onOpenUserProfile?.({ username: fake.user, handle: fake.handle })}
+                        >
+                          {fake.user} <span>@{fake.handle}</span>
+                        </button>
+                        <span className="group-post-time">{fake.time}</span>
+                      </div>
+                      <p>{fake.text}</p>
+                      {renderFakeOpinionActions(fake)}
+                    </article>
+                  );
+                })}
+                {taggedRealPosts.length === 0 && selectedGroup.posts.length === 0 && (
                   <div className="explore-empty-card">
                     <strong>Ainda sem opiniões publicadas</strong>
                     <p>Seja a primeira pessoa a comentar sobre este assunto.</p>
@@ -565,7 +859,7 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                         </div>
                       </div>
                       <p>{fake.text}</p>
-                      <span className="group-post-likes">💬 {fake.likes} pessoas comentaram algo parecido</span>
+                      {renderFakeOpinionActions(fake)}
                     </article>
                   );
                 })}
