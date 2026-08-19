@@ -233,6 +233,7 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
       // o backend (fonte da verdade) e atualiza so se algo realmente mudou,
       // sem travar a exibicao inicial.
       if (normalized.id) {
+        const isOwn = !viewedUser;
         let cancelado = false;
         fetchUser(normalized.handle)
           .then((remote) => {
@@ -244,6 +245,32 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
             }
             setUsuario((prev) => (prev && prev.id === normalized.id ? { ...prev, fotoPerfil: remoteFotoPerfil || prev.fotoPerfil, fotoCapa: remoteFotoCapa || prev.fotoCapa } : prev));
             setForm((prev) => (prev && prev.id === normalized.id ? { ...prev, fotoPerfil: remoteFotoPerfil || prev.fotoPerfil, fotoCapa: remoteFotoCapa || prev.fotoCapa } : prev));
+
+            // Corrigir so o estado em memoria desta pagina nao adianta: o
+            // resto do app (topo com o avatar, feed, explorar) le a foto
+            // direto do localStorage/usuarios, entao sem gravar de volta ali
+            // essas telas continuam mostrando a versao velha ate um F5 --
+            // e mesmo apos o F5, se o cache local nunca foi corrigido, o
+            // problema persiste para sempre.
+            try {
+              const usuariosCache = JSON.parse(localStorage.getItem("usuarios")) || [];
+              const usuariosCorrigidos = usuariosCache.map((u) =>
+                u.id === normalized.id ? { ...u, fotoPerfil: remoteFotoPerfil || u.fotoPerfil || "", fotoCapa: remoteFotoCapa || u.fotoCapa || "" } : u
+              );
+              localStorage.setItem("usuarios", JSON.stringify(usuariosCorrigidos));
+
+              if (isOwn) {
+                const patch = { fotoPerfil: remoteFotoPerfil || "", fotoCapa: remoteFotoCapa || "" };
+                const localLogado = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
+                if (localLogado) localStorage.setItem("usuarioLogado", JSON.stringify({ ...localLogado, ...patch }));
+                const sessionLogado = JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
+                if (sessionLogado) sessionStorage.setItem("usuarioLogado", JSON.stringify({ ...sessionLogado, ...patch }));
+              }
+            } catch {
+              // cache local cheio/indisponivel -- a tela atual ja foi corrigida, so o resto do app que fica pra tras
+            }
+
+            window.dispatchEvent(new CustomEvent("devspaceUserUpdated"));
           })
           .catch(() => {});
         return () => {
@@ -626,6 +653,12 @@ export default function Perfil({ onLogout, irHome, irPerfil, irExplorar, irChat,
     }
 
     sincronizarReferenciasDoUsuario(usuario, atualizado);
+
+    // O evento nativo "storage" so dispara em OUTRAS abas -- nesta mesma aba,
+    // Home.jsx/Topbar carregaram o usuario uma vez no mount e nao percebem
+    // essa gravacao sozinhos. Sem avisar explicitamente, a foto so aparece
+    // atualizada ali depois de um F5.
+    window.dispatchEvent(new CustomEvent("devspaceUserUpdated"));
 
     setUsuarioLogado(atualizado);
     setUsuario(atualizado);

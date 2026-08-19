@@ -1265,11 +1265,24 @@ export default function Home({ irPerfil, irExplorar, irChat, onOpenPost, refresh
       setPosts(Array.isArray(saved) ? sortPostsByDate(hydratePostsForDisplay(saved, savedUsers)) : []);
     };
 
+    // "storage" so dispara em OUTRAS abas; perfil.jsx dispara esse evento
+    // customizado na MESMA aba depois de salvar/corrigir a foto de perfil,
+    // pra Topbar e o feed atualizarem sem precisar de F5.
+    const handleUserUpdated = () => {
+      const localUser = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
+      const sessionUser = JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
+      setUsuario(localUser || sessionUser || null);
+      const savedUsers = JSON.parse(localStorage.getItem("usuarios") || "null");
+      if (Array.isArray(savedUsers)) setUsuarios(savedUsers);
+    };
+
     window.addEventListener("storage", handleStorage);
     window.addEventListener("devspacePostsUpdated", handlePostsUpdated);
+    window.addEventListener("devspaceUserUpdated", handleUserUpdated);
     return () => {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("devspacePostsUpdated", handlePostsUpdated);
+      window.removeEventListener("devspaceUserUpdated", handleUserUpdated);
     };
   }, []);
 

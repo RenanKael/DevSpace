@@ -132,10 +132,24 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
   const [opinionText, setOpinionText] = useState("");
   const [opinionError, setOpinionError] = useState("");
   const [publishingOpinion, setPublishingOpinion] = useState(false);
+  const [userTick, setUserTick] = useState(0);
 
-  const currentUser =
-    JSON.parse(localStorage.getItem("usuarioLogado") || "null") ||
-    JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
+  // currentUser e lido direto do storage a cada render (nao vem de estado);
+  // perfil.jsx dispara esse evento na mesma aba ao salvar/corrigir a foto,
+  // entao um contador basta pra forcar o re-render que releria o valor novo.
+  useEffect(() => {
+    const handleUserUpdated = () => setUserTick((n) => n + 1);
+    window.addEventListener("devspaceUserUpdated", handleUserUpdated);
+    return () => window.removeEventListener("devspaceUserUpdated", handleUserUpdated);
+  }, []);
+
+  const currentUser = useMemo(() => {
+    return (
+      JSON.parse(localStorage.getItem("usuarioLogado") || "null") ||
+      JSON.parse(sessionStorage.getItem("usuarioLogado") || "null")
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userTick]);
 
   const blockedHandles = useMemo(
     () => new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase())),
