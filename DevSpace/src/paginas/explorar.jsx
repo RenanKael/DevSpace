@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../style/explorar.css";
 import { useSidebarOpen } from "../hooks/useSidebarOpen";
-import { fetchPosts, fetchUsers } from "../api";
+import { createPost, fetchPosts, fetchUsers } from "../api";
 import PageHeader from "../components/PageHeader";
 import { placeholderAvatarUri, usableFotoPerfil } from "../utils/avatar";
 
@@ -85,6 +85,30 @@ function fakeCover(handle) {
   return `https://picsum.photos/seed/${encodeURIComponent((handle || "usuario") + "-explore")}/900/260`;
 }
 
+const FAKE_TIME_LABELS = ["há 1h", "há 2h", "há 3h", "há 5h", "há 8h", "ontem", "há 2 dias"];
+
+// Deriva numeros "aleatorios" estaveis a partir do handle + indice, pra cada
+// perfil fake sempre mostrar o mesmo horario/curtidas entre renders.
+function fakeStat(seed, mod) {
+  const text = String(seed || "");
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % mod;
+}
+
+function buildFakeGroupPost(entry, groupId, index) {
+  const handle = normalizeHandle(entry.handle);
+  return {
+    ...entry,
+    handle,
+    avatar: userAvatar(handle),
+    time: FAKE_TIME_LABELS[fakeStat(`${groupId}-${handle}-${index}`, FAKE_TIME_LABELS.length)],
+    likes: 3 + fakeStat(`${groupId}-${handle}-likes`, 40),
+  };
+}
+
 function isLowQualityExploreProfile(profile) {
   const handle = normalizeHandle(profile?.handle || profile?.username);
   const username = String(profile?.username || "").toLowerCase();
@@ -98,13 +122,20 @@ function isLowQualityExploreProfile(profile) {
   return false;
 }
 
-export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenUserProfile, logado, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, irConfiguracoes, blockedUsers = [] }) {
+export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenUserProfile, logado, onRequireAuth, contactRequests, onAcceptContact, onDeclineContact, unreadConversas, onOpenUnreadConversa, activityNotifications, onOpenActivityNotification, irNotificacoes, irConfiguracoes, blockedUsers = [], onPostSaved }) {
   const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const [tab, setTab] = useState("momento");
   const [search, setSearch] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [backendPosts, setBackendPosts] = useState([]);
   const [backendUsers, setBackendUsers] = useState([]);
+  const [opinionText, setOpinionText] = useState("");
+  const [opinionError, setOpinionError] = useState("");
+  const [publishingOpinion, setPublishingOpinion] = useState(false);
+
+  const currentUser =
+    JSON.parse(localStorage.getItem("usuarioLogado") || "null") ||
+    JSON.parse(sessionStorage.getItem("usuarioLogado") || "null");
 
   const blockedHandles = useMemo(
     () => new Set(blockedUsers.map((u) => (u.handle || "").toLowerCase())),
@@ -248,6 +279,55 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
       .filter((post) => post?.tag === groupId && post?.texto && !ehBloqueado(post)).length;
   }
 
+  async function handlePublicarOpiniao() {
+    if (!logado) {
+      onRequireAuth?.("Entre na sua conta para publicar sua opinião.");
+      return;
+    }
+    const texto = opinionText.trim();
+    if (!texto) {
+      setOpinionError("Escreva algo para publicar.");
+      return;
+    }
+    if (publishingOpinion || !selectedGroupId) return;
+
+    setPublishingOpinion(true);
+    setOpinionError("");
+    try {
+      const novoPost = {
+        username: currentUser?.username || "Usuário",
+        handle: normalizeHandle(currentUser?.handle || currentUser?.username || "usuario"),
+        email: currentUser?.email || "",
+        fotoPerfil: currentUser?.fotoPerfil || "",
+        texto,
+        imagem: "",
+        anexo: null,
+        poll: null,
+        tag: selectedGroupId,
+        agendadoPara: "",
+        criadoEm: new Date().toISOString(),
+        comments: 0,
+        commentsList: [],
+        isSeedFake: false,
+        shares: 0,
+        likes: 0,
+        bookmarks: 0,
+        likedBy: [],
+        savedBy: [],
+        repostedBy: [],
+      };
+
+      const createdPost = await createPost(novoPost);
+      onPostSaved?.(createdPost);
+      setBackendPosts((prev) => [createdPost, ...prev]);
+      setOpinionText("");
+    } catch (error) {
+      setOpinionError(error.message || "Não foi possível publicar sua opinião agora.");
+    } finally {
+      setPublishingOpinion(false);
+    }
+  }
+
   return (
     <div className="home">
       <Sidebar
@@ -350,6 +430,37 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
               <h2>{selectedGroup.title}</h2>
               <p className="group-subtitle">{selectedGroup.subtitle}</p>
 
+              <div className="opinion-composer">
+                <span
+                  className="group-post-avatar"
+                  style={{
+                    backgroundImage: `url("${usableFotoPerfil(currentUser?.fotoPerfil) || userAvatar(currentUser?.handle || currentUser?.username || "voce")}")`,
+                  }}
+                />
+                <div className="opinion-composer-body">
+                  <textarea
+                    placeholder={`O que você pensa sobre ${selectedGroup.title.toLowerCase()}?`}
+                    value={opinionText}
+                    onChange={(e) => {
+                      setOpinionText(e.target.value);
+                      if (opinionError) setOpinionError("");
+                    }}
+                    rows={2}
+                  />
+                  {opinionError && <p className="opinion-composer-error">{opinionError}</p>}
+                  <div className="opinion-composer-actions">
+                    <button
+                      type="button"
+                      disabled={publishingOpinion || !opinionText.trim()}
+                      onClick={handlePublicarOpiniao}
+                    >
+                      {publishingOpinion ? "Publicando..." : "Publicar opinião"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="group-feed-subhead">Opiniões da comunidade</h3>
               <div className="group-feed">
                 {taggedRealPosts.map((post) => (
                   <article key={`real-${post.id}`} className="group-feed-post">
@@ -370,10 +481,35 @@ export default function Explorar({ irHome, irPerfil, irChat, onOpenPost, onOpenU
                 ))}
                 {taggedRealPosts.length === 0 && (
                   <div className="explore-empty-card">
-                    <strong>Ainda sem discussões neste assunto</strong>
-                    <p>Publique com a tag correspondente para aparecer aqui.</p>
+                    <strong>Ainda sem opiniões publicadas</strong>
+                    <p>Seja a primeira pessoa a comentar sobre este assunto.</p>
                   </div>
                 )}
+              </div>
+
+              <h3 className="group-feed-subhead">Comentários em destaque</h3>
+              <div className="group-posts">
+                {selectedGroup.posts.map((entry, index) => {
+                  const fake = buildFakeGroupPost(entry, selectedGroup.id, index);
+                  return (
+                    <article key={`fake-${fake.handle}-${index}`} className="group-post">
+                      <div className="group-post-head">
+                        <span className="group-post-avatar" style={{ backgroundImage: `url("${fake.avatar}")` }} />
+                        <div className="group-post-head-text">
+                          <button
+                            className="group-post-user"
+                            onClick={() => onOpenUserProfile?.({ username: fake.user, handle: fake.handle })}
+                          >
+                            {fake.user} <span>@{fake.handle}</span>
+                          </button>
+                          <span className="group-post-time">{fake.time}</span>
+                        </div>
+                      </div>
+                      <p>{fake.text}</p>
+                      <span className="group-post-likes">💬 {fake.likes} pessoas comentaram algo parecido</span>
+                    </article>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -1237,6 +1237,7 @@ function App() {
           irNotificacoes={() => navigate({ pagina: "notificacoes", perfilAlvo: null })}
           irConfiguracoes={irParaConfiguracoes}
           blockedUsers={blockedUsers}
+          onPostSaved={handlePostCreated}
         />
 
         <PostModal

@@ -195,6 +195,109 @@
 .group-post p {
   color: #ddd;
   line-height: 1.45;
+  margin-bottom: 6px;
+}
+
+.group-post-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+.group-post-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.group-post-avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: #242832;
+}
+
+.group-post-time {
+  color: #6c7686;
+  font-size: 0.78rem;
+}
+
+.group-post-likes {
+  color: #8f9bb0;
+  font-size: 0.8rem;
+}
+
+.group-feed-subhead {
+  margin: 18px 0 4px;
+  font-size: 0.86rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ds-muted);
+}
+
+.opinion-composer {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-2);
+  border-radius: 14px;
+}
+
+.opinion-composer-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.opinion-composer textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 44px;
+  border: 1px solid #2c3548;
+  background: #0f141d;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.94rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.opinion-composer textarea:focus {
+  border-color: var(--ds-accent);
+  box-shadow: 0 0 0 3px var(--ds-accent-soft);
+}
+
+.opinion-composer-error {
+  color: #ff8080;
+  font-size: 0.82rem;
+  margin: 6px 0 0;
+}
+
+.opinion-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.opinion-composer-actions button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #4d8dff, #2f74ff);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.opinion-composer-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .group-detail {
